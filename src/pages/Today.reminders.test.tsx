@@ -90,51 +90,62 @@ describe("reminder centre (concept F): one email per person", () => {
     expect(document.querySelector(".bts, .bts-row")).toBeNull()
   })
 
-  it("groups one person's tasks into one email, with a reason chip per task and the person's other open work", () => {
+  it("groups one person's tasks into one row with a reason chip per task; the head is one short line", () => {
     const s = fixture()
     show({ ...s, today: s.nodes[0].clubDeadline! })
     expect(people()).toHaveLength(1)
     const jordan = within(people()[0])
     expect(people()[0].dataset.recipient).toBe("jordan")
     expect(jordan.getByText("Jordan Patel")).toBeTruthy()
-    expect(jordan.getByText("Up next")).toBeTruthy()
     expect(jordan.getAllByTestId("rq-person-task").map(t => t.dataset.node)).toEqual(["room", "room-two"])
     expect(jordan.getAllByText("Due today")).toHaveLength(2)
-    expect(section("rq-summary").getByText("Review 1 email")).toBeTruthy()
-    expect(screen.getByTestId("rq-summary").textContent).toContain("2 tasks · 0 sent today")
+    expect(within(screen.getByTestId("rq-summary")).getByText("1 person to remind")).toBeTruthy()
+    // S2: no mode chip, progress dots, other-task count, reminder-limit line or next check while there is something to send.
+    for (const id of ["reminder-mode-chip", "change-mode", "rq-held", "rq-next"]) expect(screen.queryByTestId(id)).toBeNull()
+    expect(document.querySelector(".dg-steps, .dg-more")).toBeNull()
+    expect(screen.queryByText(/other open task/)).toBeNull()
     expect(screen.queryByTestId("rq-fix")).toBeNull()
     expect(screen.queryByTestId("rq-history")).toBeNull()
   })
 
-  it("counts emails as people and keeps problems apart under Fix first (seed club: 3 emails, 5 tasks, 8 to fix)", () => {
+  it("counts people and keeps problems apart under Fix first (seed club: 3 people, 5 tasks, 8 to fix)", () => {
     const s = seedClub()
     show(s)
     const groups = digest.planReminderDigests(s).groups
     expect(people().map(p => p.dataset.recipient)).toEqual(groups.map(g => g.recipientId))
-    expect(section("rq-summary").getByText(`Review ${groups.length} emails`)).toBeTruthy()
-    expect(screen.getByTestId("rq-summary").textContent).toContain(`${groups.reduce((n, g) => n + g.candidates.length, 0)} tasks`)
+    expect(within(screen.getByTestId("rq-summary")).getByText(`${groups.length} people to remind`)).toBeTruthy()
     expect(screen.getAllByTestId("rq-person-task")).toHaveLength(5)
     const fix = within(screen.getByTestId("rq-fix"))
     expect(screen.getByRole("heading", { name: /Fix first/ }).textContent).toBe("Fix first8")
     expect(fix.getAllByTestId("rq-row")).toHaveLength(8)
-    expect(fix.getAllByText("Pick who it waits on").length).toBeGreaterThan(0)
+    expect(fix.getAllByRole("button", { name: /^Waiting on whom\?: / }).length).toBeGreaterThan(0)
+    expect(fix.queryByText("Pick who it waits on")).toBeNull()
     expect(fix.getAllByText("No owner")).toHaveLength(2)
     expect(fix.getAllByText("Stuck")).toHaveLength(2)
     const fixed = new Set(fix.getAllByTestId("rq-row").map(r => r.dataset.node))
     expect(screen.getAllByTestId("rq-person-task").some(t => fixed.has(t.dataset.node))).toBe(false)
-    // B3: today's tasks are not repeated as coming up; one quiet line instead of a list.
+    // B3: today's tasks are not repeated as coming up; the next check shows only when nothing is left to send.
     expect(screen.queryByTestId("rq-this-week")).toBeNull()
-    expect(screen.getByTestId("rq-next").textContent).toMatch(/^Next check: (Mon|Tue|Wed|Thu|Fri|Sat|Sun), Nov \d+ · \d+ planned this week$/)
-    expect(screen.getByText("Also has 26 other open tasks")).toBeTruthy()
+    expect(screen.queryByTestId("rq-next")).toBeNull()
   })
 
-  it("review_then_auto: Send all N emails records every group through the digest service and says nothing was sent", async () => {
+  it("shows the next check only when there is nothing to send today", () => {
+    const s = seedClub()
+    const empty = { ...s, nodes: s.nodes.map(n => ({ ...n, status: "done" as const })) }
+    show(empty)
+    expect(screen.getByTestId("rq-summary").textContent).toContain("Nothing to send today.")
+    expect(screen.queryAllByTestId("rq-person")).toHaveLength(0)
+    expect(screen.queryByTestId("send-all-digests")).toBeNull()
+  })
+
+  it("review_then_auto: Send all records every group through the digest service", async () => {
     sendAllSucceeds()
     const s = seedClub("review_then_auto")
     show(s)
     const ids = digest.planReminderDigests(s).groups.map(g => g.id)
-    fireEvent.click(screen.getByRole("button", { name: "Send all 3 emails" }))
-    await screen.findByText("3 emails recorded. Demo: nothing is sent.")
+    expect(screen.getAllByRole("button", { name: /^Send all/ })).toHaveLength(1)
+    fireEvent.click(screen.getByRole("button", { name: "Send all" }))
+    await screen.findByText("Sent to 3 people.")
     expect(sendAll).toHaveBeenCalledTimes(1)
     expect(sendAll.mock.calls[0].slice(1, 4)).toEqual([ids, window.location.origin, "platypus"])
     expect(fetch).not.toHaveBeenCalled()
@@ -144,25 +155,91 @@ describe("reminder centre (concept F): one email per person", () => {
     sendAll.mockResolvedValueOnce({ recordedGroupIds: [], failedGroupIds: ["x"], error: "Not implemented yet." })
     show(seedClub("review_then_auto"))
     fireEvent.click(screen.getByTestId("send-all-digests"))
-    await screen.findByText("0 emails recorded. Demo: nothing is sent. Not implemented yet.")
+    await screen.findByText("Not implemented yet.")
+    expect(screen.queryByText(/^Sent to/)).toBeNull()
   })
 
-  it("review_then_self: Open draft 1 of N opens the first person's email in the rail", async () => {
+  it("a row expands in place to show that person's full email, without opening the rail", async () => {
+    show(seedClub("review_then_auto"))
+    const maya = within(people()[0])
+    const toggle = maya.getByRole("button", { name: "Email to Maya Chen" })
+    expect(toggle.getAttribute("aria-expanded")).toBe("false")
+    const region = document.getElementById(toggle.getAttribute("aria-controls")!)!
+    expect(region.hidden).toBe(true)
+    expect(prepare).not.toHaveBeenCalled()
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute("aria-expanded")).toBe("true")
+    expect(region.hidden).toBe(false)
+    await within(region).findByText("To: maya@example.org")
+    expect(within(region).getByRole("heading", { name: "1 Platypus task need you" })).toBeTruthy()
+    expect(within(region).getAllByRole("link", { name: "Open task" })).toHaveLength(1)
+    expect(prepare.mock.calls[0][3]).toBe("platypus")
+    expect(rail.detail).toBeNull()
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute("aria-expanded")).toBe("false")
+    expect(region.hidden).toBe(true)
+  })
+
+  it("review_then_auto: a row's Send records that person's email once through the same record action", async () => {
+    const s = seedClub("review_then_auto")
+    show(s)
+    const send = within(people()[1]).getByRole("button", { name: "Send to Jordan" })
+    expect(send.textContent).toBe("Send")
+    // Collapsed: the email is prepared on demand, then recorded; a double click records nothing more.
+    fireEvent.click(send, { detail: 1 })
+    fireEvent.click(send, { detail: 2 })
+    await waitFor(() => expect(record).toHaveBeenCalledTimes(1))
+    expect(record.mock.calls[0][1].map(p => p.recipientId)).toEqual(["jordan"])
+    expect(record.mock.calls[0][2]).toBe("platypus")
+    expect(prepare.mock.calls.map(c => c[3])).toEqual(["platypus"])
+    // Expanded: the email on screen is the one recorded.
+    const maya = within(people()[0])
+    fireEvent.click(maya.getByRole("button", { name: "Email to Maya Chen" }))
+    await maya.findByText("To: maya@example.org")
+    fireEvent.click(maya.getByRole("button", { name: "Send to Maya" }))
+    await waitFor(() => expect(record).toHaveBeenCalledTimes(2))
+    expect(prepare).toHaveBeenCalledTimes(2)
+    expect(record.mock.calls[1][1][0].digest.subject).toBe("1 Platypus task need you")
+    await waitFor(() => expect(document.activeElement).toBe(maya.getByRole("button", { name: "Email to Maya Chen" })))
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it("review_then_auto: a failed row Send shows the error on that row and records nothing", async () => {
+    record.mockReturnValueOnce({ recordedGroupIds: [], failedGroupIds: ["x"], error: "This email changed. Please review the latest plan." })
+    show(seedClub("review_then_auto"))
+    fireEvent.click(within(people()[1]).getByRole("button", { name: "Send to Jordan" }))
+    await within(people()[1]).findByText("This email changed. Please review the latest plan.")
+    expect(latest.reminderRuntime!.digests ?? []).toEqual([])
+  })
+
+  it("review_then_self: each row opens in Gmail; I sent this appears only after the draft was opened, then records as manual", async () => {
     show(seedClub("review_then_self"))
     expect(screen.queryByTestId("send-all-digests")).toBeNull()
-    fireEvent.click(screen.getByRole("button", { name: "Open draft 1 of 3" }))
-    expect(rail.detail).toEqual({ kind: "reminderDigest", recipientId: "maya" })
-    const panel = within(await screen.findByTestId("digest-panel"))
-    expect(panel.getByText("Email 1 of 3 · to Maya")).toBeTruthy()
-    expect(people()[0].dataset.state).toBe("reviewing")
-    await panel.findByText("1 Platypus task need you")
+    expect(screen.queryByRole("button", { name: /^Send/ })).toBeNull()
+    const maya = within(people()[0])
+    fireEvent.click(maya.getByRole("button", { name: "Email to Maya Chen" }))
+    const draft = await maya.findByRole("link", { name: "Open in Gmail" })
+    expect(draft.getAttribute("href")).toMatch(/^https:\/\/mail\.google\.com\/mail\/\?view=cm/)
+    expect(draft.getAttribute("target")).toBe("_blank")
+    expect(maya.queryByRole("button", { name: "I sent this" })).toBeNull()
+    expect(prepare.mock.calls[0][3]).toBe("manual")
+    fireEvent.click(draft)
+    fireEvent.click(maya.getByRole("button", { name: "I sent this" }))
+    await waitFor(() => expect(record).toHaveBeenCalledTimes(1))
+    expect(record.mock.calls[0][2]).toBe("manual")
+    expect(record.mock.calls[0][1].map(p => p.recipientId)).toEqual(["maya"])
+    expect(screen.queryByText(/The draft recipient is blank/)).toBeNull()
   })
 
-  it("auto_email shows no review button and says Platypus sends; no mode links to the choice", () => {
+  it("auto_email shows no send button, only status; no mode links to the choice", () => {
     show(seedClub("auto_email"))
     expect(screen.queryByTestId("send-all-digests")).toBeNull()
     expect(screen.queryByTestId("open-first-draft")).toBeNull()
-    expect(screen.getAllByText("Platypus sends these automatically. Demo: nothing is sent.").length).toBeGreaterThan(0)
+    expect(screen.queryAllByTestId("rq-person-send")).toHaveLength(0)
+    expect(screen.queryByText(/Platypus sends these automatically/)).toBeNull()
+    cleanup()
+    show(recordedToday(seedClub("auto_email"), 0))
+    expect(within(screen.getByTestId("rq-summary")).getByText("Sent automatically")).toBeTruthy()
     cleanup()
     show(seedClub(null))
     // With no sending mode, the primary action in the summary row is the one link to the choice.
@@ -179,19 +256,23 @@ describe("reminder centre (concept F): one email per person", () => {
   it("the rail panel previews the real email, Send & next records it and opens the next person", async () => {
     const s = seedClub("review_then_auto")
     show(s)
-    fireEvent.click(within(people()[0]).getByRole("button", { name: /Maya Chen/ }))
+    act(() => rail.show({ kind: "reminderDigest", recipientId: "maya" }))
     const panel = await screen.findByTestId("digest-panel")
     await within(panel).findByText("To: maya@example.org")
+    expect(people()[0].dataset.state).toBe("reviewing")
     expect(within(panel).getAllByRole("link", { name: "Open task" })).toHaveLength(1)
     expect(within(panel).getByRole("heading", { name: "Maya Chen" })).toBe(document.activeElement)
+    expect(within(panel).queryByText(/Email \d of \d/)).toBeNull()
+    expect(within(panel).queryByTestId("digest-send-all")).toBeNull()
+    expect(within(panel).queryByText(/Demo: nothing is sent/)).toBeNull()
     expect(within(panel).getByText(/Maya’s open tasks/).textContent).toContain(`(${s.nodes.filter(n => n.ownerId === "maya" && n.status !== "done").length})`)
     fireEvent.click(within(panel).getByTestId("digest-send-next"))
     expect(record).toHaveBeenCalledTimes(1)
     expect(record.mock.calls[0][1].map(p => p.recipientId)).toEqual(["maya"])
     expect(record.mock.calls[0][2]).toBe("platypus")
     await waitFor(() => expect(rail.detail).toEqual({ kind: "reminderDigest", recipientId: "jordan" }))
-    await screen.findByText("Email 2 of 3 · to Jordan")
-    expect(screen.getByText("Email to Maya recorded. Demo: nothing is sent.")).toBeTruthy()
+    await screen.findByRole("heading", { name: "Jordan Patel" })
+    expect(screen.getByText("Sent to Maya.")).toBeTruthy()
     fireEvent.click(screen.getByTestId("digest-skip"))
     await waitFor(() => expect(rail.detail).toEqual({ kind: "reminderDigest", recipientId: "priya" }))
     act(() => { window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })) })
@@ -201,7 +282,7 @@ describe("reminder centre (concept F): one email per person", () => {
   it("a failed record keeps the panel on the same person with the error", async () => {
     record.mockReturnValueOnce({ recordedGroupIds: [], failedGroupIds: ["x"], error: "This email changed. Please review the latest plan." })
     show(seedClub("review_then_auto"))
-    fireEvent.click(within(people()[1]).getByRole("button", { name: /Jordan Patel/ }))
+    act(() => rail.show({ kind: "reminderDigest", recipientId: "jordan" }))
     const panel = await screen.findByTestId("digest-panel")
     await within(panel).findByText("To: jordan@example.org")
     fireEvent.click(within(panel).getByTestId("digest-send-next"))
@@ -212,59 +293,63 @@ describe("reminder centre (concept F): one email per person", () => {
   it("a preparation error is shown and nothing can be sent", async () => {
     prepare.mockResolvedValue({ error: "Not implemented yet." })
     show(seedClub("review_then_auto"))
-    fireEvent.click(within(people()[0]).getByRole("button", { name: /Maya Chen/ }))
+    act(() => rail.show({ kind: "reminderDigest", recipientId: "maya" }))
     const panel = await screen.findByTestId("digest-panel")
     await within(panel).findByText("Not implemented yet.")
     expect(within(panel).getByTestId("digest-send-next").hasAttribute("disabled")).toBe(true)
   })
 
-  it("review_then_self: I sent this email appears only after the Gmail draft was opened, then records as manual", async () => {
+  it("review_then_self in the rail: I sent this appears only after the Gmail draft was opened, then records as manual", async () => {
     show(seedClub("review_then_self"))
-    fireEvent.click(screen.getByTestId("open-first-draft"))
+    act(() => rail.show({ kind: "reminderDigest", recipientId: "maya" }))
     const panel = within(await screen.findByTestId("digest-panel"))
-    const draft = await panel.findByTestId("digest-open-draft")
+    const draft = await panel.findByRole("link", { name: "Open in Gmail" })
     await waitFor(() => expect(draft.getAttribute("href")).toMatch(/^https:\/\/mail\.google\.com\/mail\/\?view=cm/))
     expect(draft.getAttribute("target")).toBe("_blank")
     expect(panel.queryByTestId("digest-sent-self")).toBeNull()
     expect(panel.queryByTestId("digest-send-next")).toBeNull()
+    expect(panel.queryByText(/The draft recipient is blank/)).toBeNull()
     fireEvent.click(draft)
-    fireEvent.click(panel.getByTestId("digest-sent-self"))
+    fireEvent.click(panel.getByRole("button", { name: "I sent this" }))
     expect(record.mock.calls[0][2]).toBe("manual")
     await waitFor(() => expect(rail.detail).toEqual({ kind: "reminderDigest", recipientId: "jordan" }))
   })
 
   it("auto_email: the panel is a read-only preview", async () => {
     show(seedClub("auto_email"))
-    fireEvent.click(within(people()[0]).getByRole("button", { name: /Maya Chen/ }))
+    act(() => rail.show({ kind: "reminderDigest", recipientId: "maya" }))
     const panel = within(await screen.findByTestId("digest-panel"))
     await panel.findByText("To: maya@example.org")
     expect(panel.queryAllByRole("button", { name: /Send|Skip|I sent/ })).toHaveLength(0)
     expect(panel.queryByTestId("digest-open-draft")).toBeNull()
+    expect(panel.queryByText(/Platypus sends these automatically/)).toBeNull()
   })
 
-  it("an email recorded today stays listed as Sent ✓ and fills a progress segment", () => {
+  it("an email recorded today stays listed as Sent and expands to the recorded email; History is one link", () => {
     const s = seedClub("review_then_auto")
     show(recordedToday(s, 0))
     const maya1 = screen.getAllByTestId("rq-person").find(p => p.dataset.recipient === "maya")!
     expect(maya1.dataset.state).toBe("sent")
-    expect(within(maya1).getByText("Sent ✓")).toBeTruthy()
-    expect(screen.getByTestId("rq-summary").textContent).toContain("1 sent today")
-    expect(screen.getByTestId("rq-summary").querySelectorAll(".dg-steps i.on")).toHaveLength(1)
-    expect(screen.getByTestId("rq-history").textContent).toContain("1 sent this week")
+    expect(within(maya1).getByText("Sent")).toBeTruthy()
+    expect(within(maya1).queryByRole("button", { name: /^Send/ })).toBeNull()
+    fireEvent.click(within(maya1).getByRole("button", { name: "Email to Maya Chen" }))
+    expect(within(maya1).getByRole("heading", { name: "Your tasks" })).toBeTruthy()
+    expect(screen.getByTestId("rq-summary").textContent).toBe("2 people to remindSend all")
+    expect(screen.getByTestId("rq-history").textContent).toBe("History")
     fireEvent.click(screen.getByRole("button", { name: "History" }))
     const history = within(screen.getByTestId("rq-sent"))
     expect(history.getByText(/1 task ·/).textContent).toBeTruthy()
     expect(history.getAllByTestId("rq-row")).toHaveLength(1)
+    expect(screen.queryByText(/not proof of email delivery/)).toBeNull()
   })
 
   it("Fix first buttons open task details; the legacy row keeps its explicit review", async () => {
+    // Explicit upgrade (S2): until saves upgrade automatically on load, the test puts the plan into the updated state itself.
     const s = fixture("review_then_self", false)
     const old = { id: "old", nodeId: "room", channel: "email" as const, text: "Earlier mail", sentBy: "alex", sentOn: s.today, response: null }
-    show({ ...s, reminderRuntime: { ...createReminderRuntime(s.today), legacyUnresolvedNodeIds: ["room"] }, nudges: [old] })
-    expect(screen.queryByTestId("rq-summary")).toBeNull()
-    fireEvent.click(screen.getByRole("button", { name: "Enable updated reminders" }))
-    await screen.findByText("Updated reminders are enabled.")
-    expect(latest.org.settings).toEqual(s.org.settings)
+    const legacy = { ...s, reminderRuntime: { ...createReminderRuntime(s.today), legacyUnresolvedNodeIds: ["room"] }, nudges: [old] }
+    show(reducer(legacy, { type: "upgradeReminderPlan" }))
+    expect(screen.queryByRole("button", { name: "Enable updated reminders" })).toBeNull()
     expect(latest.nudges).toEqual([old])
     const row = within(screen.getByTestId("rq-fix")).getAllByTestId("rq-row").find(r => r.dataset.node === "room")!
     expect(within(row).getByText("Check earlier reminders")).toBeTruthy()
@@ -278,6 +363,16 @@ describe("reminder centre (concept F): one email per person", () => {
     show(seedClub())
     fireEvent.click(screen.getAllByRole("button", { name: /^Assign: / })[0])
     expect(rail.detail).toEqual({ kind: "node", id: "t-photos" })
+  })
+
+  it("an older plan shows no Enable card on the home page (it upgrades on load elsewhere)", () => {
+    const s = fixture("review_then_self", false)
+    show(s)
+    expect(screen.queryByRole("button", { name: "Enable updated reminders" })).toBeNull()
+    expect(screen.queryByRole("heading", { name: "Enable updated reminders" })).toBeNull()
+    expect(screen.queryByTestId("reminder-plan-status")).toBeNull()
+    expect(screen.queryByTestId("rq-summary")).toBeNull()
+    expect(latest.reminderRuntime).toBeUndefined()
   })
 
   it("automatic preparation exposes a real failure and retries only on request", async () => {
@@ -304,19 +399,8 @@ describe("reminder centre (concept F): one email per person", () => {
     write.mockRestore()
   })
 
-  it("failed activation and legacy review keep their prior saved state", async () => {
-    const s = fixture("review_then_self", false)
-    show(s)
-    const original = Storage.prototype.setItem
-    const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function (this: Storage, key, value) {
-      if (key === STORAGE_KEY) throw new Error("No storage")
-      original.call(this, key, value)
-    })
-    fireEvent.click(screen.getByRole("button", { name: "Enable updated reminders" }))
-    await screen.findByText("The reminder plan was not saved. Restore saving and try again.")
-    expect(latest.reminderRuntime).toBeUndefined()
-    expect(screen.queryByText("Updated reminders are enabled.")).toBeNull()
-    write.mockRestore(); cleanup(); localStorage.clear()
+
+  it("a failed legacy review keeps its prior saved state, and a save failure is one short line", async () => {
     const active = fixture("review_then_self")
     show({ ...active, reminderRuntime: { ...active.reminderRuntime!, legacyUnresolvedNodeIds: ["room"] } })
     const block = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("No storage") })
@@ -324,6 +408,7 @@ describe("reminder centre (concept F): one email per person", () => {
     await screen.findByText("This review was not saved. Check the current assignment and browser saving.")
     expect(latest.reminderRuntime!.legacyUnresolvedNodeIds).toEqual(["room"])
     expect(latest.reminderRuntime!.deliveries).toEqual([])
+    expect(screen.getAllByRole("alert").map(a => a.textContent)).toContain("Can't save in this browser.")
     block.mockRestore()
   })
 
@@ -350,5 +435,8 @@ describe("reminder centre (concept F): one email per person", () => {
     expect(section("your-reminders").getByText("Jordan when sent")).toBeTruthy()
     expect(section("your-reminders").getByText("Original room task")).toBeTruthy()
     expect(section("your-reminders").queryByText("Sam Okafor")).toBeNull()
+    expect(section("your-reminders").getByText("Sent", { exact: true })).toBeTruthy()
+    expect(section("your-reminders").queryByText(/Recorded by sender|Approved demo|Automatic demo/)).toBeNull()
+    expect(section("your-reminders").queryByText(/No reminders coming up/)).toBeNull()
   })
 })

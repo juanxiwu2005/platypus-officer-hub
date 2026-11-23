@@ -1,15 +1,6 @@
 /* Reminder digest centre (concept F, Juanxi 2026-11-19): one email per person. Tokens only (docs/DESIGN_TOKENS.md, AGENTS.md 7). */
 
-/* ---- Page head: the chosen sending mode ---- */
-.dg-mode {
-  display: inline-flex; align-items: center; gap: var(--s4);
-  padding: var(--s3) var(--s5); border: 1px solid var(--line); border-radius: var(--r-pill);
-  background: var(--surface); color: var(--muted); font-size: var(--fs-md); white-space: nowrap;
-}
-.dg-mode-dot { width: 8px; height: 8px; border-radius: var(--r-circle); background: var(--accent); flex: none; }
-.dg-mode a { color: var(--accent-ink); font-weight: 600; }
-
-/* ---- Top card: counts, one progress segment per email, the mode's one action ---- */
+/* ---- Top card: one summary line and the mode's one action (S2, 2026-11-22) ---- */
 .dg { gap: var(--s5); }
 .dg-top { display: grid; gap: var(--s3); }
 .dg-top-row { display: flex; align-items: center; gap: var(--s5); flex-wrap: wrap; }
@@ -19,10 +10,6 @@
 .dg-top-text { flex: 1 1 16rem; min-width: 0; margin: 0; font-size: var(--fs-base); }
 .dg-quiet { color: var(--muted); }
 .dg-top-note { margin: 0; font-size: var(--fs-md); color: var(--muted); }
-.dg-steps { display: inline-flex; gap: var(--s3); flex: none; }
-.dg-steps i { width: 22px; height: 6px; border-radius: var(--r-pill); background: var(--line); }
-.dg-steps i.on { background: var(--accent); }
-
 /* ---- People, one below the other (works for 10+ people) ---- */
 .dg-people { padding-top: var(--s4); padding-bottom: var(--s4); }
 .dg-list { list-style: none; margin: 0; padding: 0; display: grid; }
@@ -30,17 +17,21 @@
 .dg-person:first-child { border-top: 0; }
 .dg-person[data-state="reviewing"] { border-radius: var(--r-sm); background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); border-top-color: transparent; }
 .dg-person[data-state="reviewing"] + .dg-person { border-top-color: transparent; }
-.dg-person-head {
-  display: flex; align-items: center; gap: var(--s5); width: 100%; min-height: 44px;
+.dg-person-head { display: flex; align-items: center; gap: var(--s4); padding-right: var(--s4); }
+/* The name is a disclosure for that person's email; the mode's action (or "Sent") sits at the end of the line. */
+.dg-person-toggle {
+  display: flex; align-items: center; gap: var(--s5); flex: 1; min-width: 0; min-height: 44px;
   padding: var(--s2) var(--s4); border: 0; border-radius: var(--r-sm); background: transparent;
   color: var(--ink); font: inherit; text-align: left; cursor: pointer;
 }
-@media (hover: hover) { .dg-person-head:hover .dg-name { color: var(--accent-ink); } }
+@media (hover: hover) { .dg-person-toggle:hover .dg-name { color: var(--accent-ink); } }
+.dg-caret { flex: none; width: 8px; height: 8px; margin-right: var(--s2); border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg) translateY(-2px); }
+.dg-person-toggle[aria-expanded="true"] .dg-caret { transform: rotate(-135deg) translateY(-2px); }
+.dg-person-head > .btn { flex: none; }
 .dg-av { width: 32px; height: 32px; font-size: var(--fs-sm); }
-.dg-name { flex: 1; min-width: 0; font-weight: 700; font-size: var(--fs-base); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dg-name { flex: 0 1 auto; min-width: 0; font-weight: 700; font-size: var(--fs-base); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dg-state { flex: none; font-size: var(--fs-md); font-weight: 600; color: var(--muted); }
 .dg-state.sent { padding: var(--s1) var(--s4); border-radius: var(--r-pill); background: var(--good-soft); color: var(--good); }
-.dg-state.reviewing { color: var(--accent-ink); }
 .dg-tasks { list-style: none; margin: 0; padding: 0 var(--s4) 0 var(--s4); display: grid; gap: var(--s1); }
 .dg-task { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: var(--s5); min-height: 32px; font-size: var(--fs-md); }
 .dg-task .rq-mark { justify-content: center; }
@@ -49,19 +40,18 @@
 .dg-chip.late { background: var(--late-soft); color: var(--late); }
 .dg-chip.warn { background: var(--warn-soft); color: var(--warn); }
 .dg-chip.info { background: var(--accent-soft); color: var(--accent-ink); }
-.dg-more {
-  display: block; margin: var(--s1) 0 0 calc(32px + var(--s5) + var(--s4)); padding: var(--s1) 0; border: 0; background: transparent;
-  color: var(--muted); font: inherit; font-size: var(--fs-md); text-align: left; cursor: pointer;
-}
-@media (hover: hover) { .dg-more:hover { color: var(--ink); text-decoration: underline; } }
-
 /* ---- Fix first: one line each, task + problem + one button ---- */
 .dg-fix-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: var(--s5); min-height: 44px; padding: var(--s3) 0; border-top: 1px solid var(--line); font-size: var(--fs-md); }
 .dg-fix-row:first-child { border-top: 0; }
 
-/* ---- History: one quiet line, details in the rail ---- */
-.dg-history-line { display: flex; align-items: center; gap: var(--s5); padding-top: var(--s5); padding-bottom: var(--s5); }
-.dg-history-line p { flex: 1; min-width: 0; margin: 0; font-size: var(--fs-md); color: var(--muted); }
+/* ---- Inline email: opens in place under the person's tasks; only a token fade, nothing moves (AGENTS.md 6) ---- */
+.dg-inline:not([hidden]) { display: grid; gap: var(--s4); margin: var(--s4) var(--s4) 0; animation: dg-fade var(--dur-fast) var(--ease-out); }
+@keyframes dg-fade { from { opacity: 0; } to { opacity: 1; } }
+.dg-inline .dg-nav .btn { flex: 0 1 auto; }
+.dg-row-note { margin: var(--s3) var(--s4) 0; color: var(--ink); }
+
+/* ---- History: one quiet link, details in the rail ---- */
+.dg-history-link { margin: 0; }
 
 /* ---- Right rail: the email, its actions, that person's open tasks ---- */
 .dg-panel { display: grid; gap: var(--s5); align-content: start; }
@@ -69,13 +59,12 @@
 .dg-panel h3 { margin: 0; font-size: var(--fs-base); }
 .dg-mail { display: grid; gap: var(--s4); padding: var(--s6); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); font-size: var(--fs-md); overflow-wrap: anywhere; }
 .dg-mail-to { margin: 0; color: var(--muted); }
-.dg-mail h3 { padding-bottom: var(--s4); border-bottom: 1px solid var(--line); }
+.dg-mail h3 { margin: 0; padding-bottom: var(--s4); border-bottom: 1px solid var(--line); font-size: var(--fs-base); }
 .dg-mail-body p { margin: 0 0 var(--s4); }
 .dg-mail-body p:last-child { margin-bottom: 0; }
 .dg-mail-body a { color: var(--accent-ink); font-weight: 600; }
 .dg-nav { display: flex; gap: var(--s4); flex-wrap: wrap; }
 .dg-nav .btn { flex: 1 1 8rem; justify-content: center; text-align: center; }
-.dg-panel .dg-send-all { justify-self: center; color: var(--accent-ink); font-weight: 600; }
 .dg-status { margin: 0; color: var(--ink); }
 .dg-n { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
 .dg-open { display: grid; gap: var(--s3); padding-top: var(--s5); border-top: 1px solid var(--line); }
@@ -96,15 +85,14 @@
 .dg-hist-tasks { margin: var(--s3) 0; padding-left: var(--s7); }
 
 @media (pointer: coarse) {
-  .dg-more, .dg-open-title { min-height: 32px; }
+  .dg-open-title { min-height: 32px; }
 }
 @media (max-width: 860px) {
   /* A phone: task lines stay one line (the title shortens); a Fix first row puts its chip and button under the title. */
   .dg-task { grid-template-columns: 20px minmax(0, 1fr) auto; gap: var(--s4); }
-  .dg-more { margin-left: calc(20px + var(--s4) + var(--s4)); }
   .dg-fix-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--s2); }
   .dg-fix-row .dg-task-title { grid-column: 1 / -1; }
   .dg-fix-row .dg-chip { justify-self: start; }
   .dg-top-row .btn { flex: 1 1 100%; }
-  .dg-mode { white-space: normal; }
+  .dg-inline:not([hidden]) { margin-inline: 0; }
 }

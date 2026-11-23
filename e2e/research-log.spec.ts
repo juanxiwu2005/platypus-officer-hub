@@ -53,7 +53,7 @@ async function session(page: Page) {
   await page.getByRole("button", { name: "Open the draft" }).last().click()
   const panel = page.getByTestId("nudge-panel")
   await expect(panel).toBeVisible()
-  await expect(panel.getByTestId("reminder-mode-note")).toHaveText("Your club chose: I review, then I send (demo: nothing is sent).")
+  await expect(panel.getByTestId("reminder-mode-note")).toHaveCount(0)      // S2: the mode note left the composer
   await panel.getByLabel("Preferred channel").selectOption("email")
   const draft = panel.getByRole("link", { name: "Open Gmail draft" })
   await expect(draft).toBeVisible()

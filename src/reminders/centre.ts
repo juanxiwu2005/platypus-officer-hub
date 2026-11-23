@@ -185,9 +185,10 @@ export interface DigestCentre {
   /** Tasks held by a per-person email limit; they go out in that person's next email. */
   held: number
 }
+/** [problem chip, action]. An empty problem means the action already names it (S2: "Waiting on whom?"). */
 const FIX: Record<string, [string, string]> = {
   no_owner: ["No owner", "Assign"],
-  unresolved_waiting: ["Pick who it waits on", "Choose person"],
+  unresolved_waiting: ["", "Waiting on whom?"],
   paused: ["Stuck", "Help"],
   unavailable_recipient: ["No valid email", "Review"],
   legacy_history: ["Check earlier reminders", "I checked · allow future reminders"],
@@ -206,7 +207,7 @@ export function reasonChip(c: ReminderCandidate, today: string): { label: string
   if (c.overdueDays > 0) return { label: `${c.overdueDays} day${c.overdueDays === 1 ? "" : "s"} overdue`, tone: "late" }
   if (c.reason === "overdue") return { label: "Overdue", tone: "late" }
   if (c.reason === "due") return { label: "Due today", tone: "warn" }
-  return { label: c.scheduledOn < today ? "Start passed" : "Starts today", tone: "warn" }
+  return { label: c.scheduledOn < today ? "Late to start" : "Starts today", tone: "warn" }
 }
 
 export function openTasksOf(state: DemoState, personId: string) {

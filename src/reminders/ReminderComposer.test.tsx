@@ -51,7 +51,7 @@ describe("real reminder composer state integration", () => {
     expect(screen.queryByRole("button", { name: /Skip AI|Done|Working on it/ })).toBeNull()
     expect(screen.queryByRole("group", { name: "Recipient status choices" })).toBeNull()
     expect(fetch).not.toHaveBeenCalled()
-    expect(screen.getByTestId("reminder-mode-note").textContent).toBe("Your club chose: I review, then I send (demo: nothing is sent).")
+    expect(screen.queryByTestId("reminder-mode-note")).toBeNull()
     expect(latest.nudges).toEqual([])
   })
 
@@ -79,12 +79,12 @@ describe("real reminder composer state integration", () => {
 
   it("platform approval uses email and succeeds only once the new runtime records the message", async () => {
     show(fixture("review_then_auto", true))
-    const approve = await screen.findByRole("button", { name: "Approve · Platypus sends (demo)" })
+    const approve = await screen.findByRole("button", { name: "Send" })
     expect(screen.queryByLabelText("Preferred channel")).toBeNull()
-    expect(screen.getByTestId("reminder-mode-note").textContent).toBe("Your club chose: I review, Platypus sends (demo: nothing is sent).")
+    expect(screen.queryByTestId("reminder-mode-note")).toBeNull()
     expect(latest.reminderRuntime!.deliveries).toEqual([])
     fireEvent.click(approve)
-    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Approved. Platypus would send"))
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Sent."))
     expect(latest.reminderRuntime!.deliveries).toHaveLength(1)
     expect(latest.reminderRuntime!.deliveries[0]).toMatchObject({ via: "platypus", outcome: "simulated", message: { source: "rules", channel: "email", recipientId: "jordan" } })
     expect(latest.nudges).toEqual([])
@@ -127,7 +127,7 @@ describe("real reminder composer state integration", () => {
     const waiting = reducer({ ...enabled, viewerId: "jordan" }, { type: "replyTask", nodeId: NODE, reply: "waiting", input: { waitingOn: "School approval" } })
     show({ ...waiting, viewerId: "alex" })
     expect(screen.getByRole("status").textContent).toContain("Choose who this task is waiting on")
-    expect(screen.queryByRole("button", { name: "Approve · Platypus sends (demo)" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Send" })).toBeNull()
     cleanup()
     show({ ...fixture(), viewerId: "sam" })
     expect(screen.getByRole("status").textContent).toContain("Only the president or vice president")
@@ -183,7 +183,7 @@ describe("real reminder composer state integration", () => {
     await screen.findByText("Review the saved reminder plan before preparing another message.")
     expect(screen.queryByRole("link", { name: "Open task" })).toBeNull()
     expect(screen.queryByRole("link", { name: /Open .* draft/ })).toBeNull()
-    expect(screen.queryByRole("button", { name: "Approve · Platypus sends (demo)" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Send" })).toBeNull()
     expect(latest.taskAccessGrants).toBeUndefined()
     expect(latest.nudges).toEqual([])
     expect(latest.reminderRuntime).toBe(invalid)
@@ -224,8 +224,8 @@ describe("real reminder composer state integration", () => {
       show(first)
       await screen.findByRole("button", {name: "Reminder unavailable"})
       expect(latest.reminderRuntime!.deliveries).toEqual(first.reminderRuntime!.deliveries)
-      expect(screen.queryByText("Approved. Platypus would send it now. Demo: nothing is sent.")).toBeNull()
-      expect(screen.queryByRole("button", { name: "Approve · Platypus sends (demo)" })).toBeNull()
+      expect(screen.queryByText("Sent.")).toBeNull()
+      expect(screen.queryByRole("button", { name: "Send" })).toBeNull()
     } finally { failed?.mockRestore() }
   })
 
