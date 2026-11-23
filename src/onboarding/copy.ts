@@ -53,16 +53,6 @@ export const onboardingCopy = {
       ],
       fields: { name: "Event name", date: "Event date", type: "Event type", headcount: "Headcount", venue: "Venue", food: "Food", funding: "Funding", speaker: "Includes a guest speaker", source: "Planned with" },
     },
-    // The three reminder choices, in this order. The founder walkthrough no longer asks this (ob-5, S2): Settings, Reminders and the reminder
-    // composer use these labels. Nothing is ever sent (IRB).
-    reminders: {
-      title: "How should reminders go out?",
-      options: {
-        auto_email: { title: "Send automatically", body: "Platypus emails the officer on that date." },
-        review_then_self: { title: "I review, then I send", body: "Platypus drafts it. You check and send it." },
-        review_then_auto: { title: "I review, Platypus sends", body: "You check the draft. Platypus sends it." },
-      },
-    },
     confirm: { title: "Ready to start?", summary: "This creates {club} with {officers} and {event} on {date}.", officers: { one: "1 officer", many: "{n} officers" }, start: "Start workspace", keep: "Keep current demo", replaceWarning: "This replaces the current demo workspace.", missing: "Plan your first event before you start.", backToEvent: "Back to first event",
       summaryNoEvent: "This creates {club} with {officers}.", noEvent: "No first event yet. You can plan one later from Ask." },
     invite: { title: "Your club is ready.", lead: "Invite your officers.", copy: "Copy link", copied: "Copied", copyFailed: "Press Ctrl+C to copy.", whatsapp: "WhatsApp", email: "Email", link: "Officer invitation link", permission: "Only people with this link can join.", notSent: "Nothing sends automatically. We open a message for you.", preview: "See what your officers will see", today: "Go to Reminders", invited: "Invited", joined: "Joined", open: "Open position", officers: "Officers", joinedNote: "Demo only: Joined appears when an officer finishes setup in this browser.", subject: "Join {club} on Platypus", message: "Join {club} on Platypus as an officer: {link}" },

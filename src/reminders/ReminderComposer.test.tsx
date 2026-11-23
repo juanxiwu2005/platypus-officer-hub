@@ -229,11 +229,14 @@ describe("real reminder composer state integration", () => {
     } finally { failed?.mockRestore() }
   })
 
-  it("requires an explicit upgrade for both absent and v1 plans", async () => {
+  it("prepares nothing for absent and v1 plans and says only that the plan is unavailable", async () => {
+    // S2: loads upgrade the plan themselves, so a legacy plan here can only be data held back for download; there is no setup link.
     const old = fixture("review_then_self", false)
     for (const state of [old, {...fixture(), reminderRuntime: {...fixture().reminderRuntime!, version: 1 as const}}]) {
       show(state)
-      await screen.findByRole("link", {name: "Set up reminders"})
+      await screen.findByText("Reminder plan unavailable.")
+      expect(screen.queryByRole("link", {name: "Set up reminders"})).toBeNull()
+      expect(screen.queryByText(/Enable updated reminders/)).toBeNull()
       expect(screen.queryByRole("link", {name: "Open task"})).toBeNull()
       expect(latest.taskAccessGrants).toBeUndefined()
       cleanup()

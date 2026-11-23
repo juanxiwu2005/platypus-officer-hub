@@ -42,10 +42,10 @@ test("no accessibility violations on any setup step, with a constitution read", 
     await page.getByRole("button", { name: "Continue", exact: true }).click()
     expect(await scan(page)).toEqual([])
   }
-  for (let i = 0; i < 2; i++) {
-    await page.getByRole("button", { name: "Skip for now", exact: true }).click()
-    expect(await scan(page)).toEqual([])
-  }
+  // ob-5 (S2): First event is the last optional step; Skip for now goes straight to Confirm (no Reminders screen).
+  await page.getByRole("button", { name: "Skip for now", exact: true }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Ready to start?" })).toBeVisible()
+  expect(await scan(page)).toEqual([])
 
 })
 test("Owners: Escape dismisses suggestions without closing the task form", async ({ page }) => {

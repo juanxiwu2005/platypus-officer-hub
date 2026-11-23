@@ -25,8 +25,10 @@ export function enableReminderPlan(s: DemoState): DemoState {
   const initial: ReminderRuntime = { ...createReminderRuntime(s.today), version: 2, mailRequiredAfter: 0, ...(legacyUnresolvedNodeIds.length ? { legacyUnresolvedNodeIds } : {}) }
   // With no earlier facts no update entry is written, so the actor is never recorded; a fixed id keeps the result independent of the viewer.
   const runtime = transitionReminderRuntime({ today: s.today, actorId: "system:reminders", before: [], after: facts(s), runtime: initial })
-  // An old case has no plan/assignment snapshot proving it still applies. Close it on explicit activation;
-  // retain all past entries, then let the new schedule establish any future leader follow-up.
+  // An old silence case has no plan/assignment snapshot proving it still applies, so activation closes every open legacy case
+  // (closedOn = today) while keeping its history. Since S2 (2026-11-22) activation also runs automatically on load, reset and import
+  // (upgradeReminderPlan via withCurrentReminders in store.tsx), not only on an explicit lead action. The new schedule then
+  // establishes any future leader follow-up.
   const next = { ...s, reminderRuntime: runtime, silenceCases: s.silenceCases.map(c => c.closedOn ? c : { ...c, closedOn: s.today }) }
   return next
 }

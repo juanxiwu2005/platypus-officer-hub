@@ -37,7 +37,7 @@ describe("shared reminder centre presentation", () => {
       expect(q.needsOk).toEqual([])
       expect(q.sent).toEqual([])
       expect(q.noReply).toEqual([])
-      expect(taskReminderSummary(saved, NODE)).toMatchObject({ canPrepare: false, blockedReason: "Enable updated reminders in the reminder centre." })
+      expect(taskReminderSummary(saved, NODE)).toMatchObject({ canPrepare: false, blockedReason: "Reminder plan unavailable." })
     }
   })
 

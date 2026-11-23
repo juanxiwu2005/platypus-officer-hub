@@ -3,6 +3,7 @@ import { fillMission } from "./ob-helpers"
 import { expect, test, type Page } from "@playwright/test"
 import { readFileSync } from "node:fs"
 import { onboardingCopy as c } from "../src/onboarding/copy"
+import { REMINDER_MODE_COPY } from "../src/data/reminderMode"
 import { ask, closeRail } from "./helpers"
 
 // Phase 3 research log (docs/PHASE3_DATA_DICTIONARY.md): a short participant session, then Export my data.
@@ -50,9 +51,9 @@ async function session(page: Page) {
   await closeRail(page)
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Settings" }).click()
   await expect(page.locator("main h1")).toHaveText("Settings")
-  const choice = page.getByRole("group", { name: c.founder.reminders.title })
+  const choice = page.getByRole("group", { name: REMINDER_MODE_COPY.title })
   if (!(await choice.isVisible())) await page.getByText("Tasks and events", { exact: true }).click()
-  await choice.getByRole("radio", { name: c.founder.reminders.options.review_then_self.title }).check()
+  await choice.getByRole("radio", { name: REMINDER_MODE_COPY.options.review_then_self.title }).check()
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo") ?? "{}").org?.settings?.reminderMode)).toBe("review_then_self")
   // 2. Prepare one reminder in the reminder composer (choose a channel, open the draft: the outside page is stopped). The home page now
   // combines each person's tasks into one email in its own panel; a single-task reminder (ui.reminder, data dictionary §5.1) opens from Ask.
