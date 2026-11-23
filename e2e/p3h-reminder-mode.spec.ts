@@ -2,14 +2,13 @@ import { expect, test, type Page } from "@playwright/test"
 import { readFileSync } from "node:fs"
 import { onboardingCopy as c } from "../src/onboarding/copy"
 import { toRows } from "../scripts/export-to-csv.mjs"
-import { fillMission, onboardingRecord } from "./ob-helpers"
+import { onboardingRecord } from "./ob-helpers"
 import { closeRail } from "./helpers"
 
-// S2 (Juanxi 2026-11-22), flow version ob-5: the founder walkthrough's Reminders screen (P3-H, ob-4) is removed. First event goes straight to
-// Confirm, Confirm names no reminder choice, and the export has no answer for the attempt (reminderModeChoice null). An old link to the
-// screen lands on Confirm, the screen that followed it. New clubs get the default choice from completeSetup; nothing is ever sent.
+// S2 (Juanxi 2026-11-22), flow version ob-5: the founder walkthrough's Reminders screen (P3-H, ob-4) is removed, and the export has no answer
+// for the attempt (reminderModeChoice null). Since ob-6 (S6) Confirm folded into Team, so an old link to the screen lands on Team. New clubs get the default choice from completeSetup; nothing is ever sent.
 // Runs on desktop and Pixel 7.
-type Saved = { org: { name: string; settings: { reminderMode?: string; sendMode: string } } }
+type Saved = { org: { name: string; setupCompletedOn?: string | null; settings: { reminderMode?: string; sendMode: string } } }
 const demo = async (page: Page) => JSON.parse((await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))) ?? "null") as Saved
 const h1 = (page: Page, name: string) => expect(page.getByRole("heading", { level: 1, name })).toBeVisible()
 const chain = (page: Page) => page.getByRole("list", { name: c.progress })
@@ -35,33 +34,24 @@ test.afterEach(async ({ page }) => {
   expect(seen.filter(u => u.pathname.startsWith("/api/") && u.pathname !== "/api/command" && u.pathname !== "/api/health").map(u => u.pathname)).toEqual([])
 })
 
-/** The study link, then Name → Constitution (skip) → Goals (skip) → Team (skip) → First event (skip) → Confirm. */
-async function toConfirm(page: Page, club = "Fictional Heron Club") {
+/** The study link, then screen 1 (name, Skip for now on the first event) → Team, where Start workspace finishes setup since ob-6. */
+async function toTeam(page: Page, club = "Fictional Heron Club") {
   await page.goto("/#/start")
   await h1(page, c.founder.name.title)
   await page.getByLabel(c.founder.name.field).fill(club)
-  await page.getByRole("button", { name: c.next, exact: true }).click()
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await fillMission(page)
-  await page.getByRole("button", { name: c.skip }).click()            // goals
-  await page.getByRole("button", { name: c.skip }).click()            // team
-  await page.getByTestId("first-event").getByRole("button", { name: c.skip }).click()
-  await h1(page, c.founder.confirm.title)
-  await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
+  await page.getByRole("button", { name: c.skip, exact: true }).click()
+  await h1(page, c.founder.team.title)
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
 }
 
-test("First event goes straight to Confirm: seven dots, none for Reminders, no reminder line, and Back returns to First event", async ({ page }) => {
-  await toConfirm(page)
-  await expect(chain(page).getByRole("listitem")).toHaveCount(7)
+test("the walkthrough asks nothing about reminders: three dots, none for Reminders, no reminder radios, and Start workspace keeps review-before-send", async ({ page }) => {
+  await toTeam(page)
+  await expect(chain(page).getByRole("listitem")).toHaveCount(3)
   await expect(chain(page).getByRole("listitem").filter({ hasText: "Reminders" })).toHaveCount(0)
-  await expect(chain(page).locator("[aria-current=step]")).toHaveText(/Confirm/)
+  await expect(chain(page).locator("[aria-current=step]")).toHaveText(/Team/)
   await expect(page.getByTestId("confirm-reminders")).toHaveCount(0)
   await expect(page.getByRole("radio")).toHaveCount(0)
-  await page.getByRole("button", { name: c.back, exact: true }).click()
-  await expect(page).toHaveURL(/#\/welcome\/founder\/first-event$/)
-  await page.getByTestId("first-event").getByRole("button", { name: c.skip }).click()
-  await h1(page, c.founder.confirm.title)
-  await page.getByRole("button", { name: c.founder.confirm.start }).click()
+  await page.getByRole("button", { name: c.founder.team.start }).click()
   await h1(page, c.founder.invite.title)
   await expect.poll(async () => (await demo(page))?.org.name).toBe("Fictional Heron Club")
   expect((await demo(page)).org.settings.sendMode).toBe("review")                  // sending is unchanged: a person reviews and sends
@@ -69,39 +59,37 @@ test("First event goes straight to Confirm: seven dots, none for Reminders, no r
   expect(steps.some(s => s.startsWith("founder.reminders"))).toBe(false)
 })
 
-test("an old link to the Reminders screen lands on Confirm with the draft kept, after a reload too, and records no Reminders step", async ({ page }) => {
-  await toConfirm(page)
+test("an old link to the Reminders screen lands on Team with the draft kept, after a reload too, and records no Reminders step", async ({ page }) => {
+  await toTeam(page)
   // Within the open walkthrough.
   await page.evaluate(() => { location.hash = "#/welcome/founder/reminders" })
-  await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
-  await h1(page, c.founder.confirm.title)
-  await expect(page.getByTestId("confirm-summary")).toContainText("Fictional Heron Club")
-  // Opened afresh in the same tab, once the draft is saved (the save waits a quarter second): the saved draft comes back first, then Confirm shows it.
-  await expect.poll(async () => (await savedSkips(page))?.includes("founder.first-event") ?? false).toBe(true)
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+  await h1(page, c.founder.team.title)
+  // Opened afresh in the same tab, once the draft is saved (the save waits a quarter second): the saved draft comes back first, then Team shows it.
+  await expect.poll(async () => (await savedSkips(page))?.includes("founder.name") ?? false).toBe(true)
   await page.goto("about:blank")
   await page.goto("/#/welcome/founder/reminders")
-  await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
-  await expect(page.getByTestId("confirm-summary")).toContainText("Fictional Heron Club")
-  await expect(page.getByTestId("confirm-no-event")).toBeVisible()
-  // Back from Confirm still goes to First event, not to the old address.
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+  // Back from Team still goes to screen 1, with the name kept.
   await page.getByRole("button", { name: c.back, exact: true }).click()
-  await expect(page).toHaveURL(/#\/welcome\/founder\/first-event$/)
+  await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
+  await expect(page.getByLabel(c.founder.name.field)).toHaveValue("Fictional Heron Club")
   const steps = (await onboardingRecord(page)).attempts.at(-1)!.steps.map(s => s.step)
   expect(steps.some(s => s.startsWith("founder.reminders"))).toBe(false)
 })
 
-test("an old link with no walkthrough open lands on Confirm, which asks for the first event and creates nothing", async ({ page }) => {
+test("an old link with no walkthrough open lands on Team, whose Start workspace asks for the first event and creates nothing", async ({ page }) => {
   await page.goto("/#/welcome/founder/reminders")
-  await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
-  await expect(page.getByText(c.founder.confirm.missing)).toBeVisible()
-  await expect(page.getByRole("button", { name: c.founder.confirm.start })).toHaveCount(0)
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+  await page.getByRole("button", { name: c.founder.team.start }).click()
+  await expect(page.getByRole("alert")).toHaveText(c.founder.team.missing)
   await expect(page.getByText("Coming soon")).toHaveCount(0)
   expect((await demo(page))?.org.setupCompletedOn ?? null, "nothing was created").toBeNull()
 })
 
-test("the export says ob-5, has no Reminders answer, ticks or steps, and the setup row names none", async ({ page }) => {
-  await toConfirm(page)
-  await page.getByRole("button", { name: c.founder.confirm.start }).click()
+test("the export says ob-6, has no Reminders answer, ticks or steps, and the setup row names none", async ({ page }) => {
+  await toTeam(page)
+  await page.getByRole("button", { name: c.founder.team.start }).click()
   await h1(page, c.founder.invite.title)
   await page.getByRole("button", { name: c.founder.invite.today }).click()
   await expect(page.locator("main h1")).toHaveText("Reminders")
@@ -111,8 +99,8 @@ test("the export says ob-5, has no Reminders answer, ticks or steps, and the set
   const [download] = await Promise.all([page.waitForEvent("download"), page.getByTestId("export-data").click()])
   const file = JSON.parse(readFileSync((await download.path())!, "utf8"))
 
-  expect(file.onboardingFlowVersion).toBe("ob-5")
-  expect(file.onboarding.attempts.at(-1).flowVersion).toBe("ob-5")
+  expect(file.onboardingFlowVersion).toBe("ob-6")
+  expect(file.onboarding.attempts.at(-1).flowVersion).toBe("ob-6")
   // The club's stored choice (absent, or the default once completeSetup sets one) was never the president's answer.
   expect(file.session).toMatchObject({ setupChoice: "start-workspace", firstEventChoice: "skipped", reminderModeChoice: null })
   type Entry = { type: string; payload: Record<string, unknown> }

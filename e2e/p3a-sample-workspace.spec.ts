@@ -1,4 +1,3 @@
-import { fillMission } from "./ob-helpers"
 import { expect, test, type Page } from "@playwright/test"
 import { closeRail } from "./helpers"
 
@@ -13,17 +12,12 @@ const cont = (page: Page) => page.getByRole("button", { name: "Continue" }).clic
 
 async function startWorkspace(page: Page) {
   await page.goto("/?walkthrough=1#/welcome/start")
-  await page.evaluate(() => { location.hash = "#/welcome/founder/name" })
   await expect(page.getByRole("heading", { level: 1, name: "Name your club" })).toBeVisible()
-  await page.getByLabel("Club name").fill("Maple Club"); await cont(page)
-  await page.getByRole("button", { name: /^Skip/ }).click()                 // Constitution
-  await fillMission(page)                                                    // Goals needs a mission, even to skip
-  await page.getByRole("button", { name: "Skip for now" }).click()          // Goals
-  await page.getByRole("button", { name: "Skip for now" }).click()          // Team
+  await page.getByLabel("Club name").fill("Maple Club")
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: "Plan it" }).click()
   await expect(page.getByRole("region", { name: "First steps and dates" })).toBeVisible()
-  await cont(page)
+  await cont(page)                                                           // screen 1 → Team (ob-6)
   await page.getByRole("button", { name: "Start workspace" }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/)
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo") ?? "{}").org?.name)).toBe("Maple Club")

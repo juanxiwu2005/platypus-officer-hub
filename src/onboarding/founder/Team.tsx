@@ -1,9 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react"
 import { OrgChart } from "../../components/setup/OrgChart"
 import { MAX_DUTIES, MAX_ROLES } from "../../data/structure"
+import { useStore } from "../../data/store"
 import { onboardingCopy } from "../copy"
 import { useOnboardingDraft } from "../draft"
 import { useFlow } from "../engine/useFlow"
+import { recordSetup } from "../record"
+import { ConstitutionImport } from "./Constitution"
+import { finishSetup } from "./team/finish"
 import { addRole, applyReading, bossChoices, removeRole, renameRole, roleDepth, setDuties, setPersonName, setReportsTo, validateTeam } from "./team/rows"
 
 const c = onboardingCopy.founder.team
@@ -30,19 +34,24 @@ function RoleTitle({ id, label, value, onChange }: { id: string; label: string; 
 }
 
 /**
- * Screen 4 of the founder flow (skippable): a visibly indented reporting tree with Role, Person and Reports to always in view. Duties expand
+ * Screen 2 of 3 in the founder flow (ob-6, S6): a visibly indented reporting tree with Role, Person and Reports to always in view. Duties expand
  * independently, so changing hierarchy never unexpectedly opens a long text field. The organization chart under the list follows the rows.
+ * "Import roles from your constitution" opens the constitution reading inline (it was its own screen up to ob-5).
+ * Start workspace finishes setup, as Confirm's button did up to ob-5: the same completeSetup action and the same research record
+ * (setupChoice "start-workspace"), then Invite. A ref stops a double click (or React's development double-run) from creating the club twice.
+ * Only when a club was already set up in this browser does the screen warn that it will be replaced and offer Keep current demo.
  */
 export function Team() {
-  const { draft, update } = useOnboardingDraft()
+  const { state, tryDispatch } = useStore()
+  const { draft, update, clear } = useOnboardingDraft()
   const flow = useFlow()
   const { roles, people } = draft.club
-  // What the screen started with: Skip restores it if the rows were left in a state the rest of the app would refuse.
-  const start = useRef({ roles, people })
   const [error, setError] = useState("")
+  const [importing, setImporting] = useState(() => !!draft.doc)
   const [focusId, setFocusId] = useState<string | null>(null)
   const [dutiesId, setDutiesId] = useState<string | null>(null)
   const addButton = useRef<HTMLButtonElement>(null)
+  const started = useRef(false)
   useEffect(() => {
     if (!focusId) return
     document.querySelector<HTMLElement>(`[data-role-input="${focusId}"]`)?.focus()
@@ -53,20 +62,22 @@ export function Team() {
   const edit = (fn: (club: typeof draft.club) => typeof draft.club, structure = true) => { setError(""); update(d => ({ ...d, ...(structure ? { structureTouched: true } : {}), club: fn(d.club) })) }
   const holderName = (holderId: string | null) => people.find(p => p.id === holderId)?.name ?? ""
   const reading = draft.reading
+  const replaces = state.org.setupCompletedOn !== null
 
-  const next = () => {
+  const start = () => {
+    if (started.current) return
     const checked = validateTeam(draft.club)
-    setError(checked.error ?? "")
-    if (checked.error) return
-    update(d => ({ ...d, club: { ...d.club, people: checked.people } })); flow.next()
+    if (checked.error) { setError(checked.error); return }
+    const plan = finishSetup(draft, checked, state.today)
+    if (!plan.ok) { setError(plan.problem); return }
+    started.current = true
+    if (!tryDispatch({ type: "completeSetup", draft: plan.club, event: plan.event, date: plan.date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps, workflowBranches: draft.workflowBranches })) { started.current = false; setError(c.saveFailed); return }
+    recordSetup("start-workspace")
+    flow.next()
+    clear()
   }
-  // Back keeps valid rows (with their emails made); Skip keeps them too, or puts back what the screen started with if they are not valid.
+  // Back keeps valid rows (with their emails made).
   const back = () => { const checked = validateTeam(draft.club); if (!checked.error) update(d => ({ ...d, club: { ...d.club, people: checked.people } })); flow.back() }
-  const skip = () => {
-    const checked = validateTeam(draft.club)
-    update(d => ({ ...d, club: checked.error ? { ...d.club, roles: start.current.roles, people: start.current.people } : { ...d.club, people: checked.people } }))
-    flow.skip()
-  }
   const add = () => {
     const made = addRole(roles)
     if (!made) return
@@ -81,7 +92,11 @@ export function Team() {
 
   return <section className="ob-card ob-team" aria-labelledby="ob-team-h">
     <div className="ob-gt-head"><h1 id="ob-team-h">{c.title}</h1><p className="ob-lead">{c.invited}</p></div>
-    {reading.status === "reading" && <p className="notice ai-note" role="status"><span className="spin" aria-hidden="true" />{onboardingCopy.founder.constitution.reading}</p>}
+    <div className="ob-team-import">
+      <button type="button" className="btn btn-quiet small" aria-expanded={importing} aria-controls="ob-const-import" onClick={() => setImporting(open => !open)}>{onboardingCopy.founder.constitution.open}</button>
+      {importing && <ConstitutionImport id="ob-const-import" />}
+    </div>
+    {!importing && reading.status === "reading" && <p className="notice ai-note" role="status"><span className="spin" aria-hidden="true" />{onboardingCopy.founder.constitution.reading}</p>}
     {reading.status === "ready" && !draft.applied && <p className="notice ai-note" role="status">{c.suggested}<button type="button" className="btn small" onClick={useSuggestions}>{c.use}</button></p>}
     <div className="ob-team-head" aria-hidden="true"><span>{c.role}</span><span>{c.person}</span><span>{c.reportsTo}</span><span /></div>
     <ul className="ob-role-list" data-testid="team-rows">{roles.map((r, i) => {
@@ -107,11 +122,12 @@ export function Team() {
     })}</ul>
     <div><button type="button" ref={addButton} className="btn small" disabled={roles.length >= MAX_ROLES} onClick={add}>{c.add}</button></div>
     <OrgChart roles={roles} />
+    {replaces && <p className="ob-c9-warn" data-testid="replace-warning">{c.replaceWarning}</p>}
     {error && <p role="alert" className="ob-gt-error">{error}</p>}
     <div className="ob-gt-nav">
       <button type="button" className="btn" onClick={back}>{onboardingCopy.back}</button>
-      <button type="button" className="btn btn-primary" onClick={next}>{onboardingCopy.next}</button>
-      <div className="ob-gt-skip"><button type="button" className="btn btn-quiet" onClick={skip}>{onboardingCopy.skip}</button><p className="ob-gt-hint">{onboardingCopy.skipHint}</p></div>
+      <button type="button" className="btn btn-primary" onClick={start}>{c.start}</button>
+      {replaces && <div className="ob-gt-skip"><button type="button" className="btn btn-quiet" onClick={() => { recordSetup("keep-demo"); flow.exit() }}>{c.keep}</button></div>}
     </div>
   </section>
 }

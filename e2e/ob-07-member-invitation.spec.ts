@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 
-// OB-07: the first three screens of the member preview (Invitation, You, Reminders). Run on desktop and phone.
+// OB-07: the first two screens of the member preview (Invitation, with the name and email since ob-6, and Reminders). Run on desktop and phone.
 const INVITATION = "/#/welcome/member/invitation"
 const scan = async (page: Page) => (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()).violations.map(v => v.id)
 const MEMBER_KEY = "platypus.v1.onboarding.member"
@@ -9,7 +9,7 @@ const choice = (page: Page) => page.evaluate(key => JSON.parse(sessionStorage.ge
 /** Words a person can read inside <main> (the strip, the card and the bottom bar). */
 const words = (page: Page) => page.evaluate(() => (document.querySelector("main")!.innerText.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w))).length)
 const club = (page: Page) => page.evaluate(() => { const s = JSON.parse(localStorage.getItem("platypus.v1.demo") ?? "null"); return s && { viewerId: s.viewerId, people: s.people } })
-const toReminders = async (page: Page) => { await page.goto(INVITATION); await page.getByRole("button", { name: "Continue" }).click(); await page.getByRole("button", { name: "Continue" }).click(); await expect(page).toHaveURL(/member\/reminders$/) }
+const toReminders = async (page: Page) => { await page.goto(INVITATION); await page.getByRole("button", { name: "Continue" }).click(); await expect(page).toHaveURL(/member\/reminders$/) }
 
 test("Invitation shows the club, the role, its reports-to line and duties", async ({ page }) => {
   await page.goto(INVITATION)
@@ -37,7 +37,7 @@ test("Change switches the previewed officer and the role card follows", async ({
 test("an invitation that does not match shows the new wording and a next step", async ({ page }) => {
   await page.goto(`${INVITATION}?invite=nope`)
   await expect(page.getByRole("heading", { name: "This invitation link isn't working. Ask your president to send a new one." })).toBeVisible()
-  await expect(page.getByText("Demo tip: open the link in the browser where the club was set up.")).toBeVisible()
+  await expect(page.getByText("Open the link in the browser where the club was set up.")).toBeVisible()
   await expect(page.getByRole("button", { name: "Continue" })).toHaveCount(0)
   await page.goto(`${INVITATION}?person=nobody`)
   await expect(page.getByTestId("invalid-invite")).toBeVisible()
@@ -46,18 +46,16 @@ test("an invitation that does not match shows the new wording and a next step", 
   await page.goto(INVITATION + "?person=sam")
   await expect(page.getByTestId("invite-line")).toContainText("Marketing lead")
 })
-test("You is prefilled, can be edited, and checks the email like Settings does", async ({ page }) => {
+test("Invitation asks for the name and email (the You screen up to ob-5): prefilled, editable, and checked like Settings", async ({ page }) => {
   await page.goto(INVITATION)
-  await page.getByRole("button", { name: "Continue" }).click()
-  await expect(page).toHaveURL(/member\/you$/)
   await expect(page.getByLabel("Name")).toHaveValue("Maya Chen")
   await expect(page.getByLabel("Email")).toHaveValue("maya.chen@example.org")
-  await expect(page.getByTestId("member-strip")).toContainText("Fictional demo. Choosing a name does not verify an identity.")
-  expect(await words(page)).toBeLessThanOrEqual(40)
+  await expect(page.getByTestId("member-strip")).not.toContainText("Fictional demo. Choosing a name does not verify an identity.")   // the Demo strip says it once
+  await expect(page.getByRole("button", { name: "Not you?" })).toHaveCount(0)                    // one name per thing: Change, in the strip
   await page.getByLabel("Email").fill("maya@gmail.com")
   await page.getByRole("button", { name: "Continue" }).click()
   await expect(page.getByRole("alert")).toContainText("example.org")
-  await expect(page).toHaveURL(/member\/you$/)
+  await expect(page).toHaveURL(/member\/invitation$/)
   await page.getByLabel("Name").fill("")
   await page.getByLabel("Email").fill("maya.c@example.org")
   await page.getByRole("button", { name: "Continue" }).click()
@@ -70,9 +68,9 @@ test("You is prefilled, can be edited, and checks the email like Settings does",
   await expect(page).toHaveURL(/member\/reminders$/)
   expect(await choice(page)).toMatchObject({ v: 1, personId: "maya", name: "Maya C.", email: "maya.c@example.org" })
 })
-test("Not you? opens the picker and the form shows the other officer", async ({ page }) => {
-  await page.goto("/#/welcome/member/you")
-  await page.getByRole("button", { name: "Not you?" }).click()
+test("Change opens the picker and the form shows the other officer", async ({ page }) => {
+  await page.goto(INVITATION)
+  await page.getByRole("button", { name: "Change" }).click()
   const picker = page.getByRole("combobox", { name: "Preview as" })
   await expect(picker).toBeFocused()
   await picker.selectOption({ label: "Sam Okafor · Marketing lead" })
@@ -85,7 +83,8 @@ test("Reminders: the phone appears only for WhatsApp or SMS, with its purpose, a
   await expect(channels.getByRole("radio")).toHaveCount(3)
   // Maya's own first choice is WhatsApp, so the phone is already there.
   await expect(channels.getByRole("radio", { name: "WhatsApp" })).toBeChecked()
-  await expect(page.getByTestId("phone-field")).toContainText("So your president can open a prewritten message. Nothing is sent automatically.")
+  await expect(page.getByTestId("phone-field")).toContainText("So your president can open a prewritten message.")
+  await expect(page.getByTestId("phone-field")).not.toContainText("Nothing is sent automatically.")   // said once, on Invitation
   await channels.getByRole("radio", { name: "Email" }).check()
   await expect(page.getByTestId("phone-field")).toHaveCount(0)
   expect(await words(page)).toBeLessThanOrEqual(40)
@@ -128,26 +127,23 @@ test("the example reminder changes with the channel and the time, and sends noth
   await expect(page.getByTestId("sample-reminder")).toContainText("Example")
   expect(requests).toEqual([])
 })
-test("Continue and Back walk through the three screens", async ({ page }) => {
+test("Continue and Back walk through the two screens", async ({ page }) => {
   await page.goto(INVITATION)
   await expect(page.getByRole("button", { name: "Back" })).toHaveCount(0)
-  await page.getByRole("button", { name: "Continue" }).click()
-  await expect(page).toHaveURL(/member\/you$/)
   await page.getByRole("button", { name: "Continue" }).click()
   await expect(page).toHaveURL(/member\/reminders$/)
   await expect(page.getByRole("list", { name: "Walkthrough progress" }).locator("[aria-current=step]")).toContainText("Reminders")
   await page.getByRole("button", { name: "Back" }).click()
-  await expect(page).toHaveURL(/member\/you$/)
-  await page.getByRole("button", { name: "Back" }).click()
   await expect(page).toHaveURL(/member\/invitation$/)
+  await expect(page.getByLabel("Name")).toHaveValue("Maya Chen")
 })
 test("the preview keeps its choices in sessionStorage only, changes nothing in the club, and calls no server", async ({ page }) => {
   const calls: string[] = []
   page.on("request", r => { if (/\/api\/(org|workspace)/.test(r.url())) calls.push(r.url()) })
   await page.goto(INVITATION)
   await page.getByRole("button", { name: "Continue" }).click()   // the club is created by now
+  await expect(page).toHaveURL(/member\/reminders$/)
   const before = await club(page)
-  await page.getByRole("button", { name: "Continue" }).click()
   await page.getByRole("radio", { name: "Email" }).check()
   await page.getByRole("radio", { name: "Morning" }).check()
   await page.getByRole("button", { name: "Continue" }).click()
@@ -160,7 +156,7 @@ test("the preview keeps its choices in sessionStorage only, changes nothing in t
   expect(calls).toEqual([])
 })
 test("the screens fit the phone: no sideways scroll, big tap targets, the main button in reach", async ({ page }) => {
-  for (const path of ["invitation", "you", "reminders"]) {
+  for (const path of ["invitation", "reminders"]) {
     await page.goto(`/#/welcome/member/${path}`)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
     const next = page.getByRole("button", { name: "Continue" })
@@ -173,10 +169,10 @@ test("the screens fit the phone: no sideways scroll, big tap targets, the main b
   for (const row of await page.locator(".ob-m-opt").all()) expect((await row.boundingBox())!.height).toBeGreaterThanOrEqual(44)
   for (const label of await page.locator(".ob-m-seg label").all()) expect((await label.boundingBox())!.height).toBeGreaterThanOrEqual(44)
 })
-test("no accessibility problems on any of the three screens, in light and dark", async ({ page }) => {
+test("no accessibility problems on both screens, in light and dark", async ({ page }) => {
   for (const scheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: scheme })
-    for (const path of ["invitation", "you", "reminders"]) {
+    for (const path of ["invitation", "reminders"]) {
       await page.goto(`/#/welcome/member/${path}`)
       await expect(page.locator("main h1")).toBeVisible()
       expect(await scan(page), `${path} ${scheme}`).toEqual([])
@@ -185,8 +181,8 @@ test("no accessibility problems on any of the three screens, in light and dark",
     expect(await scan(page), `reminders email ${scheme}`).toEqual([])
     await page.goto(`${INVITATION}?invite=nope`)
     expect(await scan(page), `invalid ${scheme}`).toEqual([])
-    await page.goto("/#/welcome/member/you")
-    await page.getByRole("button", { name: "Not you?" }).click()
+    await page.goto(INVITATION)
+    await page.getByRole("button", { name: "Change" }).click()
     expect(await scan(page), `picker ${scheme}`).toEqual([])
   }
 })

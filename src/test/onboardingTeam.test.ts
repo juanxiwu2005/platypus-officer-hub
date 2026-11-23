@@ -1,36 +1,12 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
-import { clubDraft, validateGoals } from "../data/settings"
+import { clubDraft } from "../data/settings"
 import { MAX_ROLES } from "../data/structure"
 import type { ConstitutionRead } from "../lib/constitution"
-import { DEFAULT_ON, SUGGESTIONS, goalsError, goalsFrom, rowsFrom } from "../onboarding/founder/goals/suggestions"
 import { addRole, applyReading, bossChoices, removeRole, renameRole, roleDepth, setDuties, setPersonName, setReportsTo, treeOrderRoles, validateTeam } from "../onboarding/founder/team/rows"
 
-// OB-05: the pure parts of the Goals and Team screens. The screens themselves are in e2e/ob-05-goals-team.spec.ts.
+// OB-05: the pure parts of the Team screen (Goals was removed in ob-6). The screens themselves are in e2e/ob-05-goals-team.spec.ts.
 const club = () => clubDraft(seedDemo("2026-10-22"))
-
-describe("Goals suggestions", () => {
-  it("start with the first two switched on, and the chosen goals pass the rule the rest of the app uses", () => {
-    const rows = rowsFrom(club().goals)   // the demo's own goals are not ours, so we start from the suggestions
-    expect(rows.filter(r => r.on)).toHaveLength(DEFAULT_ON)
-    const goals = goalsFrom(rows)
-    expect(validateGoals(goals)).toBeNull()
-    expect(goals.every(g => g.current === 0)).toBe(true)
-    expect(new Set(SUGGESTIONS.map(s => s.id)).size).toBe(SUGGESTIONS.length)
-  })
-  it("keeps editable choices when the screen is opened again", () => {
-    const rows = rowsFrom(club().goals).map(r => ({ ...r, on: true, label: `${r.label} goal`, unit: `${r.unit} total`, target: r.target + 1 }))
-    expect(rowsFrom(goalsFrom(rows))).toEqual(rows)
-  })
-  it("allows no goals, but requires a mission and valid selected goals", () => {
-    const rows = rowsFrom(club().goals)
-    expect(goalsError(rows, "Build a welcoming club.")).toBeNull()
-    expect(goalsError(rows.map(r => ({ ...r, on: false })), "Build a welcoming club.")).toBeNull()
-    expect(goalsError(rows, "")).not.toBeNull()
-    expect(goalsError(rows.map(r => ({ ...r, target: 0 })), "Build a welcoming club.")).not.toBeNull()
-    expect(goalsError(rows, "x".repeat(301))).not.toBeNull()
-  })
-})
 
 describe("Team rows", () => {
   it("the demo team passes the checks, and every person gets an example.org email", () => {

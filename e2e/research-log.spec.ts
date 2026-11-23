@@ -1,5 +1,4 @@
 import { FLOW_VERSION } from "../src/onboarding/record"
-import { fillMission } from "./ob-helpers"
 import { expect, test, type Page } from "@playwright/test"
 import { readFileSync } from "node:fs"
 import { onboardingCopy as c } from "../src/onboarding/copy"
@@ -32,16 +31,11 @@ async function session(page: Page) {
   await page.goto("/#/start")
   await expect(page.getByRole("heading", { level: 1, name: "Name your club" })).toBeVisible()
   await page.getByLabel(c.founder.name.field).fill("Fictional Lantern Society")
-  await next(page)
-  // The shared seven-step founder flow (ob-5: no Reminders screen) (docs/feedback-fix/SETUP_ENTRY_UNIFICATION_HANDOFF.md): Constitution, then Goals with its mission.
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await fillMission(page)
-  await page.getByRole("button", { name: c.skip }).click()            // goals
-  await page.getByRole("button", { name: c.skip }).click()            // team
+  // The three-screen founder flow (ob-6): the first event on screen 1, then Team, whose Start workspace finishes setup, then Invite.
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
   await next(page)
-  await page.getByRole("button", { name: c.founder.confirm.start }).click()
+  await page.getByRole("button", { name: c.founder.team.start }).click()
   await expect(page.getByRole("heading", { level: 1, name: c.founder.invite.title })).toBeVisible()
   await page.getByRole("button", { name: c.founder.invite.today }).click()
   await expect(page.locator("main h1")).toHaveText("Reminders")      // FB-8: the home page is the reminder centre
@@ -132,9 +126,9 @@ test("a short session is exported whole: walkthrough, a reminder, clicks, a rule
   let i = find(0, e => e.type === "ui.navigate" && p(e).to === "/welcome/founder/name", "the walkthrough opened")
   // 2026-11-07: typing in a field is recorded as "started / stopped typing", with the field's label and never its text
   i = find(i, e => e.type === "ui.edit" && p(e).event === "start" && String(p(e).field).includes(c.founder.name.field) && p(e).kind === "text", "typing began in the club name")
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.next && p(e).route === "/welcome/founder/name" && p(e).to === "/welcome/founder/constitution", "Continue on the Name screen")
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.next && p(e).route === "/welcome/founder/name" && p(e).to === "/welcome/founder/team", "Continue on screen 1")
   expect(log.some(e => e.type === "ui.change" && p(e).route === "/welcome/founder/reminders"), "ob-5: no Reminders screen in the walkthrough").toBe(false)
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.confirm.start, "Start workspace")
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.team.start && p(e).route === "/welcome/founder/team", "Start workspace, on Team")
   i = find(i, e => e.type === "completeSetup" && e.applied, "the club was created")
   i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.invite.today && p(e).to === "/", "Go to Reminders")
   i = find(i, e => e.type === "ui.change" && p(e).route === "/settings" && p(e).role === "radio" && p(e).name === "I review, then I send" && p(e).checked === true, "the reminder choice, in Settings")

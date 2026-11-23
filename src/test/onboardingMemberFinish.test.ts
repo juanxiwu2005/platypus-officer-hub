@@ -60,15 +60,15 @@ const read = (f: string) => strip(readFileSync(f, "utf8"))
 
 describe("OB-08 guard: only the Done screen saves, and only a profile", () => {
   it("has no forbidden call in the three screens or the finish helpers", () => {
-    for (const file of [join(member, "BusyWeeks.tsx"), join(member, "About.tsx"), join(member, "Done.tsx"), ...finishFiles]) expect(scan(read(file), SHARED_RULES), file).toEqual([])
+    for (const file of [join(member, "BusyWeeks.tsx"), join(member, "Done.tsx"), ...finishFiles]) expect(scan(read(file), SHARED_RULES), file).toEqual([])
   })
-  it("keeps Busy weeks, About you and the helpers from saving to the club", () => {
-    for (const file of [join(member, "BusyWeeks.tsx"), join(member, "About.tsx"), ...finishFiles]) expect(scan(read(file), NO_SAVE_RULES), file).toEqual([])
+  it("keeps Busy weeks and the helpers from saving to the club (About you was removed in ob-6)", () => {
+    for (const file of [join(member, "BusyWeeks.tsx"), ...finishFiles]) expect(scan(read(file), NO_SAVE_RULES), file).toEqual([])
   })
   it("has Done save exactly once through saveProfile, with the club's invite code, and nothing else", () => {
     const done = read(join(member, "Done.tsx"))
-    expect(done.match(/dispatch\(/g)).toHaveLength(1)
-    expect(done).toMatch(/dispatch\(\{ type: "saveProfile", personId: person\.id, patch: plan\.patch, invite: state\.org\.inviteCode \}\)/)
+    expect(done.match(/tryDispatch\(/g)).toHaveLength(1)   // since ob-6 a refused save is reported (tryDispatch)
+    expect(done).toMatch(/tryDispatch\(\{ type: "saveProfile", personId: person\.id, patch: plan\.patch, invite: state\.org\.inviteCode \}\)/)
     expect(done).toMatch(/endWalkthrough\("completed"\)/)
     expect(done).toMatch(/navigate\("\/tasks"\)/)
   })

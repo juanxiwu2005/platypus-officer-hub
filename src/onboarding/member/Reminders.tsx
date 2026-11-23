@@ -14,7 +14,7 @@ const CHOICES: { channel: Channel; label: string }[] = [{ channel: "whatsapp", l
 const TIMES: { value: "morning" | "evening"; label: string }[] = [{ value: "morning", label: c.morning }, { value: "evening", label: c.evening }]
 const needsPhone = (channel: Channel) => channel !== "email"
 
-/** Member screen 2: where reminders go and when. The example bubble below shows exactly what one would look like; it sends nothing. */
+/** Member screen 2 of 4: where reminders go and when. The example bubble below shows exactly what one would look like; it sends nothing. */
 export function Reminders() {
   const preview = usePreview()
   if (!preview.person) return null

@@ -12,7 +12,7 @@ import { usePreview, type Preview } from "./invitation/usePreview"
 const c = onboardingCopy.member.busyWeeks
 const KIND_TEXT: Record<Exclude<WeekKind, null>, string> = { finals: c.finals, break: c.brk, between: c.between, holiday: c.holiday }
 
-/** Member screen 3 (can be skipped): a strip of the coming weeks. Tap the ones that are busy. Finals, breaks and holidays are already marked. */
+/** Member screen 3 of 4 (can be skipped): a strip of the coming weeks. Tap the ones that are busy. Finals, breaks and holidays are already marked. */
 export function BusyWeeks() {
   const preview = usePreview()
   if (!preview.person) return null

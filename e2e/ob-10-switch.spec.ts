@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { WELCOME_ON, fillMission, onboardingRecord } from "./ob-helpers"
+import { WELCOME_ON, onboardingRecord } from "./ob-helpers"
 import { onboardingCopy as c } from "../src/onboarding/copy"
 import { openDemoMenu } from "./helpers"
 
@@ -13,32 +13,27 @@ test("a first visit runs welcome → founder flow → invite → officer preview
   await page.getByRole("button", { name: c.start }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
   await page.getByLabel(c.founder.name.field).fill("Moonlight Typing Society")
-  await next(page).click()
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await fillMission(page)
-  await page.getByRole("button", { name: c.skip }).click()           // goals
-  await page.getByRole("button", { name: c.skip }).click()           // team
-  await expect(page).toHaveURL(/#\/welcome\/founder\/first-event$/)
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
   await next(page).click()
-  await page.getByRole("button", { name: c.founder.confirm.start }).click()
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+  await page.getByRole("button", { name: c.founder.team.start }).click()
   await expect(page.getByRole("heading", { level: 1, name: c.founder.invite.title })).toBeVisible()
   await page.getByRole("button", { name: c.founder.invite.preview }).click()
   await expect(page).toHaveURL(/#\/welcome\/member\/invitation$/)
-  await next(page).click(); await next(page).click(); await next(page).click()   // invitation, you, reminders
+  await next(page).click(); await next(page).click()                              // invitation, reminders
   await page.getByRole("button", { name: c.member.busyWeeks.skip }).click()
-  await page.getByRole("button", { name: c.skip }).click()           // about you
   await expect(page).toHaveURL(/#\/welcome\/member\/done$/)
   await page.getByRole("button", { name: c.member.done.cta }).click()
   await expect(page).toHaveURL(/#\/tasks/)
 
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0]).toMatchObject({ entry: "start", outcome: "completed", flowVersion: "ob-5" })
+  expect(rec.attempts[0]).toMatchObject({ entry: "start", outcome: "completed", flowVersion: "ob-6", setupChoice: "start-workspace" })
   const steps = rec.attempts[0].steps.map(s => `${s.step}:${s.event}`)
-  for (const expected of ["founder.name:enter", "founder.constitution:skip", "founder.goals:skip", "founder.team:skip", "founder.first-event:enter", "founder.first-event:leave", "founder.confirm:enter", "member.invitation:enter", "member.done:enter"]) expect(steps).toContain(expected)
-  expect(steps.some(x => x.startsWith("founder.reminders"))).toBe(false)                // ob-5: no Reminders screen
+  expect(steps.slice(0, 6)).toEqual(["founder.name:enter", "founder.name:leave", "founder.team:enter", "founder.team:leave", "founder.invite:enter", "founder.invite:leave"])
+  for (const expected of ["member.invitation:enter", "member.busy-weeks:skip", "member.done:enter", "member.done:complete"]) expect(steps).toContain(expected)
+  expect(steps.some(x => /founder\.(reminders|constitution|goals|first-event|confirm)|member\.(you|about)/.test(x))).toBe(false)   // ob-6: three founder and four member screens
   expect(JSON.stringify(rec)).not.toContain("Moonlight")                                // behaviour only, never what was typed
   const stored = await page.evaluate(() => localStorage.getItem("platypus.v1.demo") ?? "")
   expect(stored).toContain("Moonlight Typing Society")                                  // …while the club itself was really created
@@ -85,4 +80,20 @@ test("a test button does not write into an attempt that is still open", async ({
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
   expect(rec.attempts[0].steps.length).toBe(before)                  // no new steps, and the exit was not recorded
+})
+test("the setup doors that are not the study link (/setup, Settings → Replay setup) do not write into an attempt that is still open", async ({ page }) => {
+  await page.goto(WELCOME_ON)
+  await page.getByRole("button", { name: c.start }).click()
+  await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
+  const before = (await onboardingRecord(page)).attempts[0].steps.length
+  for (const door of ["/#/setup", "/#/welcome/setup"]) {
+    await page.goto(door)
+    await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
+  }
+  await page.getByLabel(c.founder.name.field).fill("Door Club")
+  await page.getByRole("button", { name: c.skip }).click()
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+  const rec = await onboardingRecord(page)
+  expect(rec.attempts).toHaveLength(1)
+  expect(rec.attempts[0].steps.length).toBe(before)
 })

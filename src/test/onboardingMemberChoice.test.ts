@@ -53,7 +53,7 @@ describe("member preview: the profile rules are Settings' rules", () => {
     expect(previewProblem(state.people, maya, previewPatch(maya, null, { name: "  " }))).toBeTruthy()
     expect(previewProblem(state.people, maya, previewPatch(maya, null, { phone: "480-123-4567" }))).toMatch(/555-01xx/)
     expect(previewProblem(state.people, maya, previewPatch(maya, null, { phone: "480-555-0142" }))).toBeNull()
-    expect(previewProblem(state.people, maya, previewPatch(maya, null, { name: "alex rivera" }))).toBe(onboardingCopy.member.you.duplicate)
+    expect(previewProblem(state.people, maya, previewPatch(maya, null, { name: "alex rivera" }))).toBe(onboardingCopy.member.invitation.duplicate)
   })
   it("uses the stored choices over the officer's record", () => {
     const patch = previewPatch(maya, { v: 1, personId: "maya", channel: "email", remindAt: "morning", name: "Maya C." })

@@ -3,9 +3,10 @@ import { beginSession } from "../lib/studySession"
 
 /** The walkthrough's current attempt lives in sessionStorage, so a reload keeps recording into the same attempt. */
 const ACTIVE = "platypus.v1.onboarding.active"
+// ob-6 (S6, 2026-11-23): three founder screens (Name and first event, Team, Invite) and four member screens; see engine/flows.ts.
 // ob-5 (S2, 2026-11-22): the founder Reminders screen is removed; new clubs start with "I review, Platypus sends" (review_then_auto).
 // ob-4 (P3-H, 2026-11-08): a new optional founder screen, Reminders, between First event and Confirm. ob-3: First event can be skipped (ob-2: it was required).
-export const FLOW_VERSION = "ob-5"
+export const FLOW_VERSION = "ob-6"
 const read = () => { try { return window.sessionStorage.getItem(ACTIVE) } catch { return null } }
 const write = (id: string | null) => { try { id ? window.sessionStorage.setItem(ACTIVE, id) : window.sessionStorage.removeItem(ACTIVE) } catch { /* recording is optional */ } }
 
@@ -26,7 +27,7 @@ export function beginWalkthrough(): string {
   return id
 }
 export function recordEvent(step: string, event: OnboardingEvent): void { const id = read(); if (id) recordStep(id, step, event) }
-/** Start workspace or Keep current demo on the Confirm screen: setup is over, whatever the attempt's final outcome turns out to be. */
+/** Start workspace or Keep current demo (on Team since ob-6, on Confirm before): setup is over, whatever the attempt's final outcome turns out to be. */
 export function recordSetup(choice: SetupChoice): void { const id = read(); if (id) markSetup(id, choice) }
 export function endWalkthrough(outcome: "completed" | "exited"): void { const id = read(); if (id) { finishAttempt(id, outcome); write(null) } }
 /** Forget the current attempt without recording anything more: the "Test Onboarding Page" buttons use it, so testing never adds to the research record. */

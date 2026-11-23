@@ -11,11 +11,9 @@ export function OnboardingShell() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { draft, clear } = useOnboardingDraft()
-  useResumeReading(pathname === "/welcome/setup" || pathname === "/welcome/classic")
+  useResumeReading(pathname === "/welcome/setup" || pathname === "/welcome/classic")   // setup doors that are not the study link only forward (gate/Redirect.tsx)
   const at = stepAt(pathname)
   const exit = () => { if (at) recordEvent(FLOWS[at.flow][at.index].id, "exit"); endWalkthrough("exited"); clear(); navigate("/") }
-  // The classic Join page brings its own <main>; two would break the page landmarks.
-  const Main = pathname.endsWith("classic-join") ? "div" : "main"
   const onWelcome = /^\/welcome\/?$/.test(pathname)
   return <div className="ob-shell">
     <header className="ob-header">
@@ -23,6 +21,6 @@ export function OnboardingShell() {
       {at && <ProgressChain steps={FLOWS[at.flow]} index={at.index} skipped={draft.skipped} />}
       {!onWelcome && <button type="button" className="btn small" onClick={exit}>{onboardingCopy.exit}</button>}
     </header>
-    <Main className="ob-main"><Outlet /></Main>
+    <main className="ob-main"><Outlet /></main>
   </div>
 }
