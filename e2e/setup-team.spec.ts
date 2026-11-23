@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { continueSetup, finishSetup, setupToTeam } from "./setupHelpers"
-import { closeRail, openDemoMenu, resetDemo, viewAs } from "./helpers"
+import { closeRail, resetDemo, viewAs } from "./helpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -167,18 +167,7 @@ test("task dates remain visible while another officer's buffer explanation stays
   // (docs/feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md) dropped "Why this date", so the panel shows no planning dates or buffers at all.
   await expect(panel.getByTestId("task-due").locator("strong")).toHaveText(/^\w{3} \d+/)
   await expect(panel).not.toContainText(/Maya's personal buffer|Personal planning start|Start by/)
-  await closeRail(page)
-  await openDemoMenu(page)
-  await page.getByTestId("bts-toggle").check()
-  await page.keyboard.press("Escape")
-  await page.getByTestId("view-list").click()
-  const list = page.getByTestId("event-list")
-  const row = list.locator("tbody tr").filter({ has: page.getByRole("button", { name: /Purchase Request$/ }) })
-  const explanation = row.locator("xpath=following-sibling::tr[1]")
-  await expect(explanation).toContainText("private planning preferences")
-  await expect(explanation).not.toContainText("Maya's personal buffer")
-  await viewAs(page, "maya")
-  await expect(explanation).toContainText("Maya's personal buffer")
+  // S3 removed the Events List view, whose per-step reminder note was the only place a personal buffer was named.
 })
 
 /** Audit §5.1: buttons inside a hover card can be clicked (fixed in S3: styles.css restores pointer-events). */

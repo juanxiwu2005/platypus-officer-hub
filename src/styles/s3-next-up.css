@@ -1,0 +1,33 @@
+/* S3 "Next up" strip under the event flow: one row per step, wrapping to two lines on a phone. */
+.next-up { display: grid; gap: var(--s4); }
+.next-up h3 { margin: 0; font-size: var(--fs-md); }
+.next-up p { margin: 0; }
+.next-up-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.next-up-list li { display: flex; align-items: center; gap: var(--s4); min-width: 0; padding-block: var(--s2); border-top: 1px solid var(--line); }
+.next-up-list li:first-child { border-top: 0; }
+.next-up-row {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 96px 104px;
+  align-items: center;
+  gap: var(--s5);
+  padding: var(--s3) var(--s4);
+  border: 0;
+  border-radius: var(--r-sm);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+.next-up-row:hover { background: var(--surface-2); }
+.next-up-name { min-width: 0; overflow-wrap: anywhere; color: var(--ink); font-weight: 600; }
+.next-up-owner { min-width: 0; overflow-wrap: anywhere; }
+.next-up-row > :last-child { justify-self: start; }
+@media (max-width: 720px) {
+  .next-up-row { grid-template-columns: minmax(0, 1fr) auto; gap: var(--s2) var(--s4); }
+  .next-up-name { grid-column: 1 / -1; }
+  .next-up-row > :last-child { grid-column: 1 / -1; }
+}
