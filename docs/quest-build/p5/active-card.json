@@ -4,7 +4,9 @@
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
   "card": "docs/quest-build/cards/P5-08C-start-label.md",
-  "readFiles": [],
+  "readFiles": [
+    "src/quest/sample/Prologue.tsx"
+  ],
   "writeFiles": [
     "src/quest/sample/Prologue.tsx"
   ],
