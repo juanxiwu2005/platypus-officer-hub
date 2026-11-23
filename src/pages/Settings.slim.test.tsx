@@ -38,7 +38,7 @@ describe("slimmer Settings", () => {
     for (const label of ["Usual task length", "Reminder limit per task", "Private check day", "Temporary owner day", "Recovery day"]) expect(within(more).getByLabelText(label)).toBeTruthy()
     expect(within(more).getByText("Who can create events")).toBeTruthy()
     expect(more.contains(screen.getByTestId("settings-reminder-mode"))).toBe(false)
-    expect(more.contains(screen.getByLabelText("Club buffer (working days)"))).toBe(false)
+    expect(more.contains(screen.getByLabelText("Days early before ASU deadlines"))).toBe(false)
   })
 
   it("My preferences: plain labels, no career fields, and the private buffer from the engine", async () => {

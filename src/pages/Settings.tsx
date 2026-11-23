@@ -108,7 +108,7 @@ function ClubSettings({ tab }: { tab: "club" | "roles" }) {
         {defaults.reminderMode && <p id="settings-reminder-mode-body" className="small muted">{REMINDER_MODE_COPY.options[defaults.reminderMode].body}</p>}
       </fieldset>
       <p className="small muted" data-testid="reminder-plan-settings">At most {PERSON_WEEKLY_EMAIL_LIMIT} reminders per person a week. <Link to="/">Review plan</Link></p>
-      <label>Club buffer (working days)<input type="number" min="0" max="10" value={defaults.clubBufferBusinessDays} onChange={e => setDefaults({ ...defaults, clubBufferBusinessDays: Number(e.target.value) })} /></label>
+      <label>Days early before ASU deadlines<input type="number" min="0" max="10" value={defaults.clubBufferBusinessDays} onChange={e => setDefaults({ ...defaults, clubBufferBusinessDays: Number(e.target.value) })} /></label>
       {/* Rarely changed numbers and the event-creator choice, behind one disclosure. */}
       <details className="more" data-testid="tasks-events-settings"><summary>More</summary><div className="form-stack">
         <div className="form-grid">
