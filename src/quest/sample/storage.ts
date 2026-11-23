@@ -42,7 +42,7 @@ export function loadSample(storage: Pick<Storage, "getItem">, clock: QuestClock)
     if (!isObject(parsed)) throw new Error("Unsupported sample")
     const v = parsed as SampleState
     if (v.version !== 1 || !(v.scene === "prologue" || v.scene === "hq" || isStage(v.scene)) || !isSafe(v.shot, 0, 3) || typeof v.seenIntro !== "boolean" || !validDraft(v, clock)) throw new Error("Invalid sample")
-    if (!Array.isArray(v.completed) || !same(v.completed, STAGES.filter(stage => v.completed.includes(stage)))) throw new Error("Invalid sample")
+    if (!Array.isArray(v.completed) || !same(v.completed, STAGES.slice(0, v.completed.length))) throw new Error("Invalid sample")
     if (!Array.isArray(v.attempts) || !v.attempts.every((attempt, index) => validAttempt(attempt, index, clock)) || !Array.isArray(v.plans)) throw new Error("Invalid sample")
     const unlocked = v.completed.every(stage => judge(v, stage, clock).passed && v.attempts.some(attempt => attempt.passed && attempt.stage === stage && STAGE_FIELDS[stage].every(key => same(v[key], attempt.snapshot[key]))))
     const outcomeOk = v.outcome === null || (v.attempts.length > 0 && v.outcome !== null && same(v.outcome, v.attempts.at(-1)) && v.scene === v.outcome.stage && same(draftOf(v), v.outcome.snapshot))

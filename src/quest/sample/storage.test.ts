@@ -87,6 +87,20 @@ describe("sample storage", () => {
     plan.plans = [{ number: 1, layout: { ...venuePassedState().plans[0].layout, headcount: 41 } }]
     for (const tampered of [flag, unlock, plan]) expectsRejected(store({ [SAMPLE_KEY]: JSON.stringify(tampered) }), JSON.stringify(tampered))
   })
+  it("rejects a completed list that is not an exact stage prefix", () => {
+    const wall = TASKS.reduce((board, task) => moveTask(board, task.id, slotKey(49)), emptyBoard(clock))
+    const state = run([
+      { type: "go", scene: "booking" }, { type: "edit", values: { requestor: "riley" } }, { type: "check", elapsedMs: 1200 },
+      { type: "next" }, { type: "edit", values: { wall } }, { type: "check", elapsedMs: 1400 },
+    ])
+    expect(state).toMatchObject({ scene: "timeline", completed: ["booking", "timeline"], outcome: { stage: "timeline", passed: true } })
+    const raw = JSON.stringify(state)
+    const s = store({ [SAMPLE_KEY]: raw })
+    expect(loadSample(s.reader, clock).writable).toBe(true)
+    const gap = structuredClone(state)
+    gap.completed = gap.completed.filter(stage => stage !== "booking")
+    expectsRejected(store({ [SAMPLE_KEY]: JSON.stringify(gap) }), JSON.stringify(gap))
+  })
   it("reports a blocked read and a failed write", () => {
     expect(loadSample({ getItem: () => { throw new Error("blocked") } }, clock)).toEqual({ state: initialSample(clock), writable: false, notice: NOTICE })
     expect(saveSample({ setItem: () => { throw new Error("quota") } }, initialSample(clock))).toBe(false)
