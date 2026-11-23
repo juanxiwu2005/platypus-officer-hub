@@ -39,10 +39,11 @@ export default function App() {
         <Route index element={<Welcome />} /><Route path="start" element={<StartWalkthrough />} /><Route path="test/president" element={<TestWalkthrough to={FOUNDER_START} />} /><Route path="test/invite" element={<TestWalkthrough to="/welcome/member/invitation" />} />
         <Route path="founder/name" element={<Name />} /><Route path="founder/team" element={<OnboardingTeam />} /><Route path="founder/invite" element={<Invite />} />
         <Route path="member/invitation" element={<Invitation />} /><Route path="member/reminders" element={<Reminders />} /><Route path="member/busy-weeks" element={<BusyWeeks />} /><Route path="member/done" element={<Done />} />
-        {/* ob-6 (S6, 2026-11-23): old addresses go to the screen that now does their job. Setup doors that are not the study link record nothing.
+        {/* ob-6 (S6, 2026-11-23): old addresses go to the screen that now does their job. Setup doors that are not the study link record nothing,
+            and neither do invitation links (classic-join here, /join below): only "See what your officers will see" on Invite records the member screens.
             Constitution, Goals, the old Reminders screen and Confirm fold into Team; First event is on the first screen; You is on Invitation;
             About you led to Done. The classic setup and join pages, the legacy-draft importer and the "Coming soon" page are gone. */}
-        <Route path="setup" element={<Redirect to={FOUNDER_START} outside />} /><Route path="classic" element={<Redirect to={FOUNDER_START} outside />} /><Route path="classic-join" element={<Redirect to="/welcome/member/invitation" keepQuery />} />
+        <Route path="setup" element={<Redirect to={FOUNDER_START} outside />} /><Route path="classic" element={<Redirect to={FOUNDER_START} outside />} /><Route path="classic-join" element={<Redirect to="/welcome/member/invitation" keepQuery outside />} />
         <Route path="founder/constitution" element={<Redirect to="/welcome/founder/team" />} /><Route path="founder/goals" element={<Redirect to="/welcome/founder/team" />} /><Route path="founder/first-event" element={<Redirect to={FOUNDER_START} />} /><Route path="founder/reminders" element={<Redirect to="/welcome/founder/team" />} /><Route path="founder/confirm" element={<Redirect to="/welcome/founder/team" />} />
         <Route path="member/you" element={<Redirect to="/welcome/member/invitation" keepQuery />} /><Route path="member/about" element={<Redirect to="/welcome/member/done" />} />
         <Route path="*" element={<Redirect to="/welcome" />} />
@@ -52,8 +53,9 @@ export default function App() {
       <Route path="start" element={<Navigate to="/welcome/start" replace />} />
       <Route path="setup" element={<Navigate to="/welcome/setup" replace />} />
       <Route path="officer" element={screen(<Officer />, "Opening your task…", true)} />
-      {/* Invitation links (Settings and Invite share /join?invite=…) open the member walkthrough; the query is kept. */}
-      <Route path="join" element={<Redirect to="/welcome/member/invitation" keepQuery />} />
+      {/* Invitation links (Settings → Copy invite link / Try officer setup and Invite share /join?invite=…) open the member walkthrough; the query is kept.
+          Like the classic Join page they record nothing: they never write into, or complete, an attempt still open in this tab. */}
+      <Route path="join" element={<Redirect to="/welcome/member/invitation" keepQuery outside />} />
       <Route element={<Layout />}>
         <Route index element={<WelcomeGate><Today /></WelcomeGate>} />
         <Route path="events" element={screen(<Events />, "Loading events…")} />

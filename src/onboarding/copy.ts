@@ -2,7 +2,7 @@
  * Every English string the walkthrough shows, in one place (strategy sections 3, 4 and 6). Screens import from here instead of writing text in
  * components. A package may add keys inside its own block; it must not change another block.
  * S6 (2026-11-23, ob-6): the copy pass for the shorter setup. "Demo / fictional / nothing sent" is said once, hints show only on an error,
- * and the "later in Settings" lines are gone. The Goals, Confirm, You and About blocks went with their screens (see docs/PHASE3_DATA_DICTIONARY.md).
+ * and the "later in Settings" lines are gone. The S5-S7 review put one short fictional-data line back on the welcome page (welcomeDemo). The Goals, Confirm, You and About blocks went with their screens (see docs/PHASE3_DATA_DICTIONARY.md).
  */
 export const onboardingCopy = {
   // shell
@@ -11,6 +11,7 @@ export const onboardingCopy = {
   // welcome gate (OB-03)
   welcomeTitle: "Welcome to Platypus", welcomeLead: "Your club's chief of staff.",
   welcomeBody: "Plan your first event in 5 minutes.",
+  welcomeDemo: "Demo: use fictional names only.",
   start: "Start walkthrough", explore: "Explore the sample club",
   // founder flow: screen 1 (name and first event), screen 2 (team, with the constitution reading), screen 3 (invite)
   founder: {

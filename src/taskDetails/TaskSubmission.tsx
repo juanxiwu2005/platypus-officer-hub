@@ -4,7 +4,7 @@ import type { Node, NodeStatus } from "../data/types"
 import { useStore } from "../data/store"
 import { isOfficer, isPresident } from "../data/permissions"
 import { isBudgetControlledNode } from "../engine/eventBudget"
-import { MAX_FILES, MAX_TOTAL_BYTES, safeTaskUrl, taskWork } from "./data"
+import { MAX_FILES, MAX_TOTAL_BYTES, safeTaskUrl, saveFailedText, taskWork } from "./data"
 import { downloadTaskAttachment } from "./attachments"
 import { taskAttachmentBlob } from "./fileStorage"
 import { taskDraftSession } from "./drafts"
@@ -38,7 +38,7 @@ type UndoOffer = { workspaceKey: string; status: NodeStatus; waitingOn: string |
  */
 const undoOffers = new Map<string, UndoOffer>()
 function EditableSubmission({ node, actorId, authorization, work }: { node: Node; actorId: string; authorization?: TaskAuthorization; work: TaskWork }) {
-  const { state, tryDispatch, getState } = useStore()
+  const { state, tryDispatch, saveProblem, getState } = useStore()
   const detailsId = useId(), input = useRef<HTMLInputElement>(null), section = useRef<HTMLElement>(null)
   const initialRecord = work.drafts.find(d => d.authorId === actorId) ?? work.submissions.at(-1)
   const session = useMemo(() => taskDraftSession({ workspaceKey: state.demoLinkKey, nodeId: node.id, actorId, ownerId: node.ownerId, ownerVersion: node.ownerVersion ?? 0, workRevision: work.revision, details: initialRecord?.details ?? "", files: (initialRecord?.attachmentIds ?? []).flatMap(id => work.files.find(f => f.id === id) ?? []), hasDraft: work.drafts.some(d => d.authorId === actorId) }), [state.demoLinkKey, node.id, node.ownerId, node.ownerVersion, actorId])
@@ -70,7 +70,7 @@ function EditableSubmission({ node, actorId, authorization, work }: { node: Node
       if (before.status !== startingStatus) throw new Error("The status changed. Review, then submit again.")
       const accepted = tryDispatch({ type: "saveTaskWork", nodeId: node.id, authorization, input: { details: current.details, attachments: current.files, expectedRevision: current.baseWorkRevision, expectedOwnerId: session.scope.ownerId, expectedOwnerVersion: session.scope.ownerVersion, submit: true } })
       const savedNode = getState().nodes.find(n => n.id === node.id), savedWork = savedNode && taskWork(savedNode), saved = savedWork?.submissions.at(-1)
-      if (!accepted || !savedWork || savedWork.revision !== current.baseWorkRevision + 1 || saved?.authorId !== actorId || saved.details !== current.details.trim() || JSON.stringify(saved.attachmentIds) !== JSON.stringify(current.files.map(f => f.id))) throw new Error("Submission not saved. Try again.")
+      if (!accepted || !savedWork || savedWork.revision !== current.baseWorkRevision + 1 || saved?.authorId !== actorId || saved.details !== current.details.trim() || JSON.stringify(saved.attachmentIds) !== JSON.stringify(current.files.map(f => f.id))) throw new Error(saveFailedText(saveProblem(), "Submission not saved. Try again."))
       if (alive.current) {
         setNotice("Submitted.")
         if (before.status !== "done" && savedNode?.status === "done" && authorization?.kind !== "legacy") setUndo({ workspaceKey: session.scope.workspaceKey, status: before.status, waitingOn: before.waitingOn, waitingOnPersonId: before.waitingOnPersonId ?? null, revision: savedWork.revision, ownerVersion: before.ownerVersion ?? 0, ownerId: before.ownerId })
@@ -87,16 +87,18 @@ function EditableSubmission({ node, actorId, authorization, work }: { node: Node
     const reply: TaskReply = undo.status === "waiting" ? "waiting" : undo.status === "blocked" ? "help" : undo.status === "accepted" ? "todo" : "working"
     const input: ReplyInput = { waitingOn: undo.waitingOn ?? "", waitingOnPersonId: undo.waitingOnPersonId }
     const accepted = tryDispatch(authorization?.kind === "access" ? { type: "taskAccessAction", token: authorization.token, update: { kind: reply === "help" ? "stuck" : reply, ...input } } : { type: "replyTask", nodeId: node.id, reply, input })
-    if (!accepted || getState().nodes.find(n => n.id === node.id)?.status !== undo.status) { setError("Task not reopened. Try again."); return }
+    if (!accepted || getState().nodes.find(n => n.id === node.id)?.status !== undo.status) { setError(saveFailedText(saveProblem(), "Task not reopened. Try again.")); return }
     setUndo(null); setNotice("Completion undone.")
   }
   const published = work.submissions.at(-1)
+  const full = draft.files.length >= MAX_FILES   // the only state in which "+ Add files" says why it is off
   return <section className="task-submission" aria-label="Task submission" data-testid="task-submission" ref={section} tabIndex={-1}>
     <div className="task-details-field"><label htmlFor={detailsId}>Details</label><textarea id={detailsId} value={draft.details} disabled={draft.loading || submitting} onChange={e => { session.setDetails(e.target.value); setNotice("") }} maxLength={20_000} rows={6} placeholder="Share the result, location, reference numbers or anything your team needs." /></div>
     {node.draftLink && safeTaskUrl(node.draftLink) && <a className="small" href={node.draftLink} target="_blank" rel="noreferrer">Open current draft ↗</a>}
     {draft.files.length > 0 && <ul className="task-file-list" aria-label="Attachments">{draft.files.map(file => <li key={file.id}><button type="button" className="task-file-download" aria-label={`Download ${file.name}`} onClick={() => { void downloadTaskAttachment(file, session.pendingBlob(file)).catch(() => setError("This file could not be downloaded. Please try again.")) }}><span aria-hidden="true">▤</span><span>{file.name}</span></button><button type="button" className="btn btn-quiet small" aria-label={`Remove ${file.name}`} disabled={draft.loading || submitting} onClick={() => { session.removeFile(file.id); setNotice("") }}>×</button></li>)}</ul>}
     <input ref={input} className="sr-only" tabIndex={-1} type="file" multiple accept=".pdf,.txt,.md,.csv,.docx,.xlsx,.png,.jpg,.jpeg,.webp" aria-label="Attach files" disabled={draft.loading || submitting} onChange={e => addFiles(e.target.files)} />
-    <button type="button" className="btn task-add-files" disabled={draft.loading || submitting || draft.files.length >= MAX_FILES} onClick={() => input.current?.click()}>+ Add files</button>
+    <button type="button" className="btn task-add-files" disabled={draft.loading || submitting || full} aria-describedby={full ? `${detailsId}-files-max` : undefined} onClick={() => input.current?.click()}>+ Add files</button>
+    {full && <p className="small muted task-file-limit" id={`${detailsId}-files-max`} data-testid="files-max">{MAX_FILES} files max</p>}
     {published && <p className="small muted task-submission-author">Submitted by {state.people.find(p => p.id === published.authorId)?.name ?? "Former teammate"} · {published.savedOn}</p>}
     <div className="task-submit-actions"><span className="small muted" role="status" data-testid="task-autosave-status" aria-live="polite">{draft.loading ? "Opening draft…" : draft.error ? "Draft not saved." : draft.saving ? "Saving draft…" : draft.hasDraft ? "Draft saved" : ""}</span><div className="task-inline-actions">{undo && node.status === "done" && <button type="button" className="btn small" disabled={submitting} onClick={undoCompletion}>Undo mark done</button>}<button type="button" className="btn btn-primary" disabled={draft.loading || submitting} onClick={() => { void submit() }}>{submitting ? "Submitting…" : node.status === "done" ? "Update submission" : isBudgetControlledNode(node) ? "Submit result" : "Submit & mark done"}</button></div></div>
     {draft.error && <p className="small late-text" role="alert">{draft.error} <button type="button" className="btn small" onClick={() => { void session.flush().catch(() => {}) }}>Retry saving draft</button></p>}

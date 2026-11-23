@@ -3,7 +3,7 @@ import { webcrypto } from "node:crypto"
 import { seedDemo } from "../data/seed"
 import { buildExport, reducer } from "../data/store"
 import type { DemoState } from "../data/types"
-import { taskDefinitionKey, taskWork } from "./data"
+import { saveFailedText, taskDefinitionKey, taskWork } from "./data"
 import type { TaskWorkInput } from "./contracts"
 import { makeTaskAccessGrant, taskAccessToken } from "../reminders/taskAccess"
 
@@ -105,5 +105,13 @@ describe("universal work on actual task nodes", () => {
     expect(good.org.eventWorkflow).toBe(s.org.eventWorkflow)
     expect(reducer(good, { type: "updateNode", id, expectedTask, patch: { title: "Stale" } })).toBe(good)
     expect(reducer(s, { type: "updateNode", id, patch: { externalLinks: [{ label: "Unsafe", url: "javascript:alert(1)" }] } })).toBe(s)
+  })
+})
+
+describe("refused saves say their cause when the store knows it", () => {
+  it("names another tab or this browser, and otherwise keeps the screen's own line", () => {
+    expect(saveFailedText("other-tab", "Date not saved. Try again.")).toBe("Changed in another tab. Reload.")
+    expect(saveFailedText("storage", "Date not saved. Try again.")).toBe("Can't save in this browser.")
+    expect(saveFailedText(null, "Date not saved. Try again.")).toBe("Date not saved. Try again.")
   })
 })

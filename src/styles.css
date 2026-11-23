@@ -276,14 +276,9 @@ progress { accent-color: var(--accent); height: 8px; }
 .setup-steps li { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 12px; color: var(--muted); font-size: var(--fs-sm); }
 .setup-steps [aria-current] { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
 .wrap-link { overflow-wrap: anywhere; }
-.join-page { width: min(700px, 100%); margin: 24px auto; padding: 16px; }
 .contribution-board { padding: 0; margin: 0; list-style: none; }
 .contribution-board > li { border-bottom: 1px solid var(--line); padding-block: 12px; display: grid; gap: 8px; }
 .notice { padding: 12px 14px; border-radius: var(--r-md); background: var(--accent-soft); color: var(--accent-ink); font-size: var(--fs-sm); }
-.tbl.goal-tbl input[type="text"], .tbl.goal-tbl input[type="number"] { border-color: var(--line); background: var(--surface); width: 100%; }
-.goal-tbl td:first-child { width: 55%; }
-.goal-tbl td:nth-child(2), .goal-tbl td:nth-child(3) { width: 18%; }
-.goal-tbl td:last-child { width: 44px; text-align: center; }
 .roles-manager { display: grid; gap: var(--s5); min-width: 0; }
 .roles-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s5); }
 .roles-actions > p { margin: 0; }
@@ -359,7 +354,7 @@ progress { accent-color: var(--accent); height: 8px; }
 .org-card.advisor { border-style: dashed; border-color: var(--edge); color: var(--muted); }
 .role-card { display: grid; gap: var(--s3); }
 .role-card p { margin: 0; }
-@media (max-width: 600px) { .slot-row { grid-template-columns: 1fr 1fr; } .setup-steps li { flex: 1 1 40%; } .form-stack fieldset { padding: 12px; } .join-page { margin-block: 0; } }
+@media (max-width: 600px) { .slot-row { grid-template-columns: 1fr 1fr; } .setup-steps li { flex: 1 1 40%; } .form-stack fieldset { padding: 12px; } }
 
 /* WP5: responsive funding and handoff stages. */
 .plan-b { border-left: 3px solid var(--warn); padding: .8rem; }

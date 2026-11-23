@@ -137,9 +137,9 @@ function MySettings() {
   const { person, role } = useViewer()
   const bufferDays = personalBuffer(state, person).days   // the engine's number; only this officer sees it
   return <section className="card form-stack" data-testid="my-settings"><MyForm key={person.id} />
-    <details className="more"><summary>My planning buffer</summary>
+    <details className="more"><summary>My extra days</summary>
       <p className="small" data-testid="my-buffer">Private: {bufferDays} extra {bufferDays === 1 ? "day" : "days"}.</p>
-      <label className="check-label"><input type="checkbox" checked={person.retainBufferAtHandoff ?? false} onChange={e => dispatch({ type: "handoffAction", action: { kind: "retainBuffer", keep: e.target.checked } })} />Keep my personal buffer when I hand off ({role?.displayName})</label>
+      <label className="check-label"><input type="checkbox" checked={person.retainBufferAtHandoff ?? false} onChange={e => dispatch({ type: "handoffAction", action: { kind: "retainBuffer", keep: e.target.checked } })} />Keep my extra days when I hand off ({role?.displayName})</label>
     </details>
     <div className="action-row"><button type="button" className="btn" data-testid="export-data" onClick={exportData}>Export my data</button><Info>Downloads a JSON file with your club data and a record of what you did, in order.</Info></div>
   </section>

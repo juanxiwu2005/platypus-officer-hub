@@ -18,7 +18,7 @@ Its text had drifted from the code and contradicted what the product actually do
 - `src/lib/assistant.ts`: the `/help` Ask suggestions row is gone (the panel falls back to the `/` suggestions).
 - `scripts/word-count.mjs`: the `/help` row (`[9999, 9999]`) is gone.
 - Tests: `/help` left the accessibility page list (`e2e/a11y.spec.ts`); the smoke and router specs now expect `/help` to land on Reminders; the navigation lists in `e2e/navigation-archive.spec.ts` and `e2e/fb-08-reminder-centre.spec.ts` no longer include Help; `e2e/navigation-archive.spec.ts` has a redirect test. Help had no dedicated spec, so nothing moved to `archive/`.
-- Kept in place: `FORECAST_ASSUMPTIONS` in `src/engine/forecast.ts`, the `help` icon in `src/components/icons.tsx`, and every task-level "help" reply, status and notice (those mean "I need help with this task", not this page). No schema or storage change.
+- Kept: `FORECAST_ASSUMPTIONS` in `src/engine/forecast.ts` stays where it is but was reworded in S7 (2026-11-23, commit `c71e230`: shorter plain-language lines without formulas, rule ids or document references), so the archived page would show the new wording. Kept in place unchanged: the `help` icon in `src/components/icons.tsx`, and every task-level "help" reply, status and notice (those mean "I need help with this task", not this page). No schema or storage change.
 
 ## Restore later
 

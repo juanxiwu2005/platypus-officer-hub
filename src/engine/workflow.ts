@@ -214,7 +214,7 @@ export function checkWorkflow(steps: StepTemplate[], roles: Role[], state?: Demo
   for (const p of EVENT_STEPS.filter(isLocked)) {
     const s = by.get(p.key)
     if (!s) { out.push({ level: "blocked", text: `“${p.title}” is missing. ASU rule${(p.ruleIds?.length ?? 0) > 1 ? "s" : ""} ${ruleList(p) || "on its deadline"} require it.`, key: p.key, rules: p.ruleIds }); continue }
-    if (JSON.stringify(s.anchor ?? null) !== JSON.stringify(p.anchor ?? null)) out.push({ level: "blocked", text: `“${s.title}” has a deadline set by ASU rule ${ruleList(p) || "R0x"}. The club cannot change it; use the club buffer instead.`, key: p.key, rules: p.ruleIds })
+    if (JSON.stringify(s.anchor ?? null) !== JSON.stringify(p.anchor ?? null)) out.push({ level: "blocked", text: `“${s.title}” has a deadline set by ASU rule ${ruleList(p) || "R0x"}. The club cannot change it; use days early instead.`, key: p.key, rules: p.ruleIds })
     if (s.cond !== p.cond) out.push({ level: "blocked", text: `“${s.title}” only applies to some events, as ASU rule ${ruleList(p) || "R0x"} says. That cannot change.`, key: p.key, rules: p.ruleIds })
     if (scopeKey(s, definitions) !== scopeKey(p, DEFAULT_WORKFLOW_BRANCHES)) out.push({ level: "blocked", text: `The branch cannot change when ASU step “${s.title}” is required.`, key: p.key, rules: p.ruleIds })
     // A step ASU rules depend on must still come after the steps it needs (for example the speaker request waits for the signed agreement).

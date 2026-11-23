@@ -97,3 +97,30 @@ test("the setup doors that are not the study link (/setup, Settings → Replay s
   expect(rec.attempts).toHaveLength(1)
   expect(rec.attempts[0].steps.length).toBe(before)
 })
+// Invitation links are not the study link either: like the classic Join page they record nothing, so the member screens neither add steps to nor
+// complete a founder attempt that never finished setup. (The member preview from Invite still records: see the first test and ob-09.)
+for (const door of ["Settings → Try officer setup", "/join", "/welcome/classic-join"] as const) {
+  test(`an invitation link (${door}) neither writes into nor completes an attempt that is still open`, async ({ page }) => {
+    await page.goto(WELCOME_ON)
+    await page.getByRole("button", { name: c.start }).click()        // a real founder attempt is open and has not finished setup
+    await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
+    const before = (await onboardingRecord(page)).attempts[0].steps
+    await page.goto("/#/settings")
+    await page.getByRole("button", { name: "Roles & teams", exact: true }).click()
+    await page.getByTestId("club-settings").getByText("Invite officers", { exact: true }).click()
+    const tryLink = page.getByRole("link", { name: "Try officer setup" })
+    const query = new globalThis.URL((await tryLink.getAttribute("href"))!).hash.replace(/^#\/join/, "")
+    if (door === "Settings → Try officer setup") await tryLink.click()
+    else await page.goto(`/#${door}${query}`)
+    await expect(page).toHaveURL(/#\/welcome\/member\/invitation\?invite=/)
+    await next(page).click(); await next(page).click()                            // invitation, reminders
+    await page.getByRole("button", { name: c.member.busyWeeks.skip }).click()
+    await expect(page).toHaveURL(/#\/welcome\/member\/done$/)
+    await page.getByRole("button", { name: c.member.done.cta }).click()
+    await expect(page).toHaveURL(/#\/tasks/)
+    const rec = await onboardingRecord(page)
+    expect(rec.attempts).toHaveLength(1)
+    expect(rec.attempts[0].outcome, "the founder attempt is not completed by the member screens").toBeUndefined()
+    expect(rec.attempts[0].steps).toEqual(before)
+  })
+}

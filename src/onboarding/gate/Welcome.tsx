@@ -13,6 +13,7 @@ export function Welcome() {
     <h1 id="ob-welcome-h">{copy.welcomeTitle}</h1>
     <p className="ob-lead">{copy.welcomeLead}</p>
     <p>{copy.welcomeBody}</p>
+    <p className="small muted" data-testid="welcome-demo">{copy.welcomeDemo}</p>
     <div className="ob-actions">
       <button type="button" className="btn btn-primary" onClick={start}>{copy.start}</button>
       <button type="button" className="btn btn-quiet" onClick={explore}>{copy.explore}</button>

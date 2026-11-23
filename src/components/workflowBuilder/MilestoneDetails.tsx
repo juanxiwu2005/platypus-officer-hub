@@ -129,7 +129,7 @@ function TaskDetails({ step, graph, snapshot, state, teams, policy, eventDate, o
     <label>Event day<select disabled={locked} value={anchor.eventDayId} onChange={event => anchorPatch({ eventDayId: event.target.value })}>{graph.eventDays.map((day, index) => <option value={day.id} key={day.id}>Day {index + 1} · {day.title}</option>)}</select></label>
     <WholeNumber label="Finish by (T±)" value={anchor.offsetDays} min={-365} max={365} disabled={locked} onCommit={offsetDays => anchorPatch({ offsetDays })} />
     <label>Target unit<select disabled={locked} value={anchor.unit ?? "calendar"} onChange={event => anchorPatch({ unit: event.target.value as "calendar" | "business" })}><option value="calendar">Calendar days</option><option value="business">Business days</option></select></label>
-    <p className="small muted">−7 is before the selected event day; +2 is after. {due ? `Preview target: ${fmtLong(due)}.` : ""} Start is calculated from workdays, buffers and prerequisites.</p>
+    <p className="small muted">−7 is before the selected event day; +2 is after. {due ? `Preview target: ${fmtLong(due)}.` : ""} Start is calculated from workdays, days early, extra days and prerequisites.</p>
     <label>Details<textarea aria-label="Details" rows={4} maxLength={400} value={step.why} onChange={event => patch({ why: event.target.value })} /></label>
     {!!definitions.length && <label>Include with<select disabled={locked || (policy === "standard" && ["finalcheck", "checkin", "headcount"].includes(step.key))} value={placementOf(step).branchId} onChange={event => {
       const definition = definitions.find(item => item.id === event.target.value)

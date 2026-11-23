@@ -307,7 +307,7 @@ describe("the standalone owner task", () => {
     await show(state, token)
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, org: { ...state.org, name: "Updated in another tab" } }))
     fireEvent.change(screen.getByRole("combobox", { name: "Task status" }), { target: { value: "in_progress" } })
-    expect((await within(screen.getByTestId("single-task-page")).findByRole("alert")).textContent).toContain("not saved")
+    expect((await within(screen.getByTestId("single-task-page")).findByRole("alert")).textContent).toBe("Changed in another tab. Reload.")
     expect(latest.nodes[0].status).toBe("accepted")
     expect(screen.queryByText("Saved.")).toBeNull()
   })
@@ -326,7 +326,7 @@ describe("the standalone owner task", () => {
     try {
       fireEvent.click(screen.getByRole("button", { name: "Save waiting status" }))
       const page = screen.getByTestId("single-task-page")
-      expect((await within(page).findByRole("alert")).textContent).toContain("not saved")
+      expect((await within(page).findByRole("alert")).textContent).toBe("Can't save in this browser.")
       expect(latest.nodes[0].status).toBe("accepted")
       expect(latest.reminderRuntime!.waitingRequests).toEqual([])
       expect((screen.getByRole("textbox", { name: /What help or input/ }) as HTMLTextAreaElement).value).toBe("Confirm the accessible room entrance")

@@ -273,7 +273,7 @@ test("a real storage failure keeps the waiting draft and avoids Saved until the 
   }, KEY)
   try {
     await panel.getByRole("button", { name: "Save waiting status" }).click()
-    await expect(panel.getByRole("alert")).toContainText("not saved")
+    await expect(panel.getByRole("alert")).toContainText("Can't save in this browser.")   // the store knows the cause
     await expect(text).toHaveValue(DETAILS)
     await expect(panel.getByText("Saved.", { exact: true })).toHaveCount(0)
     expect(node(await read(page)).status).toBe("accepted")

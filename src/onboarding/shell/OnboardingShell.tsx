@@ -11,7 +11,7 @@ export function OnboardingShell() {
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const { draft, clear } = useOnboardingDraft()
-  useResumeReading(pathname === "/welcome/setup" || pathname === "/welcome/classic")   // setup doors that are not the study link only forward (gate/Redirect.tsx)
+  useResumeReading(pathname === "/welcome/setup" || pathname === "/welcome/classic" || pathname === "/welcome/classic-join")   // doors that are not the study link only forward (gate/Redirect.tsx)
   const at = stepAt(pathname)
   const exit = () => { if (at) recordEvent(FLOWS[at.flow][at.index].id, "exit"); endWalkthrough("exited"); clear(); navigate("/") }
   const onWelcome = /^\/welcome\/?$/.test(pathname)

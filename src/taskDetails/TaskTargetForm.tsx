@@ -4,13 +4,14 @@ import { useStore } from "../data/store"
 import { officers } from "../data/permissions"
 import { validDate } from "../lib/commands"
 import { taskWorkActor } from "./authorization"
+import { saveFailedText } from "./data"
 import { targetImpact, targetLog, taskTargetKey } from "./targetDates"
 import { suggestedTargetPeople } from "./targetPeople"
 import { fmtShort } from "../lib/dates"
 import type { TaskAuthorization } from "./contracts"
 
 export function TaskTargetForm({ node, actorId, authorization, onSaved, onCancel }: { node: Node; actorId: string; authorization?: TaskAuthorization; onSaved: (message: string) => void; onCancel: () => void }) {
-  const { state, tryDispatch, getState } = useStore(), heading = useId()
+  const { state, tryDispatch, saveProblem, getState } = useStore(), heading = useId()
   const old = state.extensionRequests.find(r => r.nodeId === node.id && r.ownerId === node.ownerId && r.previousDeadline === node.clubDeadline && r.status === "pending")
   const [date, setDate] = useState(old?.requestedDate ?? ""), [message, setMessage] = useState(old?.reason ?? "")
   const [baseline] = useState({ workspace: state.demoLinkKey, task: taskTargetKey(node), revision: targetLog(node)?.revision })
@@ -31,7 +32,7 @@ export function TaskTargetForm({ node, actorId, authorization, onSaved, onCancel
     if (planned && planned.club !== date) { setError(`Connected tasks place this target on ${fmtShort(planned.club)}. Choose that date or review the connected tasks.`); return }
     const accepted = tryDispatch({ type: "updateTaskTarget", nodeId: node.id, authorization, input: { date, message, notifyPersonIds: selected, expectedTask: baseline.task } })
     const saved = getState().nodes.find(n => n.id === node.id), record = saved && targetLog(saved)?.changes.at(-1)
-    if (!accepted || saved?.clubDeadline !== date || saved.targetDates?.revision !== (baseline.revision ?? -1) + 1 || record?.actorId !== actorId || JSON.stringify(record.notifiedPersonIds) !== JSON.stringify(selected)) { setError("Date not saved. Try again."); return }
+    if (!accepted || saved?.clubDeadline !== date || saved.targetDates?.revision !== (baseline.revision ?? -1) + 1 || record?.actorId !== actorId || JSON.stringify(record.notifiedPersonIds) !== JSON.stringify(selected)) { setError(saveFailedText(saveProblem(), "Date not saved. Try again.")); return }
     onSaved(`Target date updated. ${selected.length ? `${selected.length} ${selected.length === 1 ? "person" : "people"} notified.` : "No one selected for notification."}`)
   }
   return <form className="task-progress-form task-target-form" aria-labelledby={heading} onSubmit={e => { e.preventDefault(); save() }}>
