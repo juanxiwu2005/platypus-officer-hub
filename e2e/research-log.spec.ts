@@ -52,7 +52,6 @@ async function session(page: Page) {
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Settings" }).click()
   await expect(page.locator("main h1")).toHaveText("Settings")
   const choice = page.getByRole("group", { name: REMINDER_MODE_COPY.title })
-  if (!(await choice.isVisible())) await page.getByText("Tasks and events", { exact: true }).click()
   await choice.getByRole("radio", { name: REMINDER_MODE_COPY.options.review_then_self.title }).check()
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo") ?? "{}").org?.settings?.reminderMode)).toBe("review_then_self")
   // 2. Prepare one reminder in the reminder composer (choose a channel, open the draft: the outside page is stopped). The home page now

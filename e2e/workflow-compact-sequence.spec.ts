@@ -4,7 +4,7 @@ import type { DemoState, WorkflowTemplate, WorkflowTemplateContent } from "../sr
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { addDays } from "../src/lib/dates"
 import { noOverflow } from "./helpers"
-import { openMenu } from "./workflowLegacyHelpers"
+import { openMenu, waitForDraftSave } from "./workflowLegacyHelpers"
 import { dragToSlot } from "./workflowDrag"
 
 type Content = WorkflowTemplateContent
@@ -59,7 +59,7 @@ async function newTemplate(page: Page, name: string) {
   const builder = await open(page)
   await openMenu(page, "New workflow", "Blank workflow")
   await page.getByLabel("Workflow name", { exact: true }).fill(name)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   const template = getWorkflowTemplates(await read(page)).find(item => item.draft?.name === name)!
   return { builder, id: template.id }
 }
@@ -72,7 +72,7 @@ async function addTasks(page: Page, titles: string[], teamId: string) {
   const state = await read(page)
   await builder.getByRole("combobox", { name: "Assign role", exact: true }).selectOption(state.roles.find(role => role.holderId === state.viewerId)!.id)
   await builder.getByRole("button", { name: "Add tasks", exact: true }).click()
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
 }
 
 async function publish(page: Page, id: string, version: number) {
@@ -110,11 +110,11 @@ test("the default 46 tasks use four compact team containers without rewriting de
   const builder = await open(page)
   const dots = builder.locator('[data-testid^="workflow-task-"]')
   await expect(dots).toHaveCount(46)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   await expect(builder.locator('[data-testid^="workflow-segment-"]')).toHaveCount((await draft(page, "standard-event")).milestoneGraph!.teamBranches.length)
   await expect(builder.locator(".wfb-task")).toHaveCount(0)
   for (const task of oldVersion.steps) await expect(builder.getByRole("button", { name: `Edit ${task.title}`, exact: true })).toHaveCount(1)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   await expect.poll(async () => (await draft(page, "standard-event")).teamExecution).toBe("dependencies")
   const authored = await draft(page, "standard-event")
   expect(authored.steps).toEqual(oldVersion.steps)
@@ -229,12 +229,12 @@ test("reordering through a cross-team dependency loop is refused without changin
   await builder.getByRole("button", { name: `Edit ${c.title}`, exact: true }).click()
   await page.getByRole("combobox", { name: "Add prerequisite", exact: true }).selectOption(b.key)
   await closeRail(page)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   current = await draft(page, id)
   expect(ancestors(current.steps, c.key).has(b.key)).toBe(true)
   await dragBefore(page, c.key, a.key, isMobile)
   await expect(builder.getByRole("alert")).toContainText(/loop|cycle|cannot|keep/i)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   expect((await draft(page, id)).steps).toEqual(current.steps)
 })
 
@@ -249,7 +249,7 @@ test("editing work effort keeps compact dot positions while preserving the engin
   await builder.getByRole("button", { name: `Edit ${last.title}`, exact: true }).click()
   await page.getByRole("spinbutton", { name: "Days of work", exact: true }).fill("12")
   await closeRail(page)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   const changed = await draft(page, id)
   expect(changed.steps.find(step => step.key === last.key)?.estDays).toBe(12)
   expect(changed.steps.find(step => step.key === last.key)?.anchor).toEqual(last.anchor)

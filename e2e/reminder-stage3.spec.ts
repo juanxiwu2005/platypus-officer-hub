@@ -153,7 +153,7 @@ test("an old save is upgraded on load without changing custom settings or histor
   await page.goto("/#/settings?reminders=1")
   await expect(page.getByRole("heading", { level: 1, name: "Settings", exact: true })).toBeVisible()
   await expect(page.getByTestId("reminder-plan-settings")).toHaveText("At most 6 reminders per person a week. Review plan")
-  await page.getByText("Deadline and follow-up defaults", { exact: true }).click()
+  await page.getByTestId("tasks-events-settings").locator("summary").click()   // Club → More
   await expect(page.getByRole("spinbutton", { name: "Private check day", exact: true })).toHaveValue("11")
   await expect(page.getByRole("spinbutton", { name: /Legacy reminder/ })).toHaveCount(0)
   expect((await read(page)).org.settings).toEqual(before.org.settings)

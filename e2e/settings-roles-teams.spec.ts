@@ -1,7 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { noOverflow } from "./helpers"
-import { openMenu } from "./workflowLegacyHelpers"
 import type { DemoState } from "../src/data/types"
 
 // Settings → Roles & teams (concept C, docs/feedback-fix/ROLES_TEAMS_CONCEPTS_2026-11-19.md): org chart + workflow team areas + inspector.
@@ -91,11 +90,12 @@ test("the contact list shows each role's team, and Escape brings the inspector b
   expect(await serious(page)).toEqual([])
 })
 
-test("Workflow → More → Teams links back to Roles & teams", async ({ page }) => {
+test("Workflow has no Teams panel of its own: its menu offers no Teams, and teams are edited here", async ({ page }) => {
   await page.goto("/#/settings?tab=workflow")
   await expect(page.getByTestId("workflow-builder")).toBeVisible()
-  await openMenu(page, "More", "Teams")
-  await page.getByRole("button", { name: "Open Roles & teams", exact: true }).click()
+  await page.getByTestId("workflow-settings").getByRole("button", { name: "Versions", exact: true }).click()
+  await expect(page.getByRole("menuitem", { name: "Teams", exact: true })).toHaveCount(0)
+  await page.keyboard.press("Escape")
+  await page.getByRole("navigation", { name: "Settings sections" }).getByRole("button", { name: "Roles & teams", exact: true }).click()
   await expect(page.getByTestId("org-chart")).toBeVisible()
-  await expect(page.getByRole("navigation", { name: "Settings sections" }).getByRole("button", { name: "Roles & teams", exact: true })).toHaveAttribute("aria-current", "page")
 })

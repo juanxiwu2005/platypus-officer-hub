@@ -4,7 +4,7 @@ import type { DemoState, Event, Node, StepTemplate, WorkflowMilestoneGraph } fro
 import { addDays } from "../src/lib/dates"
 import { computeSchedule } from "../src/engine/schedule"
 import { noOverflow } from "./helpers"
-import { openMenu } from "./workflowLegacyHelpers"
+import { openMenu, waitForDraftSave } from "./workflowLegacyHelpers"
 
 type Version = { name: string; version: number; steps: StepTemplate[]; milestoneGraph?: WorkflowMilestoneGraph; teamMap?: { stepTeams: Record<string, string> } }
 type Template = { id: string; draft?: Omit<Version, "version">; versions: Version[] }
@@ -184,7 +184,7 @@ test("before and next insertion keep the selected task's team and type; Undo res
   await closeRail(page)
   await expect.poll(async () => (await templateByName(page, "Insertion trial")).draft?.steps.length).toBe(3)
   if ((page.viewportSize()?.width ?? 1280) < 1200) await expect(page.locator('[data-testid="rail"][data-state="open"]')).toHaveCount(0)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   let draft = (await templateByName(page, "Insertion trial")).draft!
   let added = draft.steps.find(step => !original.steps.some(prior => prior.key === step.key))!
   expect(added.stepKind).toBe("situation")
@@ -192,13 +192,13 @@ test("before and next insertion keep the selected task's team and type; Undo res
   expect(draft.teamMap?.stepTeams[added.key]).toBe(original.teamMap?.stepTeams[original.steps[1].key])
   expect(draft.steps.find(step => step.key === original.steps[1].key)?.dependsOn).toContain(added.key)
   await builder.getByRole("button", { name: "Undo edit", exact: true }).click()
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   expect((await templateByName(page, "Insertion trial")).draft?.steps).toHaveLength(2)
   await builder.getByRole("button", { name: `Edit ${names[1]}`, exact: true }).click()
   await expect(page.getByRole("button", { name: "Add parallel", exact: true })).toHaveCount(0)
   await page.getByRole("button", { name: "Add next", exact: true }).click()
   await closeRail(page)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   draft = (await templateByName(page, "Insertion trial")).draft!
   added = draft.steps.find(step => !original.steps.some(prior => prior.key === step.key))!
   const reference = draft.steps.find(step => step.key === original.steps[1].key)!
@@ -221,7 +221,7 @@ test("dependency connections reject loops and double-clicking an arrow leaves th
   await expect(arrow).toHaveCount(1)
   // SVG arrows intentionally have no pointer actions. Dispatch the DOM event to guard against a future delegated handler.
   await arrow.dispatchEvent("dblclick")
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   const saved = await templateByName(page, "Safe connections")
   expect((saved.draft ?? saved.versions.at(-1)!).steps).toEqual(template.versions[0].steps)
   expect(await builder.getByTestId("workflow-branch-track").count()).toBe(1)

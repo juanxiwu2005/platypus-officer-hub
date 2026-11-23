@@ -4,7 +4,7 @@ import type { DemoState, WorkflowTemplate } from "../src/data/types"
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { addDays } from "../src/lib/dates"
 import { noOverflow } from "./helpers"
-import { branchPill, branchTeamValue, menuTrigger, openMenu, setBranchTeam } from "./workflowLegacyHelpers"
+import { branchPill, branchTeamValue, menuTrigger, openMenu, setBranchTeam, waitForDraftSave } from "./workflowLegacyHelpers"
 import { dragToSlot } from "./workflowDrag"
 
 const read = (page: Page): Promise<DemoState> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
@@ -32,7 +32,7 @@ async function current(page: Page): Promise<WorkflowTemplate> {
 }
 async function save(page: Page) {
   await closeRail(page)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   return (await current(page)).draft!
 }
 async function empty(page: Page, name: string) {

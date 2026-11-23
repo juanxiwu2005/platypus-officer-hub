@@ -172,13 +172,17 @@ for (const [name, path, trigger] of DETAIL_TRIGGERS) {
 }
 
 // S3 (2026-11-23): the six statuses are fixed, so Settings has no Tasks section. An old #/settings?tab=tasks link opens the first section.
-test("keyboard: Settings sections open from the keyboard, and an old Tasks-section link opens Club", async ({ page }) => {
+// S6: Links & files left too; an old #/settings?tab=links link opens Club, where Planning notes moved.
+test("keyboard: Settings sections open from the keyboard, and old Tasks and Links links open Club", async ({ page }) => {
   await page.goto("/#/settings?tab=tasks")
   const nav = page.getByRole("navigation", { name: "Settings sections" })
-  await expect(nav.getByRole("button")).toHaveText(["Club", "Roles & teams", "Workflow", "Links & files", "My preferences", "Admin"])
+  await expect(nav.getByRole("button")).toHaveText(["Club", "Roles & teams", "Workflow", "My preferences", "Admin"])
   await expect(nav.getByRole("button", { name: "Club", exact: true })).toHaveAttribute("aria-current", "page")
   await expect(page.getByTestId("board-settings")).toHaveCount(0)
-  const opener = nav.getByRole("button", { name: "Links & files", exact: true })
+  await page.goto("/#/settings?tab=links")
+  await expect(nav.getByRole("button", { name: "Club", exact: true })).toHaveAttribute("aria-current", "page")
+  await expect(page.getByLabel("Planning notes", { exact: true })).toBeVisible()
+  const opener = nav.getByRole("button", { name: "My preferences", exact: true })
   await opener.focus()
   await page.keyboard.press("Enter")
   await expect(opener).toHaveAttribute("aria-current", "page")
