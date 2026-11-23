@@ -5,10 +5,12 @@ export interface RoomRenderer { draw: (layout: VenueLayout, camera: RoomCamera, 
 type Color = [number, number, number]
 /** Tiny local WebGL mesh renderer. Orthographic camera transforms actual 3D vertices; no game engine or dependency. */
 export function mountRoom(canvas: HTMLCanvasElement): RoomRenderer | null {
-  const gl = canvas.getContext("webgl", { antialias: true, alpha: false, preserveDrawingBuffer: true })
+  let context: WebGLRenderingContext | null
+  try { context = canvas.getContext("webgl", { antialias: true, alpha: false, preserveDrawingBuffer: true }) } catch { return null }
+  const gl = context
   if (!gl) return null
   const program = gl.createProgram(), buffer = gl.createBuffer(), shaders: WebGLShader[] = []
-  if (!program || !buffer) return null
+  if (!program || !buffer) { if(program)gl.deleteProgram(program);if(buffer)gl.deleteBuffer(buffer);return null }
   try {
     for (const [type, code] of [[gl.VERTEX_SHADER, `attribute vec3 p;attribute vec3 c;uniform vec3 right;uniform vec3 up;uniform vec3 depth;uniform vec2 scale;uniform vec3 center;varying vec3 color;void main(){vec3 q=p-center;gl_Position=vec4(dot(q,right)*scale.x,dot(q,up)*scale.y,-dot(q,depth)/30.,1.);color=c;}`], [gl.FRAGMENT_SHADER, `precision mediump float;varying vec3 color;void main(){gl_FragColor=vec4(color,1.);}`]] as const) {
       const shader = gl.createShader(type); if (!shader) throw new Error("Shader unavailable")
@@ -52,6 +54,7 @@ export function mountRoom(canvas: HTMLCanvasElement): RoomRenderer | null {
     for(let z=0;z<=10;z++)box(0,.003,z,12,.008,.012,edge)
     const safe=checkVenue(layout).find(c=>c.id==="exits")!.passed
     for(const x of [0,11]){box(x,.015,8,1,.015,2,safe?color("--good-soft"):color("--late-soft"));box(x===0?-.12:12,0,8,.12,1.8,1.4,safe?good:late)}
+    for(const x of [1,10]){box(x,.5,.13,.25,.3,.035,paper);box(x+.06,.61,.17,.03,.08,.01,ink);box(x+.16,.61,.17,.03,.08,.01,ink)}
     box(11.55,.02,.7,.3,.15,.3,late);box(4.3,1.15,.12,3.4,1.3,.1,teal);box(4.45,1.3,.23,3.1,1,.025,paper)
     let guest=0
     for(const item of layout.items){

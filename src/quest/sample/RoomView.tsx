@@ -1,14 +1,17 @@
 import "../../styles/quest-room.css"
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react"
-import { DEFAULT_CAMERA, mountRoom, nearestProp, type RoomRenderer } from "./room3d"
+import { DEFAULT_CAMERA, mountRoom, nearestProp, type RoomRenderer, type RoomCamera } from "./room3d"
 import { footprint, moveProp, PROP_NAMES, type PropKind, type VenueLayout } from "./venue"
 import { prefersReducedMotion, tokenMs } from "../../lib/motion"
 export interface RoomViewProps { layout: VenueLayout; selected: string | null; tool: PropKind | null; onSelect: (id: string | null) => void; onMove: (id: string, x: number, z: number) => void; onPlace: (kind: PropKind, x: number, z: number) => void; arrivals?: boolean }
 /** Strong-planner geometry integration. Every action has a DOM/floor-plan equivalent. */
 export default function RoomView({layout,selected,tool,onSelect,onMove,onPlace,arrivals=false}:RoomViewProps){
+  const view=useRef<HTMLDivElement>(null)
   const canvas=useRef<HTMLCanvasElement>(null),renderer=useRef<RoomRenderer|null>(null),drawRef=useRef<()=>void>(()=>{})
   const [available,setAvailable]=useState<boolean|null>(null),[mode,setMode]=useState<"3d"|"plan">("3d"),[camera,setCamera]=useState(DEFAULT_CAMERA),[screen,setScreen]=useState<[number,number]>([0,0]),[cursor,setCursor]=useState(0),[guests,setGuests]=useState(0)
   const drag=useRef<{id:string|null;x:number;y:number;floor:{x:number;z:number};moved:boolean;preview:VenueLayout|null}|null>(null)
+  const autoCamera=useRef(false)
+  const adjustCamera=(change:(camera:RoomCamera)=>RoomCamera)=>{autoCamera.current=false;setCamera(change)}
   const announce=useRef<HTMLParagraphElement>(null)
   const say=(text:string)=>{if(announce.current)announce.current.textContent=text}
   drawRef.current=()=>{if(renderer.current&&mode==="3d"){renderer.current.draw(drag.current?.preview??layout,camera,selected,guests);const point=renderer.current.project(6,.25,1.85);setScreen(previous=>previous[0]===point[0]&&previous[1]===point[1]?previous:point)}}
@@ -24,11 +27,13 @@ export default function RoomView({layout,selected,tool,onSelect,onMove,onPlace,a
   useEffect(()=>{drawRef.current()},[layout,camera,selected,mode,guests])
   useEffect(()=>{const colors=window.matchMedia("(prefers-color-scheme: dark)"),redraw=()=>drawRef.current();colors.addEventListener("change",redraw);const observer=new MutationObserver(redraw);observer.observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});return()=>{colors.removeEventListener("change",redraw);observer.disconnect()}},[])
   useEffect(()=>{
-    if(!arrivals){setGuests(0);return}
-    if(prefersReducedMotion()){setGuests(layout.headcount);return}
+    if(!arrivals){autoCamera.current=false;setGuests(0);return}
+    autoCamera.current=true
+    if(prefersReducedMotion()){setGuests(layout.headcount);setCamera(c=>({...c,zoom:DEFAULT_CAMERA.zoom+.1}));return}
     const start=performance.now(),duration=tokenMs("--dur-quest-arrival",5000);let frame=0
-    const step=()=>{const progress=Math.min(1,(performance.now()-start)/duration);setGuests(Math.ceil(progress*layout.headcount));if(progress<1)frame=requestAnimationFrame(step)}
-    frame=requestAnimationFrame(step);return()=>cancelAnimationFrame(frame)
+    const step=()=>{const progress=Math.min(1,(performance.now()-start)/duration);setGuests(Math.ceil(progress*layout.headcount));if(autoCamera.current)setCamera(c=>({...c,zoom:DEFAULT_CAMERA.zoom+progress*.1}));if(progress<1)frame=requestAnimationFrame(step)}
+    const preference=window.matchMedia("(prefers-reduced-motion: reduce)"),stop=(event:MediaQueryListEvent)=>{if(event.matches){cancelAnimationFrame(frame);setGuests(layout.headcount);if(autoCamera.current)setCamera(c=>({...c,zoom:DEFAULT_CAMERA.zoom+.1}))}};preference.addEventListener("change",stop)
+    frame=requestAnimationFrame(step);return()=>{autoCamera.current=false;cancelAnimationFrame(frame);preference.removeEventListener("change",stop)}
   },[arrivals,layout.headcount])
   const point=(event:PointerEvent<HTMLCanvasElement>)=>{const r=event.currentTarget.getBoundingClientRect();return{x:event.clientX-r.left,y:event.clientY-r.top}}
   const down=(event:PointerEvent<HTMLCanvasElement>)=>{
@@ -65,10 +70,10 @@ export default function RoomView({layout,selected,tool,onSelect,onMove,onPlace,a
     const delta:Record<string,number>={ArrowLeft:-1,ArrowRight:1,ArrowUp:-12,ArrowDown:12}
     if(event.key==="Escape"){onSelect(null);say("Selection cancelled.");return}
     const next=event.key==="Home"?0:event.key==="End"?119:event.key in delta?Math.max(0,Math.min(119,index+delta[event.key])):null
-    if(next!==null){event.preventDefault();setCursor(next);document.querySelector<HTMLButtonElement>(`[data-floor-cell="${next}"]`)?.focus()}
+    if(next!==null){event.preventDefault();setCursor(next);view.current?.querySelector<HTMLButtonElement>(`[data-floor-cell="${next}"]`)?.focus()}
   }
-  return <div className="sample-room-view">
-    <div className="sample-view-tools" role="group" aria-label="Room view"><button type="button" aria-pressed={mode==="3d"} disabled={available===false} onClick={()=>setMode("3d")}>3D</button><button type="button" aria-pressed={mode==="plan"} onClick={()=>setMode("plan")}>Floor plan</button><button type="button" aria-label="Rotate left" onClick={()=>setCamera(c=>({...c,yaw:c.yaw-.2}))}><span aria-hidden="true">↶</span></button><button type="button" aria-label="Rotate right" onClick={()=>setCamera(c=>({...c,yaw:c.yaw+.2}))}><span aria-hidden="true">↷</span></button><button type="button" aria-label="Zoom in" onClick={()=>setCamera(c=>({...c,zoom:Math.min(1.8,c.zoom+.1)}))}><span aria-hidden="true">＋</span></button><button type="button" aria-label="Zoom out" onClick={()=>setCamera(c=>({...c,zoom:Math.max(.6,c.zoom-.1)}))}><span aria-hidden="true">−</span></button></div>
+  return <div className="sample-room-view" ref={view}>
+    <div className="sample-view-tools" role="group" aria-label="Room view"><button type="button" aria-pressed={mode==="3d"} disabled={available===false} onClick={()=>setMode("3d")}>3D</button><button type="button" aria-pressed={mode==="plan"} onClick={()=>setMode("plan")}>Floor plan</button><button type="button" aria-label="Rotate left" disabled={mode!=="3d"} onClick={()=>adjustCamera(c=>({...c,yaw:c.yaw-.2}))}><span aria-hidden="true">↶</span></button><button type="button" aria-label="Rotate right" disabled={mode!=="3d"} onClick={()=>adjustCamera(c=>({...c,yaw:c.yaw+.2}))}><span aria-hidden="true">↷</span></button><button type="button" aria-label="Zoom in" disabled={mode!=="3d"} onClick={()=>adjustCamera(c=>({...c,zoom:Math.min(1.8,c.zoom+.1)}))}><span aria-hidden="true">＋</span></button><button type="button" aria-label="Zoom out" disabled={mode!=="3d"} onClick={()=>adjustCamera(c=>({...c,zoom:Math.max(.6,c.zoom-.1)}))}><span aria-hidden="true">−</span></button></div>
     <div className="sample-model-frame" hidden={mode!=="3d"}>
       <canvas ref={canvas} role="img" data-renderer={available?"webgl":"fallback"} aria-label="Three-dimensional room model. Drag furniture or use the floor plan and furniture controls." onPointerDown={down} onPointerMove={motion} onPointerUp={up} onPointerCancel={cancel}/>
       <span className="sample-screen-name" style={{left:screen[0],top:screen[1]} as CSSProperties}>{layout.name}</span>
