@@ -3,18 +3,18 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-08A-prologue.md",
+  "card": "docs/quest-build/cards/P5-08B-hq.md",
   "readFiles": [
     "src/quest/sample/model.ts",
-    "src/engine/questSchedule.ts",
-    "src/lib/motion.ts",
+    "src/quest/sample/Prologue.tsx",
+    "src/quest/sample/story.ts",
     "src/styles/quest-foundation.css",
     "src/styles/dx-00-tokens.css"
   ],
   "writeFiles": [
-    "src/quest/sample/Prologue.tsx",
-    "src/quest/sample/story.ts",
-    "src/styles/quest-prologue.css"
+    "src/quest/sample/ClubHQ.tsx",
+    "src/quest/sample/IntroHQ.tsx",
+    "src/styles/quest-story.css"
   ],
   "agentCommands": [
     "npx tsc --noEmit -p tsconfig.json"
