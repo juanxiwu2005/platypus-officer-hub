@@ -3,17 +3,28 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-08C-start-label.md",
+  "card": "docs/quest-build/cards/P5-03K-completion-prefix.md",
   "readFiles": [
-    "src/quest/sample/Prologue.tsx"
+    "src/quest/sample/model.ts",
+    "src/quest/sample/transitions.ts",
+    "src/quest/foundation.ts",
+    "src/engine/questSchedule.ts"
   ],
   "writeFiles": [
-    "src/quest/sample/Prologue.tsx"
+    "src/quest/sample/storage.ts",
+    "src/quest/sample/storage.test.ts"
   ],
   "agentCommands": [
+    "npx vitest run src/quest/sample/storage.test.ts",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
+    [
+      "npx",
+      "vitest",
+      "run",
+      "src/quest/sample/storage.test.ts"
+    ],
     [
       "npx",
       "tsc",

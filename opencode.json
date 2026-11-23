@@ -28,15 +28,22 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-08C-start-label.md": "allow",
-          "src/quest/sample/Prologue.tsx": "allow"
+          "docs/quest-build/cards/P5-03K-completion-prefix.md": "allow",
+          "src/quest/sample/model.ts": "allow",
+          "src/quest/sample/transitions.ts": "allow",
+          "src/quest/foundation.ts": "allow",
+          "src/engine/questSchedule.ts": "allow",
+          "src/quest/sample/storage.ts": "allow",
+          "src/quest/sample/storage.test.ts": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/Prologue.tsx": "allow"
+          "src/quest/sample/storage.ts": "allow",
+          "src/quest/sample/storage.test.ts": "allow"
         },
         "bash": {
           "*": "deny",
+          "npx vitest run src/quest/sample/storage.test.ts": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
@@ -52,8 +59,13 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-08C-start-label.md": "allow",
-          "src/quest/sample/Prologue.tsx": "allow"
+          "docs/quest-build/cards/P5-03K-completion-prefix.md": "allow",
+          "src/quest/sample/model.ts": "allow",
+          "src/quest/sample/transitions.ts": "allow",
+          "src/quest/foundation.ts": "allow",
+          "src/engine/questSchedule.ts": "allow",
+          "src/quest/sample/storage.ts": "allow",
+          "src/quest/sample/storage.test.ts": "allow"
         },
         "edit": {
           "*": "deny"
