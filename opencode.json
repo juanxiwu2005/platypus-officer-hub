@@ -28,21 +28,24 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-07T-regression.md": "allow",
-          "src/quest/sample/VenueEditor.tsx": "allow",
-          "src/quest/sample/venue.ts": "allow",
-          "src/quest/sample/RoomView.tsx": "allow",
+          "docs/quest-build/cards/P5-08-intro-hq.md": "allow",
+          "src/quest/sample/model.ts": "allow",
+          "src/engine/questSchedule.ts": "allow",
+          "src/lib/motion.ts": "allow",
           "src/styles/quest-foundation.css": "allow",
-          "src/styles/quest-room.css": "allow",
-          "src/quest/sample/VenueEditor.test.tsx": "allow"
+          "src/styles/dx-00-tokens.css": "allow",
+          "src/quest/sample/IntroHQ.tsx": "allow",
+          "src/quest/sample/story.ts": "allow",
+          "src/styles/quest-story.css": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/VenueEditor.test.tsx": "allow"
+          "src/quest/sample/IntroHQ.tsx": "allow",
+          "src/quest/sample/story.ts": "allow",
+          "src/styles/quest-story.css": "allow"
         },
         "bash": {
           "*": "deny",
-          "npx vitest run src/quest/sample/VenueEditor.test.tsx": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
@@ -58,13 +61,15 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-07T-regression.md": "allow",
-          "src/quest/sample/VenueEditor.tsx": "allow",
-          "src/quest/sample/venue.ts": "allow",
-          "src/quest/sample/RoomView.tsx": "allow",
+          "docs/quest-build/cards/P5-08-intro-hq.md": "allow",
+          "src/quest/sample/model.ts": "allow",
+          "src/engine/questSchedule.ts": "allow",
+          "src/lib/motion.ts": "allow",
           "src/styles/quest-foundation.css": "allow",
-          "src/styles/quest-room.css": "allow",
-          "src/quest/sample/VenueEditor.test.tsx": "allow"
+          "src/styles/dx-00-tokens.css": "allow",
+          "src/quest/sample/IntroHQ.tsx": "allow",
+          "src/quest/sample/story.ts": "allow",
+          "src/styles/quest-story.css": "allow"
         },
         "edit": {
           "*": "deny"
