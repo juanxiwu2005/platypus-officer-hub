@@ -1,6 +1,6 @@
 import { TASK_DUE_CHOICES } from "../engine/taskDates"
 import type { DemoState, Event, StepTemplate, Goal, OrgSettings, Person, ReminderMode, Role, RoleFunction, WorkflowBranch, WorkspaceConfig } from "./types"
-import { isReminderMode } from "./reminderMode"
+import { DEFAULT_REMINDER_MODE, isReminderMode } from "./reminderMode"
 import { MAX_DUTIES, MAX_ROLES, hasReportingLoop, orderRoles } from "./structure"
 import type { CommandOp } from "../lib/commands"
 import { sanitizeOps, validDate } from "../lib/commands"
@@ -83,7 +83,7 @@ export function validateClub(d: ClubDraft): string | null {
 export function validateDefaults(d: OrgSettings): string | null {
   const p = d.silenceProtocol
   if (!Number.isInteger(d.clubBufferBusinessDays) || d.clubBufferBusinessDays < 0 || d.clubBufferBusinessDays > 10) return "Club buffer must be zero to ten working days."
-  if (!Array.isArray(p?.nudgeDays) || p.nudgeDays.length !== 2 || ![...p.nudgeDays, p.presidentDay, p.reassignDay, p.retroDay].every(n => Number.isInteger(n) && n >= 1 && n <= 30) || !(p.nudgeDays[0] < p.nudgeDays[1] && p.nudgeDays[1] < p.presidentDay && p.presidentDay < p.reassignDay && p.reassignDay < p.retroDay)) return "Follow-up days must increase: reminder 1, reminder 2, private check, temporary owner, recovery."
+  if (!Array.isArray(p?.nudgeDays) || p.nudgeDays.length !== 2 || ![...p.nudgeDays, p.presidentDay, p.reassignDay, p.retroDay].every(n => Number.isInteger(n) && n >= 1 && n <= 30) || !(p.nudgeDays[0] < p.nudgeDays[1] && p.nudgeDays[1] < p.presidentDay && p.presidentDay < p.reassignDay && p.reassignDay < p.retroDay)) return `Follow-up days must increase: private check (after day ${p.nudgeDays[1]}), temporary owner, recovery.`
   if (!Number.isInteger(d.maxRemindersPerTask) || d.maxRemindersPerTask < 1 || d.maxRemindersPerTask > 3) return "Keep the reminder limit between one and three."
   if (d.sendMode !== "review" || d.quietHours.from !== "22:00" || d.quietHours.to !== "08:00") return "This demo keeps review-before-send and quiet hours from 10 pm to 8 am."
   if (d.taskDueDays !== undefined && !(TASK_DUE_CHOICES as readonly number[]).includes(d.taskDueDays)) return "Choose 3, 5 or 7 days for a usual task."
@@ -145,8 +145,8 @@ export function saveProfile(s: DemoState, personId: string, patch: ProfilePatch,
 /**
  * The participant's own club from setup. `rawEvent` null (or undefined) means the first event was skipped: no setup event, and the
  * event date is not checked; everything else in setup still applies. Previews (the first-event chain) use this on its own.
- * `reminderMode` is the walkthrough's Reminders answer (P3-H): stored as org.settings.reminderMode, or left out (null/undefined: skipped,
- * or the classic page), so a club set up again without an answer never keeps an older one. Any other value refuses the setup.
+ * `reminderMode` is stored as org.settings.reminderMode. Without one (null or undefined) the new club gets DEFAULT_REMINDER_MODE,
+ * "I review, Platypus sends" (S2, Juanxi 2026-11-22); a club set up again never keeps an older answer. Any other value refuses the setup.
  */
 export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[], reminderMode?: ReminderMode | null, branches?: WorkflowBranch[]): DemoState {
   const planned = rawEvent !== null && rawEvent !== undefined
@@ -180,7 +180,7 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   delete cleanOrg.workflowPresetTeamIds
   delete cleanOrg.workflowRoleTeams
   const { reminderMode: _earlier, matchingMode: _matchingMode, ...kept } = s.org.settings; void _earlier; void _matchingMode
-  return applySchedule({ ...cleanWorkspace, viewerId: president.holderId!, org: { ...cleanOrg, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, ...(branches ? { branches: structuredClone(branches) } : {}), updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, ...(reminderMode ? { reminderMode } : {}), ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], archivedRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+  return applySchedule({ ...cleanWorkspace, viewerId: president.holderId!, org: { ...cleanOrg, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, ...(branches ? { branches: structuredClone(branches) } : {}), updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, reminderMode: reminderMode ?? DEFAULT_REMINDER_MODE, ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], archivedRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
 }
 
 /**

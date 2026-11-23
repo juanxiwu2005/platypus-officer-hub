@@ -28,7 +28,7 @@ test.afterEach(async ({ page }) => {
 
 const demo = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!) as DemoState)
 const TASKS = ["centre-room", "centre-layout", "centre-access", "centre-next"]
-/** Begin with an older saved club, then explicitly activate the current rule plan. Jordan has three tasks due today and one next week. */
+/** Begin with an older saved club; loading it upgrades it to the current rule plan (S2). Jordan has three tasks due today and one next week. */
 async function open(page: Page, mode?: ReminderMode, legacyHistory = false) {
   await page.goto("/#/")
   const s = await savedDemo(page)
@@ -49,8 +49,8 @@ async function open(page: Page, mode?: ReminderMode, legacyHistory = false) {
   await page.reload()
   await expect(page.locator("main h1")).toHaveText("Reminders")
   await closeRail(page)
-  await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
+  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
   await expect.poll(async () => (await demo(page)).reminderRuntime?.version).toBe(2)
   if (mode === "auto_email") await expect.poll(async () => (await demo(page)).reminderRuntime?.deliveries.length).toBe(3)
 }

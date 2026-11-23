@@ -13,9 +13,8 @@ import type { OrgSettings } from "../data/types"
 import { Empty, Info } from "../components/ui"
 import { officers } from "../data/permissions"
 import { ClosedRoles } from "./HandoffRoleChanges"
-import { REMINDER_MODES, reminderModeTestId } from "../data/reminderMode"
-import { onboardingCopy } from "../onboarding/copy"
-import { isReminderRuntime } from "../reminders/runtime"
+import { REMINDER_MODE_COPY, REMINDER_MODES, reminderModeTestId } from "../data/reminderMode"
+import { PERSON_WEEKLY_EMAIL_LIMIT } from "../reminders/policy"
 
 const WorkflowLibrary = lazy(() => import("../components/workflowLibrary/WorkflowLibrary"))
 
@@ -85,7 +84,6 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
   const saved = { draft: clubDraft(state), defaults: state.org.settings }
   const { status, clear, retry } = useAutosave({ draft, defaults }, saved, v => validateClub(v.draft) ?? validateDefaults(v.defaults), v => tryDispatch({ type: "saveClubSettings", draft: v.draft, defaults: v.defaults }))
   const undo = (prev: { draft: ClubDraft; defaults: OrgSettings }) => { if (!tryDispatch({ type: "saveClubSettings", draft: prev.draft, defaults: prev.defaults })) return; setDraft(structuredClone(prev.draft)); setDefaults(structuredClone(prev.defaults)); clear() }
-  const updatedPlan = isReminderRuntime(state.reminderRuntime) && state.reminderRuntime.version === 2
   const p = defaults.silenceProtocol
   // "Choose how reminders go out" on the reminder centre links here with ?reminders=1: open Tasks and events at the choice.
   const [params] = useSearchParams()
@@ -106,15 +104,15 @@ function ClubSettings({ tab }: { tab: "club" | "roles" | "links" }) {
       <div className="form-grid"><label>Club name<input value={draft.name} maxLength={80} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label><label>School<input readOnly value={state.org.school} /></label></div>
       <label>Club mission<textarea maxLength={300} rows={2} value={draft.mission} onChange={e => setDraft({ ...draft, mission: e.target.value })} /></label>
       <details className="more"><summary>Semester goals</summary><GoalsEditor goals={draft.goals} progress onChange={goals => setDraft({ ...draft, goals })} /></details>
-      <details className="more"><summary>Deadline and follow-up defaults</summary><p className="small muted">Legacy days retained; leadership days apply.</p><div className="form-grid"><label>Club buffer (working days)<input type="number" min="0" max="10" value={defaults.clubBufferBusinessDays} onChange={e => setDefaults({ ...defaults, clubBufferBusinessDays: Number(e.target.value) })} /></label><label>Reminder limit per task<input type="number" min="1" max="3" value={defaults.maxRemindersPerTask} onChange={e => setDefaults({ ...defaults, maxRemindersPerTask: Number(e.target.value) })} /></label>{["Legacy reminder 1 day", "Legacy reminder 2 day", "Private check day", "Temporary owner day", "Recovery day"].map((label, i) => <label key={label}>{label}<input type="number" min="1" max="30" disabled={updatedPlan && i < 2} value={[...p.nudgeDays, p.presidentDay, p.reassignDay, p.retroDay][i]} onChange={e => { const value = Number(e.target.value); const protocol = i < 2 ? { ...p, nudgeDays: p.nudgeDays.map((n, j) => i === j ? value : n) } : { ...p, [i === 2 ? "presidentDay" : i === 3 ? "reassignDay" : "retroDay"]: value }; setDefaults({ ...defaults, silenceProtocol: protocol }) }} /></label>)}</div></details>
+      <details className="more"><summary>Deadline and follow-up defaults</summary><div className="form-grid"><label>Club buffer (working days)<input type="number" min="0" max="10" value={defaults.clubBufferBusinessDays} onChange={e => setDefaults({ ...defaults, clubBufferBusinessDays: Number(e.target.value) })} /></label><label>Reminder limit per task<input type="number" min="1" max="3" value={defaults.maxRemindersPerTask} onChange={e => setDefaults({ ...defaults, maxRemindersPerTask: Number(e.target.value) })} /></label>{(["presidentDay", "reassignDay", "retroDay"] as const).map((key, i) => <label key={key}>{["Private check day", "Temporary owner day", "Recovery day"][i]}<input type="number" min="1" max="30" value={p[key]} onChange={e => setDefaults({ ...defaults, silenceProtocol: { ...p, [key]: Number(e.target.value) } })} /></label>)}</div></details>
       <details className="more" data-testid="tasks-events-settings" open={openReminders || undefined}><summary>Tasks and events</summary><div className="form-stack">
-        {/* FB-8: the same three choices as the walkthrough's Reminders screen, same words. The demo never sends anything. */}
-        <fieldset ref={reminderBox} data-testid="settings-reminder-mode"><legend className="small muted">{onboardingCopy.founder.reminders.title}</legend>
-          {REMINDER_MODES.map(m => <label key={m} className="check-label"><input type="radio" name="reminder-mode" data-testid={`settings-${reminderModeTestId(m)}`} aria-describedby={defaults.reminderMode === m ? "settings-reminder-mode-body" : undefined} checked={defaults.reminderMode === m} onChange={() => setDefaults({ ...defaults, reminderMode: m })} />{onboardingCopy.founder.reminders.options[m].title}</label>)}
-          {/* Only the chosen option's line, to stay inside the page's word budget (150 / 150). */}
-          {defaults.reminderMode && <p id="settings-reminder-mode-body" className="small muted">{onboardingCopy.founder.reminders.options[defaults.reminderMode].body}</p>}
+        {/* FB-8: the three sending choices. The demo never sends anything. An old save without a choice shows none ticked. */}
+        <fieldset ref={reminderBox} data-testid="settings-reminder-mode"><legend className="small muted">{REMINDER_MODE_COPY.title}</legend>
+          {REMINDER_MODES.map(m => <label key={m} className="check-label"><input type="radio" name="reminder-mode" data-testid={`settings-${reminderModeTestId(m)}`} aria-describedby={defaults.reminderMode === m ? "settings-reminder-mode-body" : undefined} checked={defaults.reminderMode === m} onChange={() => setDefaults({ ...defaults, reminderMode: m })} />{REMINDER_MODE_COPY.options[m].title}</label>)}
+          {/* Only the chosen option's line, to stay inside the page's word budget. */}
+          {defaults.reminderMode && <p id="settings-reminder-mode-body" className="small muted">{REMINDER_MODE_COPY.options[defaults.reminderMode].body}</p>}
         </fieldset>
-        <p className="small muted" data-testid="reminder-plan-settings">Checks: start, due, 3 days overdue; {defaults.maxRemindersPerTask} per task and recipient{defaults.maxRemindersPerTask === 3 ? "; one extra no-reply follow-up" : ""}. Per person: 6/week, 2/day; ordinary: 4/week, 1/day. <Link to="/">Review plan</Link></p>
+        <p className="small muted" data-testid="reminder-plan-settings">At most {PERSON_WEEKLY_EMAIL_LIMIT} reminders per person a week. <Link to="/">Review plan</Link></p>
         <label>Task length<select aria-label="Usual task length" value={defaults.taskDueDays ?? 5} onChange={e => setDefaults({ ...defaults, taskDueDays: Number(e.target.value) })}>{TASK_DUE_CHOICES.map(d => <option key={d} value={d}>{d} days</option>)}</select></label>
         <p className="small muted">Task due follows this length; club buffer applies to ASU event deadlines.</p>
         <fieldset><legend className="small muted">Who can create events</legend>

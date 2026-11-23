@@ -14,7 +14,7 @@ async function pressedTransform(page: import("@playwright/test").Page) {
     localStorage.setItem("platypus.v1.demo", JSON.stringify(s))
   })
   await page.reload()
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
   await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
   const button = page.getByTestId("open-first-draft")
   await expect(button).toBeVisible()

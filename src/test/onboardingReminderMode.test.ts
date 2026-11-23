@@ -72,6 +72,13 @@ describe("completeSetup with an explicit reminder choice", () => {
       expect(ws.org.settings.sendMode).toBe("review")
     }
   })
+  it("without an answer (null or nothing) a new club gets the default review_then_auto (S2), never an earlier setup's answer", () => {
+    const s = base(), d = clubDraft(s)
+    expect(completeSetup(s, d, null, "", code).org.settings.reminderMode).toBe("review_then_auto")
+    expect(completeSetup(s, d, null, "", code, undefined, undefined, undefined, null).org.settings.reminderMode).toBe("review_then_auto")
+    const earlier = completeSetup(s, d, null, "", code, undefined, undefined, undefined, "auto_email")
+    expect(startWorkspace(earlier, clubDraft(earlier), null, "", code, undefined, undefined, undefined, null).org.settings.reminderMode).toBe("review_then_auto")
+  })
   it("refuses a value that is not one of the three", () => {
     const s = base(), d = clubDraft(s)
     expect(completeSetup(s, d, null, "", code, undefined, undefined, undefined, "auto" as ReminderMode)).toBe(s)
@@ -83,10 +90,14 @@ describe("completeSetup with an explicit reminder choice", () => {
     const next = reducer(s, { type: "completeSetup", draft: d, event, date: "2026-11-19", inviteCode: code, reminderMode: "review_then_auto" })
     expect(next.org.settings.reminderMode).toBe("review_then_auto")
     expect(next.events.some(e => e.id.startsWith("setup-event-"))).toBe(true)
+    expect(reducer(s, { type: "completeSetup", draft: d, event: null, date: "", inviteCode: code }).org.settings.reminderMode).toBe("review_then_auto")
   })
   it("survives saving the club's settings page", () => {
     const s = base()
     const club = completeSetup(s, clubDraft(s), null, "", code, undefined, undefined, undefined, "review_then_self")
     expect(saveClubSettings(club, clubDraft(club), structuredClone(club.org.settings)).org.settings.reminderMode).toBe("review_then_self")
+    const { reminderMode: _none, ...oldSettings } = s.org.settings; void _none
+    const old = { ...s, org: { ...s.org, settings: oldSettings } }
+    expect(saveClubSettings(old, clubDraft(old), { ...oldSettings, clubBufferBusinessDays: 4 }).org.settings.reminderMode).toBeUndefined()
   })
 })

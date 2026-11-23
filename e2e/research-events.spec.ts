@@ -34,8 +34,7 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   await page.goto("/#/")
   await expect(page.locator("main h1")).toHaveText("Reminders")
   await closeRail(page)
-  // The sample is a legacy save: explicitly enable its reminder rows before the study session starts.
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
   await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
   const pill = page.getByTestId("demo-menu")
 

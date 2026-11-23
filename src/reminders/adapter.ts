@@ -23,13 +23,20 @@ export function enableReminderPlan(s: DemoState): DemoState {
   if (s.reminderRuntime !== undefined) return s
   const legacyUnresolvedNodeIds = [...new Set([...s.nudges.map(n => n.nodeId), ...s.protocolLog.filter(e => e.kind === "reminder" && e.recipientIds.length).map(e => e.nodeId)])]
   const initial: ReminderRuntime = { ...createReminderRuntime(s.today), version: 2, mailRequiredAfter: 0, ...(legacyUnresolvedNodeIds.length ? { legacyUnresolvedNodeIds } : {}) }
-  const runtime = transitionReminderRuntime({ today: s.today, actorId: s.viewerId, before: [], after: facts(s), runtime: initial })
+  // With no earlier facts no update entry is written, so the actor is never recorded; a fixed id keeps the result independent of the viewer.
+  const runtime = transitionReminderRuntime({ today: s.today, actorId: "system:reminders", before: [], after: facts(s), runtime: initial })
   // An old case has no plan/assignment snapshot proving it still applies. Close it on explicit activation;
   // retain all past entries, then let the new schedule establish any future leader follow-up.
   const next = { ...s, reminderRuntime: runtime, silenceCases: s.silenceCases.map(c => c.closedOn ? c : { ...c, closedOn: s.today }) }
   return next
 }
 
+/**
+ * Brings a legacy reminder plan (none yet, or a valid version 1) to the current version, keeping every setting and all history.
+ * Since S2 (2026-11-22) this runs automatically whenever state is loaded, reset or imported (`withCurrentReminders` in store.tsx);
+ * it does not depend on the viewer. An invalid runtime is kept untouched for recovery. Idempotent: returns the same object when the
+ * plan is already current.
+ */
 export function upgradeReminderPlan(s: DemoState): DemoState {
   if (s.reminderRuntime === undefined) return enableReminderPlan(s)
   if (!isReminderRuntime(s.reminderRuntime) || s.reminderRuntime.version !== 1) return s

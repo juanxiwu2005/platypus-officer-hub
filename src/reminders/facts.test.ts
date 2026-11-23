@@ -120,7 +120,10 @@ describe("reminder people and input", () => {
     const s = structuredClone(base)
     const before = structuredClone(s)
     const input = buildReminderInput(s, runtime)
-    expect(input.mode).toBeNull()
+    // The sample club starts on "I review, Platypus sends" (S2); an old save without a choice has none.
+    expect(input.mode).toBe("review_then_auto")
+    const { reminderMode: _gone, ...settings } = s.org.settings; void _gone
+    expect(buildReminderInput({ ...s, org: { ...s.org, settings } }, runtime).mode).toBeNull()
     expect(input.maxPerTask).toBe(base.org.settings.maxRemindersPerTask)
     expect(input.today).toBe(base.today)
     expect(input.runtime).toBe(runtime)

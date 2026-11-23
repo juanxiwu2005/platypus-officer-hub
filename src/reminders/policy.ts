@@ -2,6 +2,8 @@ import { addDays } from "../lib/dates"
 import type { ReminderCandidate, ReminderDelivery, WaitingRequest } from "./contracts"
 
 export const FOLLOWUP_DAYS = 2
+/** At most this many reminder emails reach one person in any seven days (two of them kept for important reminders). */
+export const PERSON_WEEKLY_EMAIL_LIMIT = 6
 /**
  * Person digest (2026-11-19): one recipient's ready reminders on one day are ONE email.
  * At most this many tasks go into one email; the rest wait for the next email (listed in `upcoming` for tomorrow).

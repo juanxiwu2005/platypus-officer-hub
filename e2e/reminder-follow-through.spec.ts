@@ -21,7 +21,8 @@ async function open(page: Page, waiting = false, mode: ReminderMode = "review_th
   await page.goto("/#/")
   await page.evaluate(({ key, state }) => localStorage.setItem(key, JSON.stringify(state)), { key: KEY, state })
   await page.reload(); await closeRail(page)
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
+  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
   await expect.poll(async () => (await read(page)).reminderRuntime?.version).toBe(2)
   return state
 }
