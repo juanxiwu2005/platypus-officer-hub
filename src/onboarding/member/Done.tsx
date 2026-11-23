@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { OrgChart } from "../../components/setup/OrgChart"
 import { fmtLong } from "../../lib/dates"
@@ -18,15 +18,18 @@ const c = onboardingCopy.member.done
 /**
  * Member screen 4 of 4 (ob-6): the one place the preview is saved. On arrival the choices made on the earlier screens are checked with the same rules as
  * Settings (validateProfile) and saved once with saveProfile; if they do not pass, nothing is saved and the screen says why.
+ * Since ob-6 this is also where a shared invitation link (/join) ends, so a save the browser refuses is said too (as the classic Join page did):
+ * the staged choices are kept and Try again saves them.
  * Open my tasks ends the walkthrough and goes to Tasks. It never changes who is viewing: the person walking through is the president.
  */
 export function Done() {
   const preview = usePreview()
-  const { dispatch } = useStore()
+  const { tryDispatch } = useStore()
   const flow = useFlow()
   const navigate = useNavigate()
   const { state, person, role, stored } = preview
   const saved = useRef(false)
+  const [failed, setFailed] = useState(false)
   const chart = useRef<HTMLDivElement>(null)
 
   // What would be saved (null when nothing was staged, for example when this page is opened directly).
@@ -40,13 +43,18 @@ export function Done() {
     return { patch, problem: previewProblem(state.people, person, patch) }
   }, [person, stored, state.people])
 
+  const save = useCallback(() => {
+    if (!person || !plan || plan.problem) return
+    const ok = tryDispatch({ type: "saveProfile", personId: person.id, patch: plan.patch, invite: state.org.inviteCode })
+    setFailed(!ok)
+    if (ok) clearStaged()
+  }, [tryDispatch, person, plan, state.org.inviteCode])
   // Save once. The ref also stops React's development double-run from saving twice.
   useEffect(() => {
     if (saved.current || !person || !plan || plan.problem) return
     saved.current = true
-    dispatch({ type: "saveProfile", personId: person.id, patch: plan.patch, invite: state.org.inviteCode })
-    clearStaged()
-  }, [dispatch, person, plan, state.org.inviteCode])
+    save()
+  }, [person, plan, save])
 
   // The chosen officer's box in the chart appears once (opacity and scale only; see the stylesheet).
   useEffect(() => {
@@ -69,6 +77,7 @@ export function Done() {
       <MemberStrip preview={preview} />
       <h1>{c.title}</h1>
       {plan?.problem && <p role="alert" className="ob-m-error" data-testid="save-problem">{fill(c.saveFailed, { problem: plan.problem })}</p>}
+      {failed && <p role="alert" className="ob-m-error" data-testid="save-refused">{c.storageFailed} <button type="button" className="btn small" onClick={save}>{c.retry}</button></p>}
       <div ref={chart} className="ob-m-chart" data-testid="join-chart"><OrgChart roles={state.roles} /></div>
       <div className="ob-m-first" data-testid="first-task">
         <h2 className="ob-m-first-h">{c.first}</h2>

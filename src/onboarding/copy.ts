@@ -80,6 +80,7 @@ export const onboardingCopy = {
       title: "You're in.", cta: "Open my tasks", empty: "You'll see tasks here when your president assigns one.",
       emptyPreview: "Tasks lists what's yours, with the club date.", first: "Your first task", due: "Club date",
       saveFailed: "We couldn't save your choices: {problem}", back: "Go back and fix it",
+      storageFailed: "Saving failed. Keep this tab open and try again.", retry: "Try again",
     },
   },
   // errors

@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 
-// M4: constitution upload → AI reads it while the president fills in goals → departments and roles with who reports to whom.
+// M4: constitution upload → AI reads it → departments and roles with who reports to whom. Since ob-6 the reading opens inline on Team.
 const REPLY = {
   mission: "Help students build real startups with real founders.",
   roles: [
@@ -21,18 +21,27 @@ test.beforeEach(async ({ page }) => {
 })
 
 
-import { continueSetup, finishSetup, openSetup, setupRole } from "./setupHelpers"
-import { fillMission } from "./ob-helpers"
+import { continueSetup, finishSetup, openConstitution, openSetup, planEvent, setupRole } from "./setupHelpers"
+import type { Page } from "@playwright/test"
+
+/** Screen 1 with the name and Skip for now, then Team with "Import roles from your constitution" open. */
+const toReading = async (page: Page) => {
+  await openSetup(page)
+  await page.getByRole("button", { name: "Skip for now", exact: true }).click()
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+  await openConstitution(page)
+}
 
 test("constitution roles and duties flow through the shared setup into saved roles and member invitations", async ({ page }) => {
   const sent: Record<string, unknown>[] = []
   await page.route("**/api/setup/constitution", r => { const b = r.request().postDataJSON(); sent.push(b); return r.fulfill({ json: b.part === "duties" ? DUTIES : REPLY }) })
   await openSetup(page)
+  await planEvent(page)
+  await page.getByRole("button", { name: "5 days", exact: true }).click()
+  await continueSetup(page)
+  await openConstitution(page)
   await page.getByLabel("Constitution file", { exact: true }).setInputFiles({ name: "constitution.txt", mimeType: "text/plain", buffer: Buffer.from("The President leads the club. The Director of Marketing leads promotion. Contact boss@example.org.") })
   await expect(page.getByTestId("reading-note")).toContainText("Suggested by AI")
-  await continueSetup(page)
-  await expect(page.getByRole("textbox", { name: "Mission", exact: true })).toHaveValue(REPLY.mission)
-  await continueSetup(page)
   await expect(page.locator(".ob-role")).toHaveCount(6)
   const marketing = await setupRole(page, "Director of Marketing")
   await marketing.getByRole("textbox", { name: /^Person/ }).fill("Sam Okafor")
@@ -42,30 +51,25 @@ test("constitution roles and duties flow through the shared setup into saved rol
   await expect(page.getByTestId("org-chart").locator(".org-card")).toHaveCount(6)
   expect(sent.map(b => b.part)).toEqual(["structure", "duties"])
   expect(JSON.stringify(sent)).not.toContain("boss@example.org")
-  await continueSetup(page)
-  await page.getByRole("button", { name: "Spring dinner", exact: true }).click()
-  await page.getByRole("button", { name: "Plan it", exact: true }).click()
-  await page.getByRole("button", { name: "5 days", exact: true }).click()
-  await continueSetup(page); await finishSetup(page)
+  await finishSetup(page)
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
   expect(saved.org.settings.clubBufferBusinessDays).toBe(5)
-  expect(saved.org.mission).toBe(REPLY.mission)
+  expect(saved.org.mission).toBe(REPLY.mission)                          // the reading's mission (the walkthrough no longer asks for one)
   const role = saved.roles.find((r: { displayName: string }) => r.displayName === "Director of Marketing")
   expect(role.duties).toBe("Leads promotion.")
   expect(saved.people.find((p: { id: string }) => p.id === role.holderId).name).toBe("Sam Okafor")
-  await page.goto(`/#/join?invite=${saved.org.inviteCode}`)
-  await page.getByRole("combobox", { name: "Try setup as", exact: true }).selectOption(role.holderId)
+  // The shared invitation link opens the member walkthrough (ob-6; the classic Join page is gone); ?person= picks the officer to preview.
+  await page.goto(`/#/join?invite=${saved.org.inviteCode}&person=${role.holderId}`)
+  await expect(page).toHaveURL(/#\/welcome\/member\/invitation\?/)
   await expect(page.getByTestId("role-card")).toContainText("Leads promotion.")
+  await expect(page.getByLabel("Name")).toHaveValue("Sam Okafor")
 })
 
 test("local reading retains the hierarchy and supports manual role creation/removal", async ({ page }) => {
   await page.route("**/api/**", r => r.fulfill({ status: 503, json: {} }))
-  await openSetup(page)
+  await toReading(page)
   await page.getByRole("button", { name: /Use sample/ }).click()
   await expect(page.getByTestId("reading-note")).toBeVisible({ timeout: 15000 })
-  await continueSetup(page); await fillMission(page); await continueSetup(page)
-  // Count the roles only once Team shows the reading's hierarchy (counting during the move from Goals read 0).
-  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
   await expect.poll(() => page.locator(".ob-role-title").evaluateAll(els => els.map(e => (e as HTMLTextAreaElement).value))).toContain("Executive Vice President")
   const count = await page.locator(".ob-role").count()
   const vp = await setupRole(page, "Executive Vice President")
@@ -83,7 +87,7 @@ test("failed structure requests retry, keep local roles, and allow a deliberate 
     calls++
     return calls <= 3 ? r.fulfill({ status: 504, json: { message: "Timeout" } }) : r.fulfill({ json: r.request().postDataJSON().part === "duties" ? DUTIES : REPLY })
   })
-  await openSetup(page)
+  await toReading(page)
   await page.getByRole("button", { name: /Use sample/ }).click()
   await expect(page.getByRole("button", { name: "Try AI again", exact: true })).toBeVisible({ timeout: 15000 })
   await page.getByRole("button", { name: "Try AI again", exact: true }).click()
@@ -97,7 +101,7 @@ test("structure and duty requests retry independently without dropping duties", 
     calls++
     return [1, 3].includes(calls) ? r.fulfill({ status: 504, json: {} }) : r.fulfill({ json: r.request().postDataJSON().part === "duties" ? DUTIES : REPLY })
   })
-  await openSetup(page)
+  await toReading(page)
   await page.getByRole("button", { name: /Use sample/ }).click()
   await expect(page.getByTestId("reading-note")).toContainText("Suggested by AI", { timeout: 15000 })
   expect(calls).toBe(4)
