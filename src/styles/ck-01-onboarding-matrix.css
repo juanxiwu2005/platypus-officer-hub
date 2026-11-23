@@ -1,0 +1,91 @@
+/* Settings → Onboarding (CK-01, option C; docs/feedback-fix/CHECKLIST_MATRIX_CONTRACT.md Section 6): the checklist matrix.
+   Loaded by its lazy component only. Tokens only (docs/DESIGN_TOKENS.md); light and dark come from the theme tokens.
+   No motion: toggling a cell is an everyday action. The table scrolls sideways inside its own frame, never the page. */
+
+.ck-root { --ck-item-w: 340px; min-width: 0; }
+.ck-root h2 { margin: 0; }
+.ck-root p { margin: 0; }
+
+/* ---- Toolbar ---- */
+.ck-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
+.ck-toolbar-end { display: flex; align-items: center; gap: var(--s4); margin-left: auto; }
+.ck-status { color: var(--muted); font-size: var(--fs-md); }
+.ck-status.is-err { color: var(--late); }
+
+/* ---- Empty state and paste panel ---- */
+.ck-empty { display: grid; gap: var(--s5); justify-items: start; padding: var(--s6); border: 1px dashed var(--edge); border-radius: var(--r-md); background: var(--lane); }
+.ck-paste { display: grid; gap: var(--s4); padding: var(--s5); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
+.ck-paste label { font-weight: 600; }
+.ck-paste textarea { box-sizing: border-box; width: 100%; min-width: 0; font-size: var(--fs-md); }
+.ck-paste .action-row { align-items: center; }
+
+/* ---- Matrix frame: contained so a phone's layout viewport never widens to the table (same fix as .roles-table-wrap). ---- */
+/* scroll-padding keeps a focused or scrolled-to cell clear of the sticky Item column. */
+.ck-wrap { min-width: 0; max-width: 100%; overflow-x: auto; contain: paint; scroll-padding-left: calc(var(--ck-item-w) + var(--s4)); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.tbl.ck-table { width: max-content; min-width: 100%; margin: 0; font-size: var(--fs-md); }
+.tbl.ck-table th { font-size: var(--fs-md); padding: var(--s4); white-space: nowrap; }
+.tbl.ck-table td { height: 40px; padding: var(--s2) var(--s4); white-space: nowrap; }
+.tbl.ck-table tbody th { font-weight: 400; color: var(--ink); border-bottom: 1px solid var(--line); }
+.tbl.ck-table .ck-col { text-align: center; min-width: 72px; }
+
+/* The Item column stays in view while the role columns scroll. Opaque backgrounds so scrolled cells never show through. */
+.tbl.ck-table :is(thead, tbody, tfoot) tr > :first-child { position: sticky; left: 0; z-index: var(--z-raised); box-sizing: border-box; width: var(--ck-item-w); min-width: var(--ck-item-w); max-width: var(--ck-item-w); background: var(--surface); box-shadow: 1px 0 0 var(--line); }
+.tbl.ck-table thead th { background: var(--surface-2); }
+.tbl.ck-table thead tr > :first-child { z-index: var(--z-sticky); background: var(--surface-2); }
+.tbl.ck-table tbody tr:hover > *, .tbl.ck-table tbody tr:hover > :first-child { background: var(--lane); }
+
+/* Module rows: a band, like the mockup. */
+.tbl.ck-table tbody tr.ck-module > *, .tbl.ck-table tbody tr.ck-module > :first-child { background: var(--surface-2); border-bottom: 1px solid var(--line); }
+.ck-module-info { text-align: left; }
+.ck-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s4); color: var(--late); font-weight: 600; }
+
+/* Totals row. */
+.tbl.ck-table tfoot tr > :is(th, td, :first-child) { background: var(--surface-2); font-weight: 600; color: var(--ink); border-bottom: 0; height: 40px; padding: var(--s4); }
+.tbl.ck-table tfoot th { text-align: left; }
+
+/* ---- Text fields: plain until hovered or focused. ---- */
+.tbl.ck-table input.ck-title, .tbl.ck-table input.ck-name { box-sizing: border-box; flex: 1 1 auto; width: 100%; min-width: 0; padding: var(--s2) var(--s3); border: 1px solid transparent; border-radius: var(--r-sm); background: transparent; color: var(--ink); font-size: var(--fs-md); }
+.tbl.ck-table input.ck-name { font-weight: 600; }
+.tbl.ck-table input.ck-title:hover, .tbl.ck-table input.ck-name:hover { border-color: var(--line); background: var(--surface); }
+.tbl.ck-table input.ck-title:focus-visible, .tbl.ck-table input.ck-name:focus-visible { border-color: var(--accent); background: var(--surface); outline: 2px solid var(--accent); outline-offset: 0; }
+.ck-title-cell { display: flex; align-items: center; gap: var(--s3); }
+.ck-title-cell .rule-id { flex-shrink: 0; font-size: var(--fs-md); color: var(--muted); }
+
+/* ---- When / Who chips (as wide as the chosen label, --ck-ch from the component): dashed = follows the module, filled = set on the item, outlined = the module's own value. ---- */
+.tbl.ck-table select.ck-chip { appearance: none; box-sizing: border-box; width: calc(var(--ck-ch, 12) * 0.9ch + 2 * var(--s5) + 2px); min-width: 0; max-width: none; padding: var(--s1) var(--s5); border: 1px dashed var(--edge); border-radius: var(--r-pill); background: transparent; color: var(--muted); font-size: var(--fs-md); text-align: center; cursor: pointer; }
+.tbl.ck-table select.ck-chip.is-set { border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+.tbl.ck-table select.ck-chip.is-module { border: 1px solid var(--edge); background: var(--surface); color: var(--ink); }
+.tbl.ck-table select.ck-chip:hover { border-color: var(--accent); }
+.tbl.ck-table select.ck-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); }
+.ck-chip option { background: var(--surface); color: var(--ink); }
+
+/* ---- Cells: filled dot = given, light dot = from Everyone, empty ring = not given, crossed ring = hidden. ---- */
+.ck-cell { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--r-circle); background: transparent; cursor: pointer; }
+.ck-cell:hover { background: var(--accent-soft); }
+.ck-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); }
+.ck-dot { position: relative; display: inline-block; flex-shrink: 0; box-sizing: border-box; width: 16px; height: 16px; border-radius: var(--r-circle); }
+.ck-dot.is-included { background: var(--accent); }
+.ck-dot.is-inherited { border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 35%, var(--surface)); }
+.ck-dot.is-off { border: 2px solid var(--edge); background: transparent; }
+.ck-dot.is-hidden { border: 2px solid var(--warn); background: transparent; }
+.ck-dot.is-hidden::after { content: ""; position: absolute; top: -2px; left: 50%; width: 2px; height: 16px; margin-left: -1px; background: var(--warn); transform: rotate(45deg); }
+
+/* ---- Row actions ---- */
+.ck-actions { text-align: right; }
+.ck-row-actions { display: inline-flex; gap: var(--s1); }
+.ck-act { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 1px solid transparent; border-radius: var(--r-sm); background: transparent; color: var(--muted); font-size: var(--fs-lg); line-height: 1; cursor: pointer; }
+.ck-act:hover:not(:disabled) { border-color: var(--line); background: var(--surface); color: var(--ink); }
+.ck-act:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); }
+.ck-act:disabled { opacity: .35; cursor: not-allowed; }
+
+/* ---- Legend ---- */
+.ck-legend-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s5); }
+.ck-legend { display: flex; flex-wrap: wrap; gap: var(--s4) var(--s6); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--fs-md); }
+.ck-legend li { display: inline-flex; align-items: center; gap: var(--s3); }
+
+@media (max-width: 700px) {
+  .ck-toolbar-end { margin-left: 0; }
+  .ck-root { --ck-item-w: 180px; }
+  .ck-title-cell { flex-wrap: wrap; gap: var(--s1); }
+  .tbl.ck-table .ck-col { min-width: 56px; }
+}

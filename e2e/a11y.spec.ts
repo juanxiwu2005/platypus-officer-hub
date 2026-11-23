@@ -175,7 +175,7 @@ for (const [name, path, trigger] of DETAIL_TRIGGERS) {
 test("keyboard: Settings sections open from the keyboard, and old Tasks and Links links open Club", async ({ page }) => {
   await page.goto("/#/settings?tab=tasks")
   const nav = page.getByRole("navigation", { name: "Settings sections" })
-  await expect(nav.getByRole("button")).toHaveText(["Club", "Roles & teams", "Workflow", "My preferences", "Admin"])
+  await expect(nav.getByRole("button")).toHaveText(["Club", "Roles & teams", "Workflow", "Onboarding", "My preferences", "Admin"])
   await expect(nav.getByRole("button", { name: "Club", exact: true })).toHaveAttribute("aria-current", "page")
   await expect(page.getByTestId("board-settings")).toHaveCount(0)
   await page.goto("/#/settings?tab=links")

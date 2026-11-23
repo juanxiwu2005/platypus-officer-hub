@@ -17,6 +17,8 @@ import { REMINDER_MODE_COPY, REMINDER_MODES, reminderModeTestId } from "../data/
 import { PERSON_WEEKLY_EMAIL_LIMIT } from "../reminders/policy"
 
 const WorkflowLibrary = lazy(() => import("../components/workflowLibrary/WorkflowLibrary"))
+// Settings → Onboarding (docs/feedback-fix/CHECKLIST_MATRIX_CONTRACT.md): its own chunk, so the entry bundle does not grow.
+const OnboardingChecklist = lazy(() => import("../components/settings/OnboardingChecklist"))
 
 export function InviteLink({ code }: { code: string }) {
   const url = `${window.location.origin}${window.location.pathname}#/join?invite=${encodeURIComponent(code)}`
@@ -27,10 +29,10 @@ export function InviteLink({ code }: { code: string }) {
 type Tab = SettingsTab
 const TABS: { id: Tab; label: string; lead: boolean }[] = [
   { id: "club", label: "Club", lead: true }, { id: "roles", label: "Roles & teams", lead: true }, { id: "workflow", label: "Workflow", lead: true },
-  { id: "me", label: "My preferences", lead: false }, { id: "admin", label: "Admin", lead: true },
+  { id: "onboarding", label: "Onboarding", lead: true }, { id: "me", label: "My preferences", lead: false }, { id: "admin", label: "Admin", lead: true },
 ]
 
-/** Settings in five small sections; every change saves itself, with Undo (decision 5). */
+/** Settings in six small sections; every change saves itself, with Undo (decision 5). */
 export default function Settings() {
   const { canNudge } = useViewer()
   const tabs = TABS.filter(t => canNudge || !t.lead)
@@ -49,7 +51,7 @@ export default function Settings() {
     <div className="settings">
       <nav className="settings-nav" aria-label="Settings sections">{tabs.map(t => <button key={t.id} type="button" aria-current={active === t.id ? "page" : undefined} onClick={() => go(t.id)}>{t.label}</button>)}</nav>
       <div className="settings-body">
-        {active === "me" ? <MySettings /> : active === "admin" ? <Admin /> : active === "workflow" ? <Suspense fallback={<p>Loading workflows…</p>}><WorkflowLibrary /></Suspense> : <ClubSettings tab={active} />}
+        {active === "me" ? <MySettings /> : active === "admin" ? <Admin /> : active === "workflow" ? <Suspense fallback={<p>Loading workflows…</p>}><WorkflowLibrary /></Suspense> : active === "onboarding" ? <Suspense fallback={<p>Loading checklist…</p>}><OnboardingChecklist /></Suspense> : <ClubSettings tab={active} />}
       </div>
     </div>
   </SettingsNavContext.Provider>
