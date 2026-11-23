@@ -1,5 +1,6 @@
 import type { ChecklistItem, ChecklistModule, OnboardingChecklist } from "../../../data/types"
-import { MAX_CHECKLIST_ITEMS, MAX_CHECKLIST_MODULES, MAX_MODULE_ITEMS, countItems, type PastedItem } from "../../../lib/checklist"
+import { MAX_CHECKLIST_ITEMS, MAX_CHECKLIST_MODULES, MAX_MODULE_ITEMS, countItems } from "../../../lib/checklist"
+import type { PastedItem } from "../../../lib/checklistParse"
 
 /**
  * Immutable edits for the onboarding matrix editor (Settings → Onboarding). They only rearrange the draft on screen:

@@ -4,10 +4,11 @@ import { seedDemo } from "../data/seed"
 import { POLICY_CATALOG } from "../data/policyCatalog"
 import { STARTER_SOURCES, starterChecklist } from "../data/checklistStarter"
 import {
-  addPasted, cellState, CHECKLIST_WHEN, CHECKLIST_WHO, checklistIdMaker, countEveryone, countForRole, countItems, effectiveWhen, effectiveWho, itemsForRole,
-  MAX_CHECKLIST_ITEMS, MAX_CHECKLIST_MODULES, MAX_ITEM_TITLE, MAX_MODULE_ITEMS, MAX_MODULE_TITLE, parsePastedList, parseShorthand, sameChecklist,
+  cellState, CHECKLIST_WHEN, CHECKLIST_WHO, checklistIdMaker, countEveryone, countForRole, countItems, effectiveWhen, effectiveWho, itemsForRole,
+  MAX_CHECKLIST_ITEMS, MAX_CHECKLIST_MODULES, MAX_ITEM_TITLE, MAX_MODULE_ITEMS, MAX_MODULE_TITLE, sameChecklist,
   sanitizeChecklist, toggleCell, toggleEveryone, UNTITLED_MODULE, WHEN_LABEL, WHO_LABEL,
 } from "../lib/checklist"
+import { addPasted, parsePastedList, parseShorthand } from "../lib/checklistParse"
 
 const TODAY = "2026-11-23"
 const ROLES = ["r-pres", "r-fin", "r-events", "r-mkt", "r-sec"]

@@ -12,8 +12,12 @@ const serious = async (page: Page) => (await new AxeBuilder({ page }).withTags([
 
 const nav = (page: Page) => page.getByRole("navigation", { name: "Settings sections" })
 const matrix = (page: Page) => page.getByTestId("onboarding-matrix")
+/** Exactly `text`: titles are text areas (they wrap), and React keeps a text area's text content equal to its value. */
+const exactly = (text: string) => new RegExp(`^${text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`)
 /** The item row whose title field holds `title`. */
-const row = (page: Page, title: string) => page.getByTestId("onboarding-item").filter({ has: page.locator(`input[value="${title}"]`) })
+const row = (page: Page, title: string) => page.getByTestId("onboarding-item").filter({ has: page.locator("textarea.ck-title", { hasText: exactly(title) }) })
+/** The module row whose name field holds `title`. */
+const moduleRow = (page: Page, title: string) => page.getByTestId("onboarding-module").filter({ has: page.locator("textarea.ck-name", { hasText: exactly(title) }) })
 const itemOf = (c: OnboardingChecklist | undefined, title: string) => c?.modules.flatMap(m => m.items).find(i => i.title === title)
 
 async function open(page: Page) {
@@ -55,6 +59,14 @@ test("the starter loads, its totals match the model, and hiding an Everyone item
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
   await matrix(page).evaluate(el => { el.parentElement!.scrollLeft = 10_000 })
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
+  // axe at a resting scroll position: the Everyone column next to the sticky Item column. At the very end of a phone's scroll a
+  // column can sit half under the Item column, which axe's target-size rule reports; the phone test below checks that every
+  // column scrolls fully clear of it.
+  await matrix(page).evaluate(el => {
+    const wrap = el.parentElement!, [item, ...cols] = [...el.querySelectorAll("thead th")]
+    wrap.scrollLeft = 0
+    wrap.scrollLeft = cols[2].getBoundingClientRect().left - item.getBoundingClientRect().right
+  })
   expect(await serious(page)).toEqual([])
 })
 
@@ -79,15 +91,15 @@ test("Enter adds the next row with focus, shorthand sets Who and When, and Backs
   await startStarter(page)
   await page.getByRole("button", { name: "+ Add item", exact: true }).click()
   const title = page.getByRole("textbox", { name: "Item title", exact: true })
-  await expect(page.locator("input.ck-title:focus")).toHaveValue("")
+  await expect(page.locator("textarea.ck-title:focus")).toHaveValue("")
   await page.keyboard.type("Meet your mentor @buddy day 3")
   await page.keyboard.press("Enter")
   const mentor = row(page, "Meet your mentor")
   await expect(mentor.getByRole("combobox", { name: "Who does it", exact: true })).toHaveValue("buddy")
   await expect(mentor.getByRole("combobox", { name: "When", exact: true })).toHaveValue("day3")
-  await expect(mentor.getByRole("combobox", { name: "When", exact: true })).toHaveClass(/is-set/)
+  await expect(mentor.getByRole("combobox", { name: "When", exact: true }).locator("..")).toHaveClass(/is-set/)
   // The new row is right below and has focus.
-  const focused = page.locator("input.ck-title:focus")
+  const focused = page.locator("textarea.ck-title:focus")
   await expect(focused).toHaveValue("")
   const titles = await title.evaluateAll(els => els.map(e => (e as HTMLInputElement).value))
   expect(titles.slice(-3)).toEqual(["Day 30 review", "Meet your mentor", ""])
@@ -95,7 +107,7 @@ test("Enter adds the next row with focus, shorthand sets Who and When, and Backs
 
   await page.keyboard.press("Backspace")
   await expect(title).toHaveCount(titles.length - 1)
-  await expect(page.locator("input.ck-title:focus")).toHaveValue("Meet your mentor")
+  await expect(page.locator("textarea.ck-title:focus")).toHaveValue("Meet your mentor")
 })
 
 test("Paste a list reads tab-separated rows into modules with a live preview", async ({ page }) => {
@@ -126,7 +138,7 @@ test("Undo restores the previous saved version, and a module with items asks bef
   await expect.poll(async () => itemOf(await checklist(page), "Meet your buddy")?.hiddenFor).toEqual([])
   await expect(row(page, "Meet your buddy").getByRole("button", { name: "Treasurer: gets this item", exact: true })).toBeVisible()
 
-  const checkIns = page.getByTestId("onboarding-module").filter({ has: page.locator('input[value="Check-ins"]') })
+  const checkIns = moduleRow(page, "Check-ins")
   await checkIns.getByRole("button", { name: "Delete module", exact: true }).click()
   await expect(checkIns).toContainText("Delete 2 items too?")
   expect((await checklist(page))?.modules).toHaveLength(5)
@@ -174,8 +186,86 @@ test("the deep link opens Onboarding, and dark mode has no serious accessibility
   expect(await serious(page)).toEqual([])
   await startStarter(page)
   await row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: gets this item", exact: true }).click()
-  await row(page, "Read the constitution").getByRole("combobox", { name: "When", exact: true }).selectOption("day1")
+  await row(page, "Read the constitution").getByRole("combobox", { name: "When: follows module, Week 1", exact: true }).selectOption("day1")
   await page.getByRole("button", { name: "Paste a list", exact: true }).click()
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
   expect(await serious(page)).toEqual([])
+})
+
+test("an inherited chip shows only the value, dashed, and its name and first option say it follows the module", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  const r = row(page, "Read the constitution")
+  const when = r.getByRole("combobox", { name: "When: follows module, Week 1", exact: true })
+  await expect(when).toHaveValue("")
+  await expect(when.locator("option").first()).toHaveText("Week 1 (module)")
+  await expect(when.locator("..")).toHaveClass(/is-follow/)
+  await expect(when.locator("..").locator(":scope > span")).toHaveText("Week 1")   // the visible pill: the value only
+  const who = r.getByRole("combobox", { name: "Who does it: follows module, New officer", exact: true })
+  await expect(who).toHaveValue("")
+  await expect(who.locator("..").locator(":scope > span")).toHaveText("New officer")
+  await expect(who.locator("option").first()).toHaveText("New officer (module)")
+  await expect(page.getByRole("list", { name: "Legend" })).toContainText("Follows the module")
+  // Set on the item: the chip fills and the name is plain again.
+  await when.selectOption("day1")
+  await expect(r.getByRole("combobox", { name: "When", exact: true }).locator("..")).toHaveClass(/is-set/)
+})
+
+test("at 1440px every column of the seed club fits without scrolling, and long titles and rule tags stay readable", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "a desktop width")
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await open(page)
+  await startStarter(page)
+  await row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: gets this item", exact: true }).click()
+  const { roles } = await read(page)
+  expect(roles).toHaveLength(5)
+  const box = await matrix(page).evaluate(el => {
+    const wrap = el.parentElement!, w = wrap.getBoundingClientRect()
+    return { left: w.left + wrap.clientLeft, right: w.left + wrap.clientLeft + wrap.clientWidth, scrollWidth: wrap.scrollWidth, clientWidth: wrap.clientWidth, scrollLeft: wrap.scrollLeft }
+  })
+  expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth)
+  expect(box.scrollLeft).toBe(0)
+  // Item, When, Who, Everyone and every role column, the last one included, lie inside the frame's visible box.
+  for (const name of ["Item", "When", "Who does it", "Everyone", ...roles.map(r => r.displayName)]) {
+    const header = (await matrix(page).getByRole("columnheader", { name, exact: true }).boundingBox())!
+    expect(header.x, name).toBeGreaterThanOrEqual(box.left - 1)
+    expect(header.x + header.width, name).toBeLessThanOrEqual(box.right + 1)
+  }
+  // Titles wrap instead of being cut, and a rule tag sits on its own line under its title.
+  const cut = await page.locator("textarea.ck-title").evaluateAll(els => els.filter(e => e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1).map(e => (e as HTMLTextAreaElement).value))
+  expect(cut).toEqual([])
+  const long = row(page, "Walk through a budget request in Sun Devil Central").getByRole("textbox", { name: "Item title", exact: true })
+  expect((await long.boundingBox())!.height).toBeGreaterThan(30)
+  const tagged = row(page, "Complete USG-T appropriations training")
+  const [title, tag] = [(await tagged.getByRole("textbox", { name: "Item title", exact: true }).boundingBox())!, (await tagged.locator(".rule-id").boundingBox())!]
+  expect(tag.y).toBeGreaterThanOrEqual(title.y + title.height - 1)
+  expect(await noOverflow(page)).toBeLessThanOrEqual(0)
+})
+
+test("on a phone the sticky Item column is opaque, no header hides under it, When and Who are reachable, and the page never scrolls sideways", async ({ page }, info) => {
+  test.skip(info.project.name !== "mobile", "a phone width")
+  await open(page)
+  await startStarter(page)
+  await matrix(page).locator("thead").scrollIntoViewIfNeeded()
+  const sticky = matrix(page).getByRole("columnheader", { name: "Item", exact: true })
+  expect(await sticky.evaluate(el => getComputedStyle(el).backgroundColor)).toMatch(/^rgb\(/)   // rgb(), not a transparent rgba()
+  // Scroll each column to the Item column's edge: the header is then in view, nothing covers its middle, and the page stays put.
+  const headers = matrix(page).locator("thead th")
+  const count = await headers.count()
+  for (let i = 1; i < count - 1; i++) {
+    const seen = await headers.nth(i).evaluate(th => {
+      const wrap = th.closest(".ck-wrap") as HTMLElement, item = wrap.querySelector("thead th") as HTMLElement
+      wrap.scrollLeft = 0
+      wrap.scrollLeft = th.getBoundingClientRect().left - item.getBoundingClientRect().right
+      const r = th.getBoundingClientRect(), edge = item.getBoundingClientRect().right, w = wrap.getBoundingClientRect()
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+      return { name: th.textContent, clear: r.left >= edge - 1, inside: r.right <= w.right + 1, onTop: !!hit && th.contains(hit), overflow: document.documentElement.scrollWidth - innerWidth }
+    })
+    expect(seen, `${seen.name}`).toEqual({ name: seen.name, clear: true, inside: true, onTop: true, overflow: 0 })
+  }
+  // At the start When and Who sit right next to the Item column.
+  await matrix(page).evaluate(el => { el.parentElement!.scrollLeft = 0 })
+  await expect(row(page, "Read the constitution").getByRole("combobox", { name: "When: follows module, Week 1", exact: true })).toBeInViewport()
+  await expect(row(page, "Read the constitution").getByRole("combobox", { name: "Who does it: follows module, New officer", exact: true })).toBeInViewport()
+  expect(await noOverflow(page)).toBeLessThanOrEqual(0)
 })

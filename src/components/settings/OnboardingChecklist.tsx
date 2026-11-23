@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState, type CSSProperties, type ClipboardEvent, type KeyboardEvent } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type TextareaHTMLAttributes } from "react"
 import { useStore } from "../../data/store"
 import type { ChecklistItem, ChecklistModule, ChecklistWhen, ChecklistWho, OnboardingChecklist as Checklist, Role } from "../../data/types"
 import { starterChecklist } from "../../data/checklistStarter"
 import {
-  CHECKLIST_WHEN, CHECKLIST_WHO, MAX_ITEM_TITLE, MAX_MODULE_TITLE, WHEN_LABEL, WHO_LABEL, addPasted, cellState, checklistIdMaker,
-  countEveryone, countForRole, parsePastedList, parseShorthand, toggleCell, toggleEveryone, type CellState,
+  CHECKLIST_WHEN, CHECKLIST_WHO, MAX_ITEM_TITLE, MAX_MODULE_TITLE, WHEN_LABEL, WHO_LABEL, cellState, checklistIdMaker,
+  countEveryone, countForRole, toggleCell, toggleEveryone, type CellState,
 } from "../../lib/checklist"
+import { addPasted, parsePastedList, parseShorthand } from "../../lib/checklistParse"
 import { Info } from "../ui"
 import { useRail } from "../rail/RailContext"
 import { canAddModule, insertItems, locate, mapItem, moveItem, moveItemTarget, moveModule, newItem, newModule, patchModule, removeItem, removeModule, roomIn, type Dir } from "./onboarding/edit"
@@ -24,8 +25,8 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 const titleId = (id: string) => `ck-t-${id}`
 const moduleNameId = (id: string) => `ck-m-${id}`
 
-/** The label a chip shows, so the chip can be as wide as it (a native select is otherwise as wide as its longest option). */
-const followLabel = (label: string) => `Module (${label})`
+/** The first option of an item's When / Who list: follow the module. The closed chip shows only the value, dashed. */
+const followOption = (label: string) => `${label} (module)`
 
 const CELL_WORDS: Record<CellState, string> = { inherited: "gets this item", included: "gets this item", hidden: "hidden", off: "not included" }
 
@@ -233,6 +234,7 @@ export default function OnboardingChecklist() {
           <li><span className="ck-dot is-inherited" aria-hidden="true" />From Everyone</li>
           <li><span className="ck-dot is-off" aria-hidden="true" />Not included</li>
           <li><span className="ck-dot is-hidden" aria-hidden="true" />Hidden for this role</li>
+          <li><span className="ck-chip-swatch" aria-hidden="true" />Follows the module</li>
         </ul>
         <Info label="How the matrix works">Click a dot to give or hide an item for one role. Everyone turns the whole row on. A dashed chip follows its module.</Info>
       </div>
@@ -265,12 +267,12 @@ interface ItemHandlers {
 function ModuleRows({ module: m, first, last, checklist, roles, confirming, onModule, onItem }: {
   module: ChecklistModule; first: boolean; last: boolean; checklist: Checklist; roles: Role[]; confirming: boolean; onModule: ModuleHandlers; onItem: ItemHandlers
 }) {
-  const nameKey = (e: KeyboardEvent<HTMLInputElement>) => { if (e.key === "Enter") { e.preventDefault(); onModule.addFirst() } }
+  const nameKey = (e: KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === "Enter") { e.preventDefault(); onModule.addFirst() } }
   return <tbody>
     <tr className="ck-module" data-testid="onboarding-module">
-      <th scope="row"><input id={moduleNameId(m.id)} type="text" className="ck-name" aria-label="Module name" value={m.title} maxLength={MAX_MODULE_TITLE} onChange={e => onModule.rename(e.target.value)} onKeyDown={nameKey} /></th>
-      <td><select className="ck-chip is-module" aria-label="Module when" style={{ "--ck-ch": WHEN_LABEL[m.when].length } as CSSProperties} value={m.when} onChange={e => onModule.when(e.target.value as ChecklistWhen)}>{CHECKLIST_WHEN.map(w => <option key={w} value={w}>{WHEN_LABEL[w]}</option>)}</select></td>
-      <td><select className="ck-chip is-module" aria-label="Module who does it" style={{ "--ck-ch": WHO_LABEL[m.who].length } as CSSProperties} value={m.who} onChange={e => onModule.who(e.target.value as ChecklistWho)}>{CHECKLIST_WHO.map(w => <option key={w} value={w}>{WHO_LABEL[w]}</option>)}</select></td>
+      <th scope="row"><GrowField id={moduleNameId(m.id)} className="ck-name" aria-label="Module name" value={m.title} maxLength={MAX_MODULE_TITLE} onText={onModule.rename} onKeyDown={nameKey} /></th>
+      <td><ChipSelect kind="is-module" label="Module when" shown={WHEN_LABEL[m.when]} value={m.when} options={CHECKLIST_WHEN.map(w => [w, WHEN_LABEL[w]] as const)} onPick={v => onModule.when(v as ChecklistWhen)} /></td>
+      <td><ChipSelect kind="is-module" label="Module who does it" shown={WHO_LABEL[m.who]} value={m.who} options={CHECKLIST_WHO.map(w => [w, WHO_LABEL[w]] as const)} onPick={v => onModule.who(v as ChecklistWho)} /></td>
       <td colSpan={roles.length + 1} className="ck-module-info">{confirming
         ? <span className="ck-confirm" role="group" aria-label="Delete module">Delete {plural(m.items.length, "item")} too?
           <button type="button" className="btn small" onClick={onModule.remove}>Delete</button>
@@ -283,28 +285,26 @@ function ModuleRows({ module: m, first, last, checklist, roles, confirming, onMo
 }
 
 function ItemRow({ module: m, item, roles, canUp, canDown, on }: { module: ChecklistModule; item: ChecklistItem; roles: Role[]; canUp: boolean; canDown: boolean; on: ItemHandlers }) {
-  const key = (e: KeyboardEvent<HTMLInputElement>) => {
+  const key = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter") { e.preventDefault(); on.enter(item.id) }
     else if (e.key === "Backspace" && !item.title) { e.preventDefault(); on.backspace(item.id) }
   }
-  const paste = (e: ClipboardEvent<HTMLInputElement>) => {
+  const paste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
     const text = e.clipboardData.getData("text")
     if (!/\r?\n/.test(text.trim())) return
     e.preventDefault(); on.paste(item.id, text)
   }
   return <tr className="ck-item" data-testid="onboarding-item">
     <th scope="row"><div className="ck-title-cell">
-      <input id={titleId(item.id)} type="text" className="ck-title" aria-label="Item title" value={item.title} maxLength={MAX_ITEM_TITLE} onChange={e => on.retitle(item.id, e.target.value)} onKeyDown={key} onPaste={paste} />
+      <GrowField id={titleId(item.id)} className="ck-title" aria-label="Item title" value={item.title} maxLength={MAX_ITEM_TITLE} onText={title => on.retitle(item.id, title)} onKeyDown={key} onPaste={paste} />
       {item.source && <span className="rule-id">{item.source}</span>}
     </div></th>
-    <td><select className={`ck-chip ${item.when ? "is-set" : "is-follow"}`} aria-label="When" style={{ "--ck-ch": (item.when ? WHEN_LABEL[item.when] : followLabel(WHEN_LABEL[m.when])).length } as CSSProperties} value={item.when ?? ""} onChange={e => on.when(item.id, (e.target.value || null) as ChecklistWhen | null)}>
-      <option value="">{followLabel(WHEN_LABEL[m.when])}</option>
-      {CHECKLIST_WHEN.map(w => <option key={w} value={w}>{WHEN_LABEL[w]}</option>)}
-    </select></td>
-    <td><select className={`ck-chip ${item.who ? "is-set" : "is-follow"}`} aria-label="Who does it" style={{ "--ck-ch": (item.who ? WHO_LABEL[item.who] : followLabel(WHO_LABEL[m.who])).length } as CSSProperties} value={item.who ?? ""} onChange={e => on.who(item.id, (e.target.value || null) as ChecklistWho | null)}>
-      <option value="">{followLabel(WHO_LABEL[m.who])}</option>
-      {CHECKLIST_WHO.map(w => <option key={w} value={w}>{WHO_LABEL[w]}</option>)}
-    </select></td>
+    <td><ChipSelect kind={item.when ? "is-set" : "is-follow"} label={item.when ? "When" : `When: follows module, ${WHEN_LABEL[m.when]}`}
+      shown={WHEN_LABEL[item.when ?? m.when]} value={item.when ?? ""} options={[["", followOption(WHEN_LABEL[m.when])], ...CHECKLIST_WHEN.map(w => [w, WHEN_LABEL[w]] as const)]}
+      onPick={v => on.when(item.id, (v || null) as ChecklistWhen | null)} /></td>
+    <td><ChipSelect kind={item.who ? "is-set" : "is-follow"} label={item.who ? "Who does it" : `Who does it: follows module, ${WHO_LABEL[m.who]}`}
+      shown={WHO_LABEL[item.who ?? m.who]} value={item.who ?? ""} options={[["", followOption(WHO_LABEL[m.who])], ...CHECKLIST_WHO.map(w => [w, WHO_LABEL[w]] as const)]}
+      onPick={v => on.who(item.id, (v || null) as ChecklistWho | null)} /></td>
     <td className="ck-col"><button type="button" className="ck-cell" aria-pressed={item.everyone} aria-label={`Everyone: ${item.everyone ? "on" : "off"}`} onClick={() => on.everyone(item.id)}>
       <span className={`ck-dot ${item.everyone ? "is-included" : "is-off"}`} aria-hidden="true" /></button></td>
     {roles.map(r => {
@@ -314,6 +314,47 @@ function ItemRow({ module: m, item, roles, canUp, canDown, on }: { module: Check
     })}
     <td className="ck-actions"><RowActions first={!canUp} last={!canDown} onMove={dir => on.move(item.id, dir)} onDelete={() => on.remove(item.id)} what="item" /></td>
   </tr>
+}
+
+/**
+ * A When / Who chip: the visible pill shows only the value (dashed when it follows the module), and a transparent native select
+ * on top of it opens the list. The select carries the accessible name; its first option names the module value, e.g. "Week 1 (module)".
+ */
+function ChipSelect({ kind, label, shown, value, options, onPick }: {
+  kind: "is-module" | "is-set" | "is-follow"; label: string; shown: string; value: string; options: readonly (readonly [string, string])[]; onPick: (value: string) => void
+}) {
+  return <span className={`ck-chip ${kind}`}>
+    <span aria-hidden="true">{shown}</span>
+    <select className="ck-select" aria-label={label} value={value} onChange={e => onPick(e.target.value)}>
+      {options.map(([v, text]) => <option key={v} value={v}>{text}</option>)}
+    </select>
+  </span>
+}
+
+/** Browsers that size a text area to its content from CSS alone (field-sizing); elsewhere GrowField measures it. */
+const SIZES_ITSELF = typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("field-sizing", "content")
+/** Sets --ck-h (read by the CSS) to the height the text needs, for browsers without field-sizing. */
+function fitHeight(el: HTMLTextAreaElement) {
+  el.style.setProperty("--ck-h", "auto")
+  el.style.setProperty("--ck-h", `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`)
+}
+
+/**
+ * A one-line title that wraps instead of hiding its end: a text area that grows with its text, so a long title in a narrow
+ * Item column stays readable without hovering. Line breaks are never kept: the row handles Enter, and other breaks become spaces.
+ */
+function GrowField({ value, onText, ...rest }: Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "value" | "onChange"> & { value: string; onText: (text: string) => void }) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => { if (!SIZES_ITSELF && ref.current) fitHeight(ref.current) }, [value])
+  useEffect(() => {
+    const el = ref.current
+    if (SIZES_ITSELF || !el || typeof ResizeObserver === "undefined") return
+    let width = el.clientWidth
+    const watch = new ResizeObserver(() => { if (el.clientWidth !== width) { width = el.clientWidth; fitHeight(el) } })
+    watch.observe(el)
+    return () => watch.disconnect()
+  }, [])
+  return <textarea ref={ref} rows={1} {...rest} value={value} onChange={e => onText(e.target.value.replace(/\s*\r?\n\s*/g, " "))} />
 }
 
 function RowActions({ first, last, onMove, onDelete, what }: { first: boolean; last: boolean; onMove: (dir: Dir) => void; onDelete: () => void; what: "item" | "module" }) {
