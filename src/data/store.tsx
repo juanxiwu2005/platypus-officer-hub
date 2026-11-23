@@ -1042,6 +1042,12 @@ interface StoreValue {
   dispatch: (a: Action) => void
   /** Configuration/AI prerequisites: persist before publishing the state; false leaves current business state intact. */
   tryDispatch: (a: Action) => boolean
+  /**
+   * Why the last tryDispatch could not save, read at call time (so a handler can ask right after a refused tryDispatch):
+   * "other-tab" when another tab changed the saved data, "storage" when this browser refused or blocked the write
+   * (or saving is held back), null when nothing is known to be wrong.
+   */
+  saveProblem: () => SaveProblem
   getState: () => DemoState
   reset: () => void
   /** The interaction log as it is right now, oldest first (read at call time, so it is never stale). */
@@ -1052,6 +1058,7 @@ interface StoreValue {
   exportData: () => void
 }
 
+export type SaveProblem = "other-tab" | "storage" | null
 const StoreContext = createContext<StoreValue | null>(null)
 
 export function StoreProvider({ children, initial, initialLog }: { children: ReactNode; initial?: DemoState; initialLog?: LogEntry[] }) {
@@ -1143,6 +1150,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
     return true
   }, [held, commit, sessionAt, storageUnchanged, persistApp])
   const getState = useCallback(() => rootRef.current!.app, [])
+  const saveProblem = useCallback((): SaveProblem => conflict.current ? "other-tab" : held || !saved.current.app ? "storage" : null, [held])
   const logUi = useCallback((e: UiEvent) => {
     const r = rootRef.current!
     const at = Date.now()
@@ -1163,7 +1171,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   const persistenceFailed = saveFailed || held
   const automaticReminders = useAutomaticReminders(root.app, held, getState, tryDispatch)
   // The log is left out of the value on purpose: a click must not re-render every screen that reads the store.
-  const value = useMemo(() => ({ state: root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData])
+  const value = useMemo(() => ({ state: root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, saveProblem, getState, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, saveProblem, getState, reset, getLog, logUi, exportData])
   const shown: StorageNotice | null = notice?.kind === "storage_conflict" ? notice : saveFailed ? { kind: "save_failed" } : notice
   return <StoreContext.Provider value={value}>
     {exportPartial && <div role="status" className="save-status err">Exported without task files and private drafts; this browser could not read them. <button type="button" className="btn small" onClick={downloadCurrent}>Retry export</button></div>}

@@ -7,12 +7,13 @@ import { validateReply, type ReplyInput, type TaskReply } from "../data/taskWork
 import type { TaskAuthorization } from "./contracts"
 import { isBudgetControlledNode } from "../engine/eventBudget"
 import { taskWorkActor } from "./authorization"
+import { saveFailedText } from "./data"
 import { TaskTargetForm } from "./TaskTargetForm"
 
 /** The six fixed status names (S3, 2026-11-23); the same words as every StatusPill. */
 export const TASK_STATUS = Object.fromEntries(STATUS_ORDER.map(s => [s, STATUS_DEFAULTS[s].label])) as Record<NodeStatus, string>
 export function TaskProgress({ node, actorId, authorization, initialReply, readOnly = false }: { node: Node; actorId: string; authorization?: TaskAuthorization; initialReply?: string | null; readOnly?: boolean }) {
-  const { state, tryDispatch, getState } = useStore()
+  const { state, tryDispatch, saveProblem, getState } = useStore()
   const [form, setForm] = useState(initialReply === "waiting" || initialReply === "extension" ? initialReply : "")
   const [person, setPerson] = useState(node.waitingOnPersonId ?? "other")
   const [input, setInput] = useState<ReplyInput>({ waitingOn: node.waitingOn ?? "",  })
@@ -34,7 +35,7 @@ export function TaskProgress({ node, actorId, authorization, initialReply, readO
     const accepted = tryDispatch(action)
     const after = getState(), saved = after.nodes.find(n => n.id === node.id)
     const expected = reply === "claim" || reply === "todo" ? "accepted" : reply === "waiting" ? "waiting" : reply === "help" ? "blocked" : reply === "done" ? "done" : "in_progress"
-    if (!accepted || saved?.status !== expected || (reply === "waiting" && (saved.waitingOn !== value.waitingOn?.trim() || (saved.waitingOnPersonId ?? null) !== (value.waitingOnPersonId ?? null)))) { setError("Update not saved. Try again."); return }
+    if (!accepted || saved?.status !== expected || (reply === "waiting" && (saved.waitingOn !== value.waitingOn?.trim() || (saved.waitingOnPersonId ?? null) !== (value.waitingOnPersonId ?? null)))) { setError(saveFailedText(saveProblem(), "Update not saved. Try again.")); return }
     setForm(""); setNotice(current.status === "done" ? "Task reopened." : "Saved.")
   }
   function openForm(value: string) {

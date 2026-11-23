@@ -86,7 +86,7 @@ describe("the universal task page and edit drawer", () => {
     const write = Storage.prototype.setItem
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(function(this: Storage, key, value) { if (key === STORAGE_KEY) throw new Error("Storage full"); write.call(this, key, value) })
     fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
-    await waitFor(() => expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toContain("not saved"))
+    await waitFor(() => expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toBe("Can't save in this browser."))   // the store knows the cause
     expect(store.state.nodes[0].status).toBe("accepted")
     expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Keep this result")
     expect(screen.getByRole("button", { name: "Download booking.txt" })).toBeTruthy()
@@ -149,7 +149,7 @@ describe("the universal task page and edit drawer", () => {
     const blocked = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function(this: Storage, key, value) { if (key === STORAGE_KEY) throw new Error("Storage unavailable"); write.call(this, key, value) })
     fireEvent.click(undo)
     expect(store.state.nodes[0].status).toBe("done")
-    expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toContain("not reopened")
+    expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toBe("Can't save in this browser.")
     blocked.mockRestore()
     fireEvent.click(undo)
     expect(store.state.nodes[0].status).toBe("accepted")

@@ -3,12 +3,12 @@ import { createPortal } from "react-dom"
 import type { Node } from "../data/types"
 import { useStore } from "../data/store"
 import { officers } from "../data/permissions"
-import { taskDefinitionKey, validTaskLinks } from "./data"
+import { saveFailedText, taskDefinitionKey, validTaskLinks } from "./data"
 import { taskLinks } from "./links"
 import { buildReminderFacts } from "../reminders/facts"
 
 export function TaskEditPanel({ node, due, onClose }: { node: Node; due: string | null; onClose: () => void }) {
-  const { state, tryDispatch, getState } = useStore()
+  const { state, tryDispatch, saveProblem, getState } = useStore()
   const [title, setTitle] = useState(node.title), [instructions, setInstructions] = useState(node.instructions ?? buildReminderFacts(state, node.id)?.requirement ?? "")
   const [owner, setOwner] = useState(node.ownerId ?? ""), [date, setDate] = useState(due ?? "")
   const [links, setLinks] = useState(() => taskLinks(state, node).map((link, index) => ({ ...link, key: `existing-${index}` })))
@@ -39,7 +39,7 @@ export function TaskEditPanel({ node, due, onClose }: { node: Node; due: string 
     const patch = { title: title.trim(), instructions: instructions.trim(), ownerId: owner || null, externalLinks, ...(date !== originalDate.current ? { clubDeadlineOverride: date || null } : {}) }
     const accepted = tryDispatch({ type: "updateNode", id: node.id, patch, expectedTask: base.current })
     const saved = getState().nodes.find(n => n.id === node.id)
-    if (!accepted || saved?.title !== patch.title || saved.instructions !== patch.instructions || saved.ownerId !== patch.ownerId || JSON.stringify(saved.externalLinks) !== JSON.stringify(externalLinks)) { setError("Changes not saved. Try again."); return }
+    if (!accepted || saved?.title !== patch.title || saved.instructions !== patch.instructions || saved.ownerId !== patch.ownerId || JSON.stringify(saved.externalLinks) !== JSON.stringify(externalLinks)) { setError(saveFailedText(saveProblem(), "Changes not saved. Try again.")); return }
     onClose()
   }
   return createPortal(<div className="task-edit-backdrop"><div className="task-edit-panel" role="dialog" aria-modal="true" aria-labelledby="edit-task-heading" ref={panel} data-testid="task-edit">

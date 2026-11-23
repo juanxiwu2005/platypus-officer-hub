@@ -113,7 +113,7 @@ test("a failed save preserves text and attachments and can be retried without fa
   await attach(page)
   await page.evaluate(key => { const write = Storage.prototype.setItem; localStorage.setItem("task-work-fail", "yes"); Storage.prototype.setItem = function(k, value) { if (k === key && localStorage.getItem("task-work-fail") === "yes") throw new Error("Fictional quota failure"); write.call(this, k, value) } }, KEY)
   await panel.getByRole("button", { name: "Submit & mark done", exact: true }).click()
-  await expect(panel.getByRole("alert")).toContainText("not saved")
+  await expect(panel.getByRole("alert")).toContainText("Can't save in this browser.")   // the store knows the cause, so the line says it
   expect((await work(page)).status).toBe("accepted")
   await expect(panel.getByLabel("Details", { exact: true })).toHaveValue("Keep this location and its files")
   await expect(panel.getByRole("button", { name: "Download confirmation.txt", exact: true })).toBeVisible()
@@ -187,9 +187,12 @@ test("automatically saves 2 MB files across immediate task switches and refresh,
   // A third 2 MB file exceeds 5 MB; the current files and text survive rejection.
   await page.getByLabel("Attach files", { exact: true }).setInputFiles([{ ...files[2], buffer: Buffer.alloc(2 * mb) }])
   await expect(panel.getByRole("alert")).toContainText("5 MB")
+  await expect(panel.getByTestId("files-max")).toHaveCount(0)                    // the limit reason shows only once the limit is reached
   await page.getByLabel("Attach files", { exact: true }).setInputFiles([files[2]])
   await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved")
   await expect(panel.getByRole("button", { name: "+ Add files", exact: true })).toBeDisabled()
+  await expect(panel.getByTestId("files-max")).toHaveText("3 files max")
+  await expect(panel.getByRole("button", { name: "+ Add files", exact: true })).toHaveAccessibleDescription("3 files max")
   await expect(panel.getByRole("button", { name: "Save draft", exact: true })).toHaveCount(0)
   expect((await work(page)).status).toBe("accepted")
   expect((await work(page)).taskWork).toBeUndefined()
