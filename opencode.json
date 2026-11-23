@@ -28,7 +28,7 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-06AT-regression.md": "allow",
+          "docs/quest-build/cards/P5-06BT-regression.md": "allow",
           "src/quest/sample/CommsScenes.tsx": "allow",
           "src/quest/sample/HandOff.tsx": "allow",
           "src/quest/sample/Promotion.tsx": "allow",
@@ -36,15 +36,15 @@
           "src/quest/sample/decisions.ts": "allow",
           "src/lib/dragSort.ts": "allow",
           "src/engine/questSchedule.ts": "allow",
-          "src/quest/sample/HandOff.test.tsx": "allow"
+          "src/quest/sample/Promotion.test.tsx": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/HandOff.test.tsx": "allow"
+          "src/quest/sample/Promotion.test.tsx": "allow"
         },
         "bash": {
           "*": "deny",
-          "npx vitest run src/quest/sample/HandOff.test.tsx": "allow",
+          "npx vitest run src/quest/sample/Promotion.test.tsx": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
@@ -60,7 +60,7 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-06AT-regression.md": "allow",
+          "docs/quest-build/cards/P5-06BT-regression.md": "allow",
           "src/quest/sample/CommsScenes.tsx": "allow",
           "src/quest/sample/HandOff.tsx": "allow",
           "src/quest/sample/Promotion.tsx": "allow",
@@ -68,7 +68,7 @@
           "src/quest/sample/decisions.ts": "allow",
           "src/lib/dragSort.ts": "allow",
           "src/engine/questSchedule.ts": "allow",
-          "src/quest/sample/HandOff.test.tsx": "allow"
+          "src/quest/sample/Promotion.test.tsx": "allow"
         },
         "edit": {
           "*": "deny"

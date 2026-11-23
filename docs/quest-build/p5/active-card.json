@@ -3,7 +3,7 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-06AT-regression.md",
+  "card": "docs/quest-build/cards/P5-06BT-regression.md",
   "readFiles": [
     "src/quest/sample/CommsScenes.tsx",
     "src/quest/sample/HandOff.tsx",
@@ -14,10 +14,10 @@
     "src/engine/questSchedule.ts"
   ],
   "writeFiles": [
-    "src/quest/sample/HandOff.test.tsx"
+    "src/quest/sample/Promotion.test.tsx"
   ],
   "agentCommands": [
-    "npx vitest run src/quest/sample/HandOff.test.tsx",
+    "npx vitest run src/quest/sample/Promotion.test.tsx",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
@@ -25,7 +25,7 @@
       "npx",
       "vitest",
       "run",
-      "src/quest/sample/HandOff.test.tsx"
+      "src/quest/sample/Promotion.test.tsx"
     ],
     [
       "npx",
