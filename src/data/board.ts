@@ -1,4 +1,3 @@
-import { defaultTaskDue } from "../engine/taskDates"
 import type { DemoState, Node, NodeStatus } from "./types"
 import { canLead } from "./changeReview"
 import { addNotices, claimTask, closeSilence, replyToTask } from "./taskWorkflow"
@@ -61,20 +60,6 @@ export function moveTask(s: DemoState, nodeId: string, to: NodeStatus, beforeId:
 }
 
 /**
- * A new task never lands in Done, and an officer's new task is their own, so the status a person
- * asks for is not always the status the task starts in. `startStatus` is the one source of truth
- * for where it lands.
- */
-export function startStatus(s: DemoState, asked: NodeStatus): NodeStatus {
-  // Creating cannot finish a task: reopening a done task needs the president or VP (canMoveTask),
-  // and the Done reply (contribution, notices) belongs to moveTask, not to the create path.
-  const wanted: NodeStatus = asked === "done" ? "accepted" : asked
-  // Only a lead can post a task for someone else to claim; anyone else's new task is their own.
-  if (wanted === "unclaimed") return canLead(s) ? "unclaimed" : "accepted"
-  return wanted
-}
-
-/**
  * Where a task from the page-head form went (FB-5), said in the person's own words. It follows createTasks: your own
  * task is in To do at once; someone else's waits in Not claimed until they accept it; no owner means anyone can claim it.
  */
@@ -83,16 +68,4 @@ export function newTaskNotice(s: DemoState, ownerId: string | null): string {
   const first = s.people.find(p => p.id === ownerId)?.name.split(" ")[0]
   if (ownerId && first) return `Sent to ${first}. It stays in ${label(s, "unclaimed")} until ${first} accepts.`
   return `Posted in ${label(s, "unclaimed")}. Anyone can claim it.`
-}
-
-export function addBoardTask(s: DemoState, title: string, status: NodeStatus): DemoState {
-  const t = title.trim().slice(0, 100)
-  if (!t) return s
-  const person = s.people.find(p => p.id === s.viewerId)
-  const fn = s.roles.find(r => r.id === person?.roleId)?.fn ?? "programs"
-  const st = startStatus(s, status)
-  const ownerId = st === "unclaimed" ? null : s.viewerId
-  const id = `task-${s.nodes.length}-${Date.now().toString(36)}`
-  const node: Node = { id, title: t, eventId: null, stepKey: null, phase: null, fn, ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: "light", estDays: 1, anchor: { kind: "fixed", official: null, club: defaultTaskDue(s) }, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: st, acceptedOn: ownerId ? s.today : null, waitingOn: null, draftLink: null, why: "", source: "Added on the task board", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }
-  return applySchedule(reorder({ ...s, nodes: [...s.nodes, node] }, id, st, null))
 }

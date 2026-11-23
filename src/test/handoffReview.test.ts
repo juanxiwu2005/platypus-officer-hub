@@ -62,7 +62,7 @@ describe("3: a next officer reads but does not change tasks before the handover 
     const free = s.nodes.find(n => !n.ownerId && n.status === "unclaimed")!
     const viewer = as(s, inc)
     expect(reducer(viewer, { type: "claimTask", nodeId: free.id })).toBe(viewer)
-    expect(reducer(viewer, { type: "addTask", title: "Mine", status: "accepted" } as never)).toBe(viewer)
+    expect(reducer(viewer, { type: "createTasks", id: "mine", sentence: "Mine", tasks: [{ title: "Mine", ownerId: inc, eventId: null }], date: "2026-11-10", buffered: false })).toBe(viewer)
     expect(reducer(viewer, { type: "updateNode", id: free.id, patch: { title: "Renamed" } })).toBe(viewer)
     const read = act(viewer, { kind: "readSection", roleId: "r-fin", section: "In flight", mark: "got" })
     expect(rec(read).reading).toEqual({ "In flight": "got" })

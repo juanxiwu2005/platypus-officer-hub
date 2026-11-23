@@ -32,15 +32,16 @@ describe("task board (v1.1 decision 3)", () => {
     expect(s.nodes.find(n => n.id === "t-recon")!.status).toBe("done")
     expect(s.contributions.filter(c => c.nodeId === "t-recon")).toHaveLength(1)
   })
-  it("reorders inside a column and adds a task with an engine-computed date", () => {
+  it("reorders inside a column", () => {
     const s = reducer(base, { type: "moveTask", nodeId: "t-sdc", status: "accepted", beforeId: "e-night:review" })
     const col = s.nodes.filter(n => n.status === "accepted" && n.rank !== undefined).sort((a, b) => a.rank! - b.rank!)
     expect(col.findIndex(n => n.id === "t-sdc")).toBeLessThan(col.findIndex(n => n.id === "e-night:review"))
-    const added = reducer(base, { type: "addTask", title: "Order name tags", status: "accepted" })
-    const t = added.nodes.at(-1)!
-    expect(t.title).toBe("Order name tags")
-    expect(t.ownerId).toBe("alex")
-    expect(t.clubDeadline).toBeTruthy()
+  })
+  it("only a lead reopens a finished task (audit §6.4b)", () => {
+    const finished = reducer(as("maya"), { type: "moveTask", nodeId: "t-recon", status: "done" })
+    const done = finished.nodes.find(n => n.id === "t-recon")!
+    expect(canMoveTask(finished, done, "accepted")).toMatch(/reopen a finished task/)
+    expect(canMoveTask({ ...finished, viewerId: "alex" }, done, "accepted")).toBeNull()
   })
   it("keeps an old save's board settings untouched; its tags still limit which tags a task can carry (S3)", () => {
     const board = { labels: { accepted: "Ready" }, colors: { accepted: "#c2418d" }, tags: [{ id: "food", label: "Food", color: "#0f8a8a" }], fields: ["owner" as const] }
