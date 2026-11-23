@@ -4,7 +4,7 @@ import { ask, closeRail, viewAs } from "./helpers"
 
 // WCAG 2.0, 2.1 and 2.2 A/AA scan of every page and the main panels, on desktop and phone (S6).
 // wcag22aa is what switches on axe's target-size rule (WCAG 2.5.8, touch targets of at least 24x24).
-const PAGES = ["/", "/events", "/events?view=budget", "/tasks", "/team", "/funding", "/handoff", "/rules", "/settings", "/help"]
+const PAGES = ["/", "/events", "/events?view=budget", "/tasks", "/team", "/funding", "/handoff", "/rules", "/settings"]
 const scan = async (page: import("@playwright/test").Page) => (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()).violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).slice(0, 3).join(" ; ")}`)
 
 for (const path of PAGES) test(`no accessibility violations on ${path}`, async ({ page }) => {

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 test("Router 7 keeps existing pages and the funding alias working", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", error => errors.push(error.message));
-  for (const [path, title] of [["/", "Reminders"], ["/events", "Events"], ["/tasks", "Tasks"], ["/team", "Team"], ["/funding", "Events"], ["/handoff", "Handoff"], ["/partners", "Reminders"], ["/rules", "Rules"], ["/settings", "Settings"], ["/help", "Help"]]) {
+  for (const [path, title] of [["/", "Reminders"], ["/events", "Events"], ["/tasks", "Tasks"], ["/team", "Team"], ["/funding", "Events"], ["/handoff", "Handoff"], ["/partners", "Reminders"], ["/rules", "Rules"], ["/settings", "Settings"], ["/help", "Reminders"]]) {
     await page.goto(`/#${path}`);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
     if (path === "/funding") await expect(page).toHaveURL(/#\/events$/);

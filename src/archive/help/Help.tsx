@@ -1,6 +1,6 @@
-import { PageHead } from "../components/Page"
-import { FORECAST_ASSUMPTIONS } from "../engine/forecast"
-import { useStore } from "../data/store"
+import { PageHead } from "../../components/Page"
+import { FORECAST_ASSUMPTIONS } from "../../engine/forecast"
+import { useStore } from "../../data/store"
 
 const STEPS: [string, string][] = [
   ["Tell it", "Open Ask Platypus on the right and describe what you need. To plan an event, it asks for five details in a short form."],
@@ -15,7 +15,7 @@ export default function Help() {
   const { state } = useStore()
   return (
     <>
-      <PageHead path="/help" />
+      <PageHead path="/help" title="Help" />
       <section className="card" aria-labelledby="how-h">
         <header><h2 id="how-h">How it works</h2></header>
         <ol className="list">

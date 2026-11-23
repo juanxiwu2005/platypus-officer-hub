@@ -31,7 +31,6 @@ const Team = lazy(() => import("./pages/Team"))
 const Handoff = lazy(() => import("./pages/Handoff"))
 const Rules = lazy(() => import("./pages/Rules"))
 const Settings = lazy(() => import("./pages/Settings"))
-const Help = lazy(() => import("./pages/Help"))
 const Officer = lazy(() => import("./pages/Officer"))
 const SetupEntry = lazy(() => import("./onboarding/gate/SetupEntry"))
 const Join = lazy(() => import("./pages/Join"))
@@ -66,9 +65,10 @@ export default function App() {
         <Route path="handoff" element={screen(<Handoff />, "Loading handoff…")} />
         {/* Partners is temporarily archived; old bookmarks return to the main workspace. */}
         <Route path="partners/*" element={<Navigate to="/" replace />} />
+        {/* Help is archived (S5, 2026-11-23, src/archive/help); old bookmarks return to the main workspace too. */}
+        <Route path="help/*" element={<Navigate to="/" replace />} />
         <Route path="rules" element={screen(<Rules />, "Loading rules…")} />
         <Route path="settings" element={screen(<Settings />, "Loading settings…")} />
-        <Route path="help" element={screen(<Help />, "Loading help…")} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

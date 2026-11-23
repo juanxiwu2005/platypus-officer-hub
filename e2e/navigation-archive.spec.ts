@@ -12,9 +12,10 @@ test("Team opens directly from the main navigation and remains current after ref
   await page.goto("/#/events")
   await closeRail(page)
   const nav = page.getByRole("navigation", { name: "Sections", exact: true })
-  await expect(nav.getByRole("link")).toHaveText([/^Reminders/, /^Plan/, /^Team/, /^Handoff/, /^Rules/, /^Settings/, /^Help/])
+  await expect(nav.getByRole("link")).toHaveText([/^Reminders/, /^Plan/, /^Team/, /^Handoff/, /^Rules/, /^Settings/])
   await expect(nav.getByRole("button", { name: "More", exact: true })).toHaveCount(0)
   await expect(nav.getByRole("link", { name: "Partners", exact: true })).toHaveCount(0)
+  await expect(nav.getByRole("link", { name: "Help", exact: true })).toHaveCount(0)
   const team = nav.getByRole("link", { name: "Team", exact: true })
   await team.click()
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Team")
@@ -49,6 +50,26 @@ test("archived Partners bookmarks redirect without loading the old screen or cha
   expect(await data()).toEqual(before)
   expect(scripts.filter(url => /\/Partners[-.]/.test(url))).toEqual([])
   await expect(page.getByTestId("contacts")).toHaveCount(0)
+})
+
+test("archived Help bookmarks redirect home without loading the old screen", async ({ page }) => {
+  const errors: string[] = []
+  const scripts: string[] = []
+  page.on("pageerror", error => errors.push(error.message))
+  page.on("request", request => { if (request.resourceType() === "script") scripts.push(request.url()) })
+  await page.goto("/#/team")
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Team")
+  for (const path of ["/help", "/help?section=dates", "/help/old-link"]) {
+    await page.goto(`/#${path}`)
+    await expect(page).toHaveURL(/#\/$/)
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Reminders")
+    await expect(page.getByRole("heading", { name: "How it works", exact: true })).toHaveCount(0)
+  }
+  await page.reload()
+  await expect(page).toHaveURL(/#\/$/)
+  await expect(page.getByRole("navigation", { name: "Sections", exact: true }).getByRole("link", { name: "Help", exact: true })).toHaveCount(0)
+  expect(scripts.filter(url => /\/Help[-.]/.test(url))).toEqual([])
+  expect(errors).toEqual([])
 })
 
 test("Handoff can still open shared contact details after the standalone Partners screen is archived", async ({ page }) => {
