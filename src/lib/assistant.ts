@@ -420,6 +420,5 @@ export const SUGGESTIONS: Record<string, string[]> = {
   "/partners": ["Who needs a touch?", "Plan a new event", "What are my top 5 tasks?"],
   "/rules": ["Can we use an outside caterer?", "Can we run a raffle?", "Does the advisor need to attend?"],
   "/settings": ["How are deadlines calculated?", "Who is overloaded?", "What are my top 5 tasks?"],
-  "/help": ["What are my top 5 tasks?", "Plan a new event", "Can we serve homemade food?"],
 }
 export const ruleById = (id: string) => RULES.find(r => r.id === id)

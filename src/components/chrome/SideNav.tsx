@@ -6,8 +6,8 @@ import { useStore } from "../../data/store"
 import { prefersReducedMotion } from "../../lib/motion"
 
 /**
- * Primary pages include Team. More only renders when it has active items; archived Partners has no navigation entry.
- * Settings and Help stay at the bottom. The same list is the phone's scrolling strip (DX-20).
+ * Primary pages include Team. More only renders when it has active items; archived Partners and Help have no navigation entry.
+ * Settings stays at the bottom. The same list is the phone's scrolling strip (DX-20).
  */
 export function SideNav() {
   const { state } = useStore()
