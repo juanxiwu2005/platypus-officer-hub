@@ -45,3 +45,13 @@ Behavior change to undo together with the editor: every place that showed a rena
 | Owner name under every flow dot (now on a lane's first dot and where the owner changes; hovers and screen-reader labels still name every owner) | `src/components/flow/` |
 
 Added: `src/lib/nextUp.ts` (ranking) and `src/components/NextUp.tsx` (the strip); one permission message helper `eventBlocked` in `src/data/changeReview.ts`. Kept unchanged by owner decision: Budget view, Funding rail, "$ requested", per-event Edit flow.
+
+## S3 follow-ups (merges `2238178` Done group, `fe844db` review fixes)
+
+| Change | Where |
+| --- | --- |
+| Added a collapsed "Done (N)" group at the bottom of the Tasks table; "Undo mark done" now stays available until a reload even after Task Details closes | `src/pages/Tasks.tsx`, `src/taskDetails/TaskSubmission.tsx` |
+| Removed `addTaskNotice` (export), the `addTask` action, `addBoardTask` and `startStatus`; `byRank` is no longer exported; `src/test/taskCreate.test.ts` deleted (its reopen-rule check moved to `src/test/v11.test.ts`) | `src/data/board.ts`, `src/data/store.tsx` |
+| One at-risk rule `isAtRisk` (schedule error, red forecast, Stuck, or past club deadline) for the Events head count, Next up and the three flow charts | `src/lib/nextUp.ts` and callers |
+| Flow legend reads "Done · Started or due · Not started · At risk" | `src/components/flow/MetroChart.tsx`, `TeamMetroChart.tsx` |
+| Removed `.board-add` styles (kept `.board-add-btn`, which the archived Partners page uses) | `src/styles.css` |
