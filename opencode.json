@@ -28,23 +28,21 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-06BT-regression.md": "allow",
-          "src/quest/sample/CommsScenes.tsx": "allow",
-          "src/quest/sample/HandOff.tsx": "allow",
-          "src/quest/sample/Promotion.tsx": "allow",
-          "src/quest/sample/model.ts": "allow",
-          "src/quest/sample/decisions.ts": "allow",
-          "src/lib/dragSort.ts": "allow",
-          "src/engine/questSchedule.ts": "allow",
-          "src/quest/sample/Promotion.test.tsx": "allow"
+          "docs/quest-build/cards/P5-07-venue-editor.md": "allow",
+          "src/quest/sample/venue.ts": "allow",
+          "src/quest/sample/RoomView.tsx": "allow",
+          "src/styles/quest-foundation.css": "allow",
+          "src/styles/quest-room.css": "allow",
+          "src/quest/sample/VenueEditor.tsx": "allow",
+          "src/styles/quest-venue.css": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/Promotion.test.tsx": "allow"
+          "src/quest/sample/VenueEditor.tsx": "allow",
+          "src/styles/quest-venue.css": "allow"
         },
         "bash": {
           "*": "deny",
-          "npx vitest run src/quest/sample/Promotion.test.tsx": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
@@ -60,15 +58,13 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-06BT-regression.md": "allow",
-          "src/quest/sample/CommsScenes.tsx": "allow",
-          "src/quest/sample/HandOff.tsx": "allow",
-          "src/quest/sample/Promotion.tsx": "allow",
-          "src/quest/sample/model.ts": "allow",
-          "src/quest/sample/decisions.ts": "allow",
-          "src/lib/dragSort.ts": "allow",
-          "src/engine/questSchedule.ts": "allow",
-          "src/quest/sample/Promotion.test.tsx": "allow"
+          "docs/quest-build/cards/P5-07-venue-editor.md": "allow",
+          "src/quest/sample/venue.ts": "allow",
+          "src/quest/sample/RoomView.tsx": "allow",
+          "src/styles/quest-foundation.css": "allow",
+          "src/styles/quest-room.css": "allow",
+          "src/quest/sample/VenueEditor.tsx": "allow",
+          "src/styles/quest-venue.css": "allow"
         },
         "edit": {
           "*": "deny"

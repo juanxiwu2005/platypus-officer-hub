@@ -3,30 +3,21 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-06BT-regression.md",
+  "card": "docs/quest-build/cards/P5-07-venue-editor.md",
   "readFiles": [
-    "src/quest/sample/CommsScenes.tsx",
-    "src/quest/sample/HandOff.tsx",
-    "src/quest/sample/Promotion.tsx",
-    "src/quest/sample/model.ts",
-    "src/quest/sample/decisions.ts",
-    "src/lib/dragSort.ts",
-    "src/engine/questSchedule.ts"
+    "src/quest/sample/venue.ts",
+    "src/quest/sample/RoomView.tsx",
+    "src/styles/quest-foundation.css",
+    "src/styles/quest-room.css"
   ],
   "writeFiles": [
-    "src/quest/sample/Promotion.test.tsx"
+    "src/quest/sample/VenueEditor.tsx",
+    "src/styles/quest-venue.css"
   ],
   "agentCommands": [
-    "npx vitest run src/quest/sample/Promotion.test.tsx",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
-    [
-      "npx",
-      "vitest",
-      "run",
-      "src/quest/sample/Promotion.test.tsx"
-    ],
     [
       "npx",
       "tsc",
