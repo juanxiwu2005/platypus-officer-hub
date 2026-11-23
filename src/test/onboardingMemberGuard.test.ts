@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 
-// OB-07 guard: the member preview's first three screens only look at the club, they never write to it, never ask for an ASU ID,
+// OB-07 guard: the member preview's first two screens (Invitation, with name and email since ob-6, and Reminders) only look at the club, they never write to it, never ask for an ASU ID,
 // and never touch the server. Each rule has a sample that must fail, so the guard cannot go quiet without anyone noticing.
 const SOURCE_RULES: { name: string; pattern: RegExp }[] = [
   { name: "dispatches an action (the preview must not change the club)", pattern: /\bdispatch\b/ },
@@ -24,11 +24,11 @@ const scan = (text: string, rules: { name: string; pattern: RegExp }[]) => rules
 const strip = (code: string) => code.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1")
 
 const root = join(__dirname, "..")
-const screens = ["Invitation.tsx", "You.tsx", "Reminders.tsx"].map(f => join(root, "onboarding/member", f))
+const screens = ["Invitation.tsx", "Reminders.tsx"].map(f => join(root, "onboarding/member", f))
 const helperDir = join(root, "onboarding/member/invitation")
 const sources = [...screens, ...readdirSync(helperDir).map(f => join(helperDir, f))]
 
-describe("OB-07 guard: the three member screens only look, never write", () => {
+describe("OB-07 guard: the member screens before Done only look, never write", () => {
   it("has no forbidden call or field in any of its files", () => {
     for (const file of sources) expect(scan(strip(readFileSync(file, "utf8")), SOURCE_RULES), file).toEqual([])
   })

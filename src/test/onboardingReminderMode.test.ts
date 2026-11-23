@@ -11,7 +11,7 @@ import { FOUNDER_STEPS, stepAt } from "../onboarding/engine/flows"
 import { FLOW_VERSION } from "../onboarding/record"
 import { onboardingCopy } from "../onboarding/copy"
 
-// S2 (Juanxi 2026-11-22): the founder walkthrough no longer asks how reminders go out (flow version ob-5). New clubs start with the default
+// S2 (Juanxi 2026-11-22): the founder walkthrough no longer asks how reminders go out (flow version ob-5; ob-6 since S6). New clubs start with the default
 // (completeSetup, src/data/settings.ts); the president changes it in Settings. The three choices and their labels stay for Settings and Reminders.
 // P3-H (2026-11-08) introduced the screen in ob-4; older exports still carry its answer (src/test/studySession.test.tsx).
 const base = () => seedDemo("2026-10-22")
@@ -20,30 +20,25 @@ const code = "12345678-1234-1234-1234-123456789abc"
 const c = REMINDER_MODE_COPY
 const read = (f: string) => readFileSync(join(__dirname, "..", f), "utf8")
 
-describe("the founder flow without the Reminders screen (ob-5)", () => {
-  it("has seven steps, none of them Reminders, and the flow version says so", () => {
-    expect(FLOW_VERSION).toBe("ob-5")
-    expect(FOUNDER_STEPS).toHaveLength(7)
-    expect(FOUNDER_STEPS.map(s => s.id)).toEqual(["founder.name", "founder.constitution", "founder.goals", "founder.team", "founder.first-event", "founder.confirm", "founder.invite"])
+describe("the founder flow without the Reminders screen (since ob-5)", () => {
+  it("has three steps since ob-6, none of them Reminders, and the flow version says so", () => {
+    expect(FLOW_VERSION).toBe("ob-6")
+    expect(FOUNDER_STEPS.map(s => s.id)).toEqual(["founder.name", "founder.team", "founder.invite"])
     expect(FOUNDER_STEPS.some(s => /reminder/i.test(s.id) || /reminder/i.test(s.path) || /reminder/i.test(s.label))).toBe(false)
     expect(stepAt("/welcome/founder/reminders")).toBeNull()
   })
-  it("goes from First event straight to Confirm", () => {
-    const ids = FOUNDER_STEPS.map(s => s.id)
-    expect(ids.indexOf("founder.confirm")).toBe(ids.indexOf("founder.first-event") + 1)
-  })
-  it("removes the screen, its stylesheet and its draft field; Confirm passes no reminder choice", () => {
+  it("removes the screen, its stylesheet and its draft field; Start workspace (on Team) passes no reminder choice", () => {
     expect(existsSync(join(__dirname, "../onboarding/founder/ReminderMode.tsx"))).toBe(false)
     expect(existsSync(join(__dirname, "../styles/ob-10-reminder-mode.css"))).toBe(false)
     expect(read("styles/index.css")).not.toMatch(/ob-10-reminder-mode/)
     expect(read("onboarding/draft.tsx")).not.toMatch(/reminderMode/)
-    const confirm = read("onboarding/founder/Confirm.tsx")
-    expect(confirm).not.toMatch(/reminderMode|confirm-reminders/)
-    expect(confirm).toMatch(/type: "completeSetup"/)
-    expect("reminders" in onboardingCopy.founder || "reminders" in onboardingCopy.founder.confirm).toBe(false)
+    const team = read("onboarding/founder/Team.tsx")
+    expect(team).not.toMatch(/reminderMode|confirm-reminders/)
+    expect(team).toMatch(/type: "completeSetup"/)
+    expect("reminders" in onboardingCopy.founder || "reminderMode" in onboardingCopy.founder.team).toBe(false)
   })
-  it("sends the old address on to Confirm", () => {
-    expect(read("App.tsx")).toMatch(/<Route path="founder\/reminders" element=\{<Navigate to="\/welcome\/founder\/confirm" replace \/>\} \/>/)
+  it("sends the old address on to Team, which now finishes setup (Confirm folded into it in ob-6)", () => {
+    expect(read("App.tsx")).toMatch(/<Route path="founder\/reminders" element=\{<Redirect to="\/welcome\/founder\/team" \/>\} \/>/)
   })
 })
 

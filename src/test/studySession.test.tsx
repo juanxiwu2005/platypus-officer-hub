@@ -183,8 +183,8 @@ describe("the export", () => {
     act(() => { beginWalkthrough() })
     const session = currentSession()!
     const attempt = loadOnboardingRecord().attempts.at(-1)!
-    recordStep(attempt.id, "founder.first-event", "enter")
-    now = T + 1000; recordStep(attempt.id, "founder.first-event", "skip"); recordStep(attempt.id, "founder.first-event", "leave")
+    recordStep(attempt.id, "founder.name", "enter")   // ob-6: the first event is on screen 1
+    now = T + 1000; recordStep(attempt.id, "founder.name", "skip"); recordStep(attempt.id, "founder.name", "leave")
     now = T + 2000; recordSetup("start-workspace")
     now = T + 3000; endWalkthrough("exited")
     click("Now")
