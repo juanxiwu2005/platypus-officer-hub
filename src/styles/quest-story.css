@@ -1,0 +1,18 @@
+/* P5-08B Club HQ extras. Only new sample-hq- styles; quest-* classes come from quest-foundation.css. */
+.sample-hq { display: flex; flex-direction: column; gap: var(--s7); }
+.sample-hq-actions { margin-left: auto; }
+.sample-hq-gauges { list-style: none; margin: 0; padding: var(--s6); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s5); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+.sample-hq-gauges li { display: flex; align-items: center; gap: var(--s3); min-height: 44px; font-size: var(--fs-sm); }
+.sample-hq-gauges li > span:first-child { font-weight: 750; }
+.sample-hq-gauges li > span:last-child { margin-left: auto; color: var(--muted); }
+.sample-hq-fill { width: 64px; height: 10px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface-2); position: relative; overflow: hidden; }
+.sample-hq-fill::after { content: ""; position: absolute; inset: 0; width: 0; background: var(--accent); }
+.sample-hq-fill.is-on::after { width: 100%; }
+.sample-hq-rail { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s2); font-size: var(--fs-xs); }
+.sample-hq-rail li { display: inline-flex; align-items: center; min-height: 44px; padding: var(--s3) var(--s5); border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface-2); color: var(--muted); }
+.sample-hq-rail li.is-lit { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 750; }
+@media (max-width: 600px) {
+  .sample-hq { gap: var(--s6); }
+  .sample-hq-actions { margin-left: 0; width: 100%; }
+  .sample-hq-gauges { grid-template-columns: 1fr; }
+}
