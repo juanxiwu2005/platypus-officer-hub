@@ -69,7 +69,7 @@ export default function Handoff() {
     </form>} />
     <section className="card season">
       <Chain label="Handoff season" stops={stops} />
-      <BtsRow><Bts label="Rule engine">Five checkpoints from the season start date: the interview, handbook, first-week and day-30 dates are worked out from it (handoffDates). A checkpoint is done once the next one's date has come, now once its own date has come.</Bts></BtsRow>
+      <BtsRow><Bts label="Rule engine">Five checkpoints from the season start date: the interview, handbook, first-week and day-30 dates are worked out from it. A checkpoint is done once the next one's date has come, now once its own date has come.</Bts></BtsRow>
     </section>
     <section className="relay-grid" data-testid="role-handbooks" aria-label="Role handbooks">
       {rolesByRisk.map(({ role, risk }) => {
@@ -97,7 +97,7 @@ export function HandoffRoleDetail({ roleId }: { roleId: string }) {
   const role = state.roles.find(r => r.id === roleId)
   const record = state.handoffRoles.find(r => r.roleId === roleId)
   if (!role) return <Empty>This role no longer exists.</Empty>
-  if (!record) return <section className="form-stack"><h2>{role.displayName} handbook</h2><p className="small muted">Hand this role over to draft its handbook. It will draw on this dossier:</p><Dossier roleId={role.id} open /><RoleChanges roleId={role.id} /><StartRole roleId={role.id} /></section>
+  if (!record) return <section className="form-stack"><h2>{role.displayName} handbook</h2><Dossier roleId={role.id} open /><RoleChanges roleId={role.id} /><StartRole roleId={role.id} /></section>
   return <RolePanel record={record} title={`${role.displayName} handbook`} />
 }
 
@@ -184,9 +184,9 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
     <RoleChanges roleId={r.roleId} />
 
     <article className="step-card">
-      <header><span className="step-n">1</span><b>Outgoing interview</b><Info>Fictional example only. One point per line. Never paste research transcripts or real participant details.</Info></header>
-      <textarea aria-label="Outgoing interview · fictional example only" placeholder="One point per line. Fictional examples only." maxLength={12000} rows={4} value={interview} disabled={!self || r.completed} onChange={e => setInterview(e.target.value)} />
-      <button className="btn small" disabled={!self || r.completed} onClick={() => act({ kind: "interview", roleId: r.roleId, lines: interview.split("\n") })}>Save example interview</button>
+      <header><span className="step-n">1</span><b>Outgoing interview</b></header>
+      <textarea aria-label="Outgoing interview" placeholder="One point per line (fictional)" maxLength={12000} rows={4} value={interview} disabled={!self || r.completed} onChange={e => setInterview(e.target.value)} />
+      <button className="btn small" disabled={!self || r.completed} onClick={() => act({ kind: "interview", roleId: r.roleId, lines: interview.split("\n") })}>Save</button>
       <QuestionsList record={r} />
     </article>
 
@@ -229,12 +229,12 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
             {state.people.filter(p => p.id !== r.outgoingId && p.id !== role?.holderId && !p.incomingFor).map(p => <option key={p.id} value={p.id}>{p.name} · {isOfficer(p) ? state.roles.find(x => x.id === p.roleId)?.displayName : "former officer"}</option>)}
             {role?.fn !== "president" && !open && <option value="open">Nobody yet (leave it open)</option>}
           </select></label>
-          {who === "new" && <label className="field"><span>Incoming fictional officer name</span><input maxLength={80} value={name} onChange={e => setName(e.target.value)} /></label>}
+          {who === "new" && <label className="field"><span>Incoming officer name</span><input maxLength={80} value={name} onChange={e => setName(e.target.value)} /></label>}
           {takesOver && vacated && <p className="small warn-text">{vacated.displayName} will be open until someone takes it.</p>}
           {who !== "open" && <button type="button" className="btn small" disabled={!canNudge || (who === "new" && !name.trim())} onClick={() => act({ kind: "setIncoming", roleId: r.roleId, successor: who === "new" ? { kind: "new", name } : { kind: "existing", personId: who } })}>Name as next officer</button>}
         </>}
         <button className="btn btn-primary" disabled={!canNudge || !r.approved || (!named && who === "new" && !name.trim())} onClick={() => act(named ? { kind: "complete", roleId: r.roleId } : { kind: "complete", roleId: r.roleId, successor })}>Finish role handoff</button>
-        <p className="small muted">Moves the role and its open tasks, which wait for the new officer to tap “I've got it”. Contacts stay with the role. Nothing is sent.</p>
+        <p className="small muted">Tasks wait to be claimed.</p>
       </> : r.incomingId ? <p className="good-text small">Handed to {state.people.find(p => p.id === r.incomingId)?.name}.</p> : <><p className="small">Left open: {role?.displayName} has no officer yet.</p><StartRole roleId={r.roleId} label="Hand over to someone" /></>}
       <label className="field"><span>Role handoff starts</span><input type="date" disabled={!canNudge || r.completed} value={start} onChange={e => act({ kind: "roleDate", roleId: r.roleId, date: e.target.value })} /></label>
     </article>
@@ -242,7 +242,7 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
     <article className="step-card">
       <header><span className="step-n">5</span><b>First week</b><span className="small muted">{r.checks.length}/{WEEK_ONE.length}</span></header>
       {WEEK_ONE.map(item => <label key={item.id} className="check-label"><input type="checkbox" disabled={!r.completed || (!canNudge && state.viewerId !== r.incomingId)} checked={r.checks.includes(item.id)} onChange={() => act({ kind: "check", roleId: r.roleId, itemId: item.id })} />{touch ? <><span className="small">{item.text}</span><Info label={`Where "${item.text}" comes from`}>{item.source}</Info></> : <Hover card={item.source}><span className="small">{item.text}</span></Hover>}</label>)}
-      {!r.completed && <p className="small muted">Opens for the new officer once the role is handed over.</p>}
+      {!r.completed && <p className="small muted">Opens after handover.</p>}
       {upcoming.length > 0 && <div data-testid="first-30-days"><p className="small"><b>Next 30 days</b></p><ul className="small">{upcoming.slice(0, 5).map(row => <li key={row.id}><Link to={`/tasks?node=${encodeURIComponent(row.nodeId!)}`}>{row.text}</Link></li>)}</ul></div>}
       <BtsRow><Bts label="Source">{[...new Set(WEEK_ONE.map(item => item.source))].join(" · ")}</Bts></BtsRow>
       <ReviewsPanel record={r} start={start} />

@@ -23,14 +23,14 @@ async function readyToFinish(page: Page) {
 
 test("the next officer is named first: they can be viewed as, read the handbook, and the first-week list waits for the handover", async ({ page }) => {
   const role = await readyToFinish(page)
-  await role.getByLabel("Incoming fictional officer name").fill("Taylor Example")
+  await role.getByLabel("Incoming officer name").fill("Taylor Example")
   await role.getByRole("button", { name: "Name as next officer" }).click()
   await expect(role).toContainText("Next officer: Taylor Example")
   await expect(role.getByLabel("Who takes over?")).toHaveCount(0)
 
   // The first-week list is closed until the handover, even for the president.
   const boxes = role.getByRole("checkbox")
-  await expect(role).toContainText("Opens for the new officer once the role is handed over.")
+  await expect(role).toContainText("Opens after handover.")
   for (let i = 0; i < await boxes.count(); i++) await expect(boxes.nth(i)).toBeDisabled()
 
   // Taylor shows in View as, marked incoming, and sees the handbook but cannot finish the handover.
@@ -51,7 +51,7 @@ test("the next officer is named first: they can be viewed as, read the handbook,
 
 test("Finish hands the role to the named officer, who then ticks the first-week list themselves", async ({ page }) => {
   const role = await readyToFinish(page)
-  await role.getByLabel("Incoming fictional officer name").fill("Taylor Example")
+  await role.getByLabel("Incoming officer name").fill("Taylor Example")
   await role.getByRole("button", { name: "Name as next officer" }).click()
   await role.getByRole("button", { name: "Finish role handoff" }).click()
   await expect(role).toContainText("Handed to Taylor Example.")
@@ -67,7 +67,7 @@ test("Finish hands the role to the named officer, who then ticks the first-week 
 
 test("changing the next officer removes the unused person", async ({ page }) => {
   const role = await readyToFinish(page)
-  await role.getByLabel("Incoming fictional officer name").fill("Taylor Example")
+  await role.getByLabel("Incoming officer name").fill("Taylor Example")
   await role.getByRole("button", { name: "Name as next officer" }).click()
   await role.getByRole("button", { name: "Change next officer" }).click()
   await expect(role.getByLabel("Who takes over?")).toBeVisible()

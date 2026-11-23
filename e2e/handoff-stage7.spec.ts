@@ -19,7 +19,7 @@ test("what the next officer asked in Ask shows to the president and to them, rea
   await role.getByRole("button", { name: "Confirm as outgoing officer", exact: true }).click()
   await viewAs(page, "alex")
   await role.getByRole("button", { name: "Approve as president", exact: true }).click()
-  await role.getByLabel("Incoming fictional officer name").fill("Taylor Example")
+  await role.getByLabel("Incoming officer name").fill("Taylor Example")
   await role.getByRole("button", { name: "Name as next officer" }).click()
 
   // The next officer asks Ask something the handbook does not cover.
