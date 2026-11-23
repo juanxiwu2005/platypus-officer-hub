@@ -1,0 +1,11 @@
+/* Source-backed Why dialog (P5-09A). Module classes are prefixed sample-source-. */
+.sample-source-dialog { max-width: 34rem; width: calc(100% - 2rem); max-height: min(80vh, 40rem); margin: auto; padding: var(--s6); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); color: var(--ink); overflow-y: auto; }
+.sample-source-title { margin: 0 0 var(--s4); font-size: var(--fs-lg); }
+.sample-source-body { display: grid; gap: var(--s3); min-width: 0; }
+.sample-source-field { display: grid; gap: var(--s2); font-size: var(--fs-sm); color: var(--muted); min-width: 0; }
+.sample-source-field select { min-width: 0; width: 100%; max-width: 100%; }
+.sample-source-field select, .sample-source-back { min-height: 44px; padding: var(--s2) var(--s4); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: var(--ink); font: inherit; }
+.sample-source-quote { margin: 0; padding: var(--s4); border-left: 3px solid var(--accent); background: var(--surface-2); }
+.sample-source-gap { color: var(--muted); }
+.sample-source-cite, .sample-source-note { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
+.sample-source-back { justify-self: start; }
