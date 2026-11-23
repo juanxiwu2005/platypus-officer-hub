@@ -39,7 +39,8 @@
           "src/quest/sample/RoomView.tsx": "allow"
         },
         "bash": {
-          "*": "deny"
+          "*": "deny",
+          "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
     },

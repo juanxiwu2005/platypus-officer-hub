@@ -12,7 +12,9 @@
   "writeFiles": [
     "src/quest/sample/RoomView.tsx"
   ],
-  "agentCommands": [],
+  "agentCommands": [
+    "npx tsc --noEmit -p tsconfig.json"
+  ],
   "checks": [
     [
       "npx",
