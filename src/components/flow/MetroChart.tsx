@@ -5,6 +5,7 @@ import type { Forecast } from "../../engine/forecast"
 import { fmtShort } from "../../lib/dates"
 import { firstName, worstIssue } from "../../pages/helpers"
 import { nodeStop } from "../../lib/phases"
+import { isAtRisk } from "../../lib/nextUp"
 import { useStatusStyles, useTouch } from "../ui"
 import { EVENT_KEY, END_KEY, START_KEY, metroLayout } from "./metro"
 import { useStore } from "../../data/store"
@@ -300,9 +301,7 @@ function LegacyMetroChart({ state, sched, forecast, eventId, selectedId, onSelec
 
   const stateOf = (n: Node) => {
     if (tpl) return "todo" as const
-    const issue = worstIssue(sched.nodes[n.id]?.issues)
-    const late = n.status !== "done" && (sched.nodes[n.id]?.club ?? "9999") < state.today
-    return nodeStop(n, state.today, issue?.severity === "error" || late || forecast.nodes[n.id]?.color === "red" || n.status === "blocked")
+    return nodeStop(n, state.today, isAtRisk(state, sched, forecast, n))
   }
   const lastDoneMain = L.stations.reduce((k, s, i) => (s.node?.status === "done" ? i : k), -1)
   const mainPts = L.stations.map(s => pos(s.col, 0))
@@ -457,7 +456,7 @@ function LegacyMetroChart({ state, sched, forecast, eventId, selectedId, onSelec
       })()}
     </div>
     {tpl ? <div className="m-legend small" aria-label="Legend"><span><i className="m-dot baseline todo" />Core event step</span><span><i className="m-dot situation todo" />Situation-based step</span></div> : <div className="m-legend small" aria-label="Legend">
-      <span><i className="m-dot done" />Done</span><span><i className="m-dot now" />Working on it</span><span><i className="m-dot todo" />To do</span><span><i className="m-dot risk" />At risk</span>
+      <span><i className="m-dot done" />Done</span><span><i className="m-dot now" />Started or due</span><span><i className="m-dot todo" />Not started</span><span><i className="m-dot risk" />At risk</span>
     </div>}
   </div>
   {addingBranch && <WorkflowBranchDialog roles={state.roles} onAdd={createBranch} onClose={() => setAddingBranch(false)} />}

@@ -13,7 +13,7 @@ import { useRail } from "./RailContext"
 import { AppliedCard, ChangeCard } from "./ChangeCard"
 import { Bts, BtsRow } from "../Bts"
 import { OwnerPicker, ownersToPeople, TaskDueFields } from "./TaskFields"
-import { canChangeEvent, canCreateEvent, canLead, eventBlocked } from "../../data/changeReview"
+import { canChangeEvent, canLead, eventBlocked } from "../../data/changeReview"
 import { policySourceById } from "../../data/policyCatalog"
 import { answerSummary, emitUi } from "../../lib/uiLog"
 import { readAiBudget } from "../../lib/api"
@@ -327,7 +327,7 @@ const FOOD: Record<Event["food"], string> = { none: "none", dining: "Sun Devil D
  */
 export function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "form" }>; onDone: (c: Extract<ChatCard, { kind: "form" }>, workflowChoice?: WorkflowChoice) => void }) {
   const { state } = useStore()
-  const allowed = canCreateEvent(state)
+  const blocked = eventBlocked(state, "create"), allowed = !blocked
   const [f, setF] = useState({ name: card.prefill.name ?? "", type: card.prefill.type ?? (card.prefill.speaker ? "speaker" : "social"), headcount: card.prefill.headcount ?? 30, venue: card.prefill.venue ?? "campus", food: card.prefill.food ?? "none", funding: card.prefill.funding ?? "none", speaker: card.prefill.speaker ?? false, checks: card.prefill.checks ?? {} as EventChecks, details: card.prefill.details ?? "" })
   const [date, setDate] = useState(card.date)
   const [workflowChoice, setWorkflowChoice] = useState(() => initialWorkflowChoice(state))
@@ -356,7 +356,7 @@ export function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "fo
   const finals = /^\d{4}-\d{2}-\d{2}$/.test(date) ? findPeriod(date, FINALS) : null
   return <form className="mini-card plan-form" data-testid="plan-form" data-form-id={card.id} autoComplete="off" onSubmit={e => {
     e.preventDefault()
-    if (!allowed) return setError(eventBlocked(state, "create") ?? "")
+    if (blocked) return setError(blocked)
     if (!f.name.trim()) return setError("Give the event a name.")
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < state.today) return setError("Pick a date from today on.")
     if (!workflowChoice || !findWorkflowTemplateVersion(state, workflowChoice.templateId, workflowChoice.templateVersion)) return setError("Choose a saved workflow version.")
@@ -377,7 +377,7 @@ export function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "fo
     <label className="check-label"><input type="checkbox" checked={f.speaker} onChange={e => edit({ speaker: e.target.checked, checks: { ...f.checks, speaker: e.target.checked } })} />Guest speaker or performer</label>
     <fieldset className="checklist"><legend>Situation-based checklist</legend>{EVENT_CHECKLIST.filter(x => x.key !== "food" && x.key !== "speaker").map(item => <label key={item.key} className="check-label"><input type="checkbox" checked={f.checks[item.key] === true} onChange={e => toggleCheck(item.key, e.target.checked)} />{item.label}</label>)}</fieldset>
     <label>Details<textarea rows={3} maxLength={500} autoComplete="off" value={f.details} onChange={e => edit({ details: e.target.value })} placeholder="Anything unusual: a stage build, a company visit, flying out of state, a competition…" /></label>
-    {!allowed && <p className="small muted">{eventBlocked(state, "create")}</p>}
+    {blocked && <p className="small muted">{blocked}</p>}
     {error && <p className="small late-text" role="alert">{error}</p>}
     <button className="btn btn-primary" type="submit" disabled={!allowed}>Continue</button>
   </form>

@@ -60,6 +60,17 @@ describe("human workflow selection", () => {
     expect(rail.requestReview).not.toHaveBeenCalled()
   })
 
+  it("does not let a former officer submit a New event form the reducer would refuse, even when everyone may create events", () => {
+    const done = vi.fn()
+    store.state = { ...store.state, viewerId: "maya", org: { ...store.state.org, settings: { ...store.state.org.settings, eventCreators: "everyone" } }, people: store.state.people.map(p => p.id === "maya" ? { ...p, leftOn: "2026-10-01" } : p) }
+    render(<PlanForm card={{ kind: "form", id: "form-visit", date: "2027-04-16", prefill: { name: "Fictional company visit" } }} onDone={done} />)
+    expect(screen.getByText("Only current officers can create events.")).toBeTruthy()
+    const submit = screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement
+    expect(submit.disabled).toBe(true)
+    fireEvent.submit(submit.closest("form")!)
+    expect(done).not.toHaveBeenCalled()
+  })
+
   it("rejects a New event form whose saved workflow disappeared while it was open", () => {
     const done = vi.fn()
     const { rerender } = render(<PlanForm card={{ kind: "form", id: "form-visit", date: "2027-04-16", prefill: { name: "Fictional company visit" } }} onDone={done} />)

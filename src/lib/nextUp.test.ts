@@ -3,7 +3,8 @@ import { seedDemo } from "../data/seed"
 import { computeSchedule, type Issue, type NodePlan, type Schedule } from "../engine/schedule"
 import { computeForecast, type Forecast, type ForecastColor } from "../engine/forecast"
 import type { DemoState, Node } from "../data/types"
-import { nextUp } from "./nextUp"
+import { isAtRisk, nextUp } from "./nextUp"
+import { nodeStop } from "./phases"
 
 /** S3 "Next up": who acts next and what will be late, ranked from the engine's own schedule and forecast. */
 const base = seedDemo("2026-10-22")
@@ -41,6 +42,20 @@ describe("nextUp ranking", () => {
       { id: "overdue", club: "2026-10-31", start: "2026-10-20" },
     ])
     expect(ids(nextUp(state, sched, forecast, "ev"))).toEqual(["overdue:risk", "blocked:risk"])
+  })
+  it("is one rule: a Stuck step with a green forecast and a step past its club deadline count in the head and show red", () => {
+    const { state, sched, forecast } = build([
+      { id: "stuck", status: "blocked", club: "2026-12-01", start: "2026-11-20", color: "green" },
+      { id: "overdue", club: "2026-10-31", start: "2026-10-20", color: "green" },
+      { id: "calm", club: "2026-12-10", start: "2026-12-01" },
+      { id: "finished", status: "done", club: "2026-10-01", start: "2026-09-01", issue: "error", color: "red" },
+    ])
+    // The event head's "at risk" count (Events.tsx) and each flow dot's colour (the three flow charts) use isAtRisk.
+    expect(state.nodes.filter(n => isAtRisk(state, sched, forecast, n)).map(n => n.id)).toEqual(["stuck", "overdue"])
+    expect(Object.fromEntries(state.nodes.map(n => [n.id, nodeStop(n, state.today, isAtRisk(state, sched, forecast, n))])))
+      .toMatchObject({ stuck: "risk", overdue: "risk", finished: "done" })
+    expect(nodeStop(state.nodes[2], state.today, isAtRisk(state, sched, forecast, state.nodes[2]))).not.toBe("risk")
+    expect(ids(nextUp(state, sched, forecast, "ev")).filter(r => r.endsWith(":risk"))).toEqual(["overdue:risk", "stuck:risk"])
   })
   it("leaves out finished steps, other events and info-only issues, and keeps at most five rows", () => {
     const { state, sched, forecast } = build([

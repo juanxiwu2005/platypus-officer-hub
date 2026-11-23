@@ -27,7 +27,7 @@ async function seed(page: Page, viewerId = "alex", waiting = false, club = false
   await page.addInitScript(({ state, key }) => {
     if (!sessionStorage.getItem("plan-entry-seeded")) {
       localStorage.setItem(key, JSON.stringify(state)); sessionStorage.setItem("plan-entry-seeded", "yes")
-      localStorage.setItem("platypus.v1.eventsView", "list"); localStorage.setItem("platypus.v1.railOpen", "0")
+      localStorage.setItem("platypus.v1.railOpen", "0")
     }
   }, { state, key: KEY })
   return { token: taskAccessToken(grant), path: `/#${planTaskPath(state.nodes.find(node => node.id === target)?.eventId, target, taskAccessToken(grant))}` }
@@ -267,7 +267,7 @@ test("the full seeded Networking Night opens its real selected node and shared r
   const room = base.nodes.find(node => node.eventId === "e-night" && node.stepKey === "venue")!
   const grant = await makeTaskAccessGrant(base, moderator.id)
   const state = reducer(base, { type: "issueTaskAccessGrant", grant })
-  await page.addInitScript(({ state, key }) => { localStorage.setItem(key, JSON.stringify(state)); localStorage.setItem("platypus.v1.eventsView", "list"); localStorage.setItem("platypus.v1.railOpen", "0") }, { state, key: KEY })
+  await page.addInitScript(({ state, key }) => { localStorage.setItem(key, JSON.stringify(state)); localStorage.setItem("platypus.v1.railOpen", "0") }, { state, key: KEY })
   const errors: string[] = []
   page.on("pageerror", error => errors.push(error.message))
   await page.goto(`/#/officer?access=${encodeURIComponent(taskAccessToken(grant))}`)
