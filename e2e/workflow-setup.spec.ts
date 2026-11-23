@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import { closeRail, noOverflow } from "./helpers"
-import { continueSetup, finishSetup, openSetup, savedSetupDraft, setupToConfirm } from "./setupHelpers"
+import { finishSetup, openConstitution, openSetup, savedSetupDraft, setupToTeam } from "./setupHelpers"
 
 import { insertedKey, openWorkflow, openWorkflowStep, readWorkflowState, savedWorkflow, savedWorkflowStep } from "./workflowLegacyHelpers"
 
@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
 test("setup uses the standard workflow and never requests planning-material AI", async ({ page }) => {
   let workflowCalls = 0
   await page.route("**/api/setup/workflow", r => { workflowCalls++; return r.fulfill({ status: 500, json: {} }) })
-  await setupToConfirm(page)
+  await setupToTeam(page)
   await expect(page.getByLabel("Planning notes (how your club runs events)")).toHaveCount(0)
   await expect(page.getByLabel("Fictional planning files", { exact: true })).toHaveCount(0)
   await finishSetup(page)
@@ -65,17 +65,17 @@ test("a signed-out constitution request is not retried, and reload retains the s
   const bodies: Record<string, unknown>[] = []
   await page.route("**/api/setup/constitution", r => { bodies.push(r.request().postDataJSON()); return r.fulfill({ status: 401, contentType: "text/html", body: "<html><title>Login Redirect</title></html>" }) })
   await openSetup(page)
+  await page.getByRole("button", { name: "Skip for now", exact: true }).click()   // screen 1 → Team, where the reading opens (ob-6)
+  await openConstitution(page)
   await page.getByRole("button", { name: /Use sample/ }).click()
   await expect(page.getByRole("button", { name: "Try AI again", exact: true })).toBeVisible()
   expect(bodies).toHaveLength(1)
   expect(JSON.stringify(bodies)).not.toMatch(/personalBuffer|busyWeeks|dataUrl|careerGoal|phone|9999000|@example\.org/)
-  await continueSetup(page)
-  await page.getByRole("textbox", { name: "Mission", exact: true }).fill("Fictional restored mission")
-  await continueSetup(page)
-  await expect.poll(async () => (await savedSetupDraft(page))?.club.mission).toBe("Fictional restored mission")
+  await page.getByRole("textbox", { name: "Role 2", exact: true }).fill("Fictional restored role")
+  await expect.poll(async () => (await savedSetupDraft(page) as { club: { roles?: { displayName: string }[] } } | null)?.club.roles?.some(r => r.displayName === "Fictional restored role")).toBe(true)
   await page.reload()
-  await page.getByRole("button", { name: "Back", exact: true }).click()
-  await expect(page.getByRole("textbox", { name: "Mission", exact: true })).toHaveValue("Fictional restored mission")
+  await expect(page.getByRole("textbox", { name: "Role 2", exact: true })).toHaveValue("Fictional restored role")
+  await expect(page.getByTestId("constitution-chip")).toBeVisible()
   expect(bodies).toHaveLength(1)
   await page.getByRole("button", { name: "Exit", exact: true }).click()
   await page.goto("/#/setup")

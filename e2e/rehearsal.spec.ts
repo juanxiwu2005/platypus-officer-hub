@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { readFileSync } from "node:fs"
-import { finishSetup, savedSetupDraft, setupToConfirm } from "./setupHelpers"
+import { finishSetup, savedSetupDraft, setupToTeam } from "./setupHelpers"
 import { ask, closeRail, viewAs } from "./helpers"
 import { createUnclaimedTask, savedTask } from "./taskHelpers"
 
@@ -22,7 +22,7 @@ test("participant path: clean browser → shared setup → task → event → ru
       sessionStorage.setItem("rehearsal-clean-browser", "1")
     }
   })
-  await setupToConfirm(page, "Fictional Rehearsal Club")
+  await setupToTeam(page, "Fictional Rehearsal Club")
   await finishSetup(page)
   await closeRail(page)
   // a task
@@ -56,8 +56,8 @@ test("participant path: clean browser → shared setup → task → event → ru
   expect(errors).toEqual([])
 })
 
-test("a refused setup save keeps the founder draft, organization and confirmation page", async ({ page }) => {
-  await setupToConfirm(page, "Fictional unsaved club")
+test("a refused setup save keeps the founder draft, organization and the Team page (where Start workspace is since ob-6)", async ({ page }) => {
+  await setupToTeam(page, "Fictional unsaved club")
   const original = await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))
   await page.evaluate(() => {
     const write = Storage.prototype.setItem
@@ -68,14 +68,15 @@ test("a refused setup save keeps the founder draft, organization and confirmatio
   })
   await page.getByRole("button", { name: "Start workspace", exact: true }).click()
   await expect(page.locator("main").getByRole("alert")).toContainText("Your club could not be saved")
-  await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
-  await expect(page.getByTestId("confirm-summary")).toContainText("Fictional unsaved club")
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
   expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(original)
   // The founder draft is written to the browser database a moment after the last change (draft.tsx, SAVE_DELAY), and this test reaches
-  // Confirm faster than a person can: reload only once the draft with this club is stored, as it is for anyone working at a human pace.
+  // Team faster than a person can: reload only once the draft with this club is stored, as it is for anyone working at a human pace.
   await expect.poll(async () => (await savedSetupDraft(page))?.club.name).toBe("Fictional unsaved club")
   await page.reload()
-  await expect(page.getByTestId("confirm-summary")).toContainText("Fictional unsaved club")
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+  await page.getByRole("button", { name: "Back", exact: true }).click()
+  await expect(page.getByLabel("Club name", { exact: true })).toHaveValue("Fictional unsaved club")
 })
 
 test("keyboard only: claim a task, change its status and finish it without a mouse", async ({ page }) => {
