@@ -28,22 +28,22 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-G2-native-review.md": "allow",
+          "docs/quest-build/cards/P5-09A-source-dialog.md": "allow",
+          "src/quest/ruleLibrary.ts": "allow",
           "src/quest/sample/venue.ts": "allow",
-          "src/lib/motion.ts": "allow",
-          "src/quest/sample/room3d.ts": "allow",
-          "src/quest/sample/RoomView.tsx": "allow",
-          "src/styles/quest-room.css": "allow"
+          "src/data/policyCatalog.ts": "allow",
+          "src/engine/questSchedule.ts": "allow",
+          "src/lib/dates.ts": "allow",
+          "src/quest/sample/SourceDialog.tsx": "allow",
+          "src/styles/quest-sources.css": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/room3d.ts": "allow",
-          "src/quest/sample/RoomView.tsx": "allow",
-          "src/styles/quest-room.css": "allow"
+          "src/quest/sample/SourceDialog.tsx": "allow",
+          "src/styles/quest-sources.css": "allow"
         },
         "bash": {
           "*": "deny",
-          "npx vitest run src/quest/sample/venue.test.ts": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
@@ -59,12 +59,14 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-G2-native-review.md": "allow",
+          "docs/quest-build/cards/P5-09A-source-dialog.md": "allow",
+          "src/quest/ruleLibrary.ts": "allow",
           "src/quest/sample/venue.ts": "allow",
-          "src/lib/motion.ts": "allow",
-          "src/quest/sample/room3d.ts": "allow",
-          "src/quest/sample/RoomView.tsx": "allow",
-          "src/styles/quest-room.css": "allow"
+          "src/data/policyCatalog.ts": "allow",
+          "src/engine/questSchedule.ts": "allow",
+          "src/lib/dates.ts": "allow",
+          "src/quest/sample/SourceDialog.tsx": "allow",
+          "src/styles/quest-sources.css": "allow"
         },
         "edit": {
           "*": "deny"

@@ -3,27 +3,22 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-G2-native-review.md",
+  "card": "docs/quest-build/cards/P5-09A-source-dialog.md",
   "readFiles": [
+    "src/quest/ruleLibrary.ts",
     "src/quest/sample/venue.ts",
-    "src/lib/motion.ts"
+    "src/data/policyCatalog.ts",
+    "src/engine/questSchedule.ts",
+    "src/lib/dates.ts"
   ],
   "writeFiles": [
-    "src/quest/sample/room3d.ts",
-    "src/quest/sample/RoomView.tsx",
-    "src/styles/quest-room.css"
+    "src/quest/sample/SourceDialog.tsx",
+    "src/styles/quest-sources.css"
   ],
   "agentCommands": [
-    "npx vitest run src/quest/sample/venue.test.ts",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
-    [
-      "npx",
-      "vitest",
-      "run",
-      "src/quest/sample/venue.test.ts"
-    ],
     [
       "npx",
       "tsc",
@@ -50,7 +45,5 @@
   "models": {
     "coder": "asu/glm-5-3",
     "critic": "asu/deepseek-v4-1-flash"
-  },
-  "reviewBaseline": "8c59a42a190e0851f1b1cb1d39ce779ca47e7189",
-  "sizeLimit": 300
+  }
 }
