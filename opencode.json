@@ -28,23 +28,24 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-02B-transitions.md": "allow",
+          "docs/quest-build/cards/P5-03-sample-storage.md": "allow",
           "src/quest/sample/model.ts": "allow",
           "src/quest/sample/decisions.ts": "allow",
           "src/quest/sample/venue.ts": "allow",
           "src/quest/foundation.ts": "allow",
           "src/engine/questSchedule.ts": "allow",
           "src/quest/sample/transitions.ts": "allow",
-          "src/quest/sample/transitions.test.ts": "allow"
+          "src/quest/sample/storage.ts": "allow",
+          "src/quest/sample/storage.test.ts": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/transitions.ts": "allow",
-          "src/quest/sample/transitions.test.ts": "allow"
+          "src/quest/sample/storage.ts": "allow",
+          "src/quest/sample/storage.test.ts": "allow"
         },
         "bash": {
           "*": "deny",
-          "npx vitest run src/quest/sample/transitions.test.ts": "allow",
+          "npx vitest run src/quest/sample/storage.test.ts": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
@@ -60,14 +61,15 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-02B-transitions.md": "allow",
+          "docs/quest-build/cards/P5-03-sample-storage.md": "allow",
           "src/quest/sample/model.ts": "allow",
           "src/quest/sample/decisions.ts": "allow",
           "src/quest/sample/venue.ts": "allow",
           "src/quest/foundation.ts": "allow",
           "src/engine/questSchedule.ts": "allow",
           "src/quest/sample/transitions.ts": "allow",
-          "src/quest/sample/transitions.test.ts": "allow"
+          "src/quest/sample/storage.ts": "allow",
+          "src/quest/sample/storage.test.ts": "allow"
         },
         "edit": {
           "*": "deny"
