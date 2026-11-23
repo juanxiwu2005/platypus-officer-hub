@@ -31,21 +31,20 @@ test("no accessibility violations on any setup step, with a constitution read", 
   await page.goto("/#/setup")
   await page.getByLabel("Club name").fill("Fictional accessible club")
   expect(await scan(page)).toEqual([])
+  // ob-6: screen 1 holds the name and the first event; plan one, then Team with the constitution read inline, then Invite.
+  await page.getByRole("button", { name: "Spring dinner", exact: true }).click()
+  await page.getByRole("button", { name: "Plan it", exact: true }).click()
+  expect(await scan(page)).toEqual([])
   await page.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Who's on your team?" })).toBeVisible()
+  expect(await scan(page)).toEqual([])
+  await page.getByRole("button", { name: "Import roles from your constitution", exact: true }).click()
   await page.getByRole("button", { name: /Use sample/ }).click()
+  await expect(page.getByTestId("reading-note")).toBeVisible()
   expect(await scan(page)).toEqual([])
-  await page.getByRole("button", { name: "Continue", exact: true }).click()
-  await page.getByRole("textbox", { name: "Mission", exact: true }).fill("Build together.")
+  await page.getByRole("button", { name: "Start workspace", exact: true }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Your club is ready." })).toBeVisible()
   expect(await scan(page)).toEqual([])
-  for (let i = 0; i < 2; i++) {
-    await page.getByRole("button", { name: "Continue", exact: true }).click()
-    expect(await scan(page)).toEqual([])
-  }
-  // ob-5 (S2): First event is the last optional step; Skip for now goes straight to Confirm (no Reminders screen).
-  await page.getByRole("button", { name: "Skip for now", exact: true }).click()
-  await expect(page.getByRole("heading", { level: 1, name: "Ready to start?" })).toBeVisible()
-  expect(await scan(page)).toEqual([])
-
 })
 test("Owners: Escape dismisses suggestions without closing the task form", async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false } }))
