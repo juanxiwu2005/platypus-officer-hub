@@ -16,7 +16,6 @@ const TaskDetail = lazy(() => import("../TaskDetail").then(module => ({ default:
 const PartnerDetail = lazy(() => import("../crm/ContactDetail").then(module => ({ default: module.PartnerDetail })))
 const OrgDetail = lazy(() => import("../crm/OrgDetail").then(module => ({ default: module.OrgDetail })))
 const HandoffRoleDetail = lazy(() => import("../../pages/Handoff").then(module => ({ default: module.HandoffRoleDetail })))
-const BoardSettingsPanel = lazy(() => import("../BoardSettings").then(module => ({ default: module.BoardSettingsPanel })))
 const DigestPanel = lazy(() => import("../../reminders/DigestPanel"))
 const ReminderHistoryPanel = lazy(() => import("../../reminders/DigestPanel").then(module => ({ default: module.ReminderHistoryPanel })))
 const EventDetail = lazy(() => import("../EventDetail").then(module => ({ default: module.EventDetail })))
@@ -147,7 +146,6 @@ function DetailView() {
     case "partner": body = <PartnerDetail id={d.id} />; break
     case "org": body = <OrgDetail id={d.id} />; break
     case "handoff": body = <HandoffRoleDetail roleId={d.roleId} />; break
-    case "board": body = <BoardSettingsPanel />; break
   }
   return <div ref={box} className="detail-scroll" {...region}>{closer}<Suspense fallback={<RouteLoading label="Loading details…" />}>{body}</Suspense></div>
 }

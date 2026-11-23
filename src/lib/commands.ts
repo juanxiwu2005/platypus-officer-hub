@@ -2,6 +2,7 @@ import type { DemoState, Event, EventCheck, EventChecks, NodeStatus, Phase, Tier
 import { RULES } from "../data/rules"
 import { visibleContacts } from "../data/crm"
 import { officers } from "../data/permissions"
+import { STATUS_DEFAULTS } from "../components/ui/statusDefaults"
 
 /** Only these shapes may cross the AI boundary. Unknown keys (including all dates) disappear. */
 export type CommandOp =
@@ -239,7 +240,8 @@ export function validDate(date: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(date)) && new Date(date + "T12:00:00Z").toISOString().slice(0, 10) === date
 }
 
-const STATUS_WORDS: Record<NodeStatus, string> = { unclaimed: "Not claimed", accepted: "Claimed", in_progress: "In progress", waiting: "Waiting", blocked: "Blocked", done: "Done" }
+// The six fixed status names (S3, 2026-11-23), the same words as every status pill.
+const STATUS_WORDS = (status: NodeStatus) => STATUS_DEFAULTS[status].label
 export function opLabel(op: CommandOp, ctx: CommandContext): string {
   const node = (id: string) => ctx.nodes.find(n => n.id === id)?.title ?? "Missing task"
   switch (op.op) {
@@ -250,7 +252,7 @@ export function opLabel(op: CommandOp, ctx: CommandContext): string {
     case "link_dependency": return `${node(op.nodeId)} depends on ${node(op.dependsOnId)}`
     case "propose_nudge": return `Draft a reminder: ${node(op.nodeId)}`
     case "answer_question": return "Rule-book answer"
-    case "set_status": return `Move ${node(op.nodeId)} to ${STATUS_WORDS[op.status]}`
+    case "set_status": return `Move ${node(op.nodeId)} to ${STATUS_WORDS(op.status)}`
     case "rename_task": return `Rename ${node(op.nodeId)} to “${op.title}”`
     case "set_tags": return `Tags on ${node(op.nodeId)}: ${op.tags.map(t => ctx.tags?.find(x => x.id === t)?.label ?? t).join(", ") || "none"}`
     case "mark_contacted": return `Log contact with ${ctx.contacts?.find(c => c.id === op.contactId)?.name ?? "partner"}`

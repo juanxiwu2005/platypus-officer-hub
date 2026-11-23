@@ -221,32 +221,13 @@ test("board: drag a card to another column, add a task, and an officer cannot mo
   await other.getByRole("button", { name: "Send the October newsletter" }).click()
   const detail = page.getByTestId("task-detail")
   // Someone else's task is read-only: the status is a label, with no status menu, form or submit button.
-  await expect(detail.locator(".task-status-label")).toHaveText("Waiting on")
+  await expect(detail.locator(".task-status-label")).toHaveText("Waiting")
   await expect(detail.getByRole("combobox", { name: "Task status" })).toHaveCount(0)
   await expect(detail.getByRole("textbox")).toHaveCount(0)
   await expect(detail.getByRole("button", { name: /Submit|mark done|Edit/i })).toHaveCount(0)
   expect(await savedTask(page, "t-news")).toEqual(beforeOther)
   await page.reload()
   expect(await savedTask(page, "t-news")).toEqual(beforeOther)
-})
-
-test("board customization renames a status everywhere without changing its meaning", async ({ page }) => {
-  await page.goto("/#/settings")
-  await closeRail(page)
-  await page.getByRole("navigation", { name: "Settings sections" }).getByRole("button", { name: "Tasks", exact: true }).click()
-  const panel = page.getByTestId("board-settings")
-  await panel.getByLabel("Name for To do").fill("Ready")
-  await panel.getByLabel("Name for To do").blur()
-  await page.goto("/#/tasks")
-  await expect(page.getByTestId("task-board").getByRole("heading", { name: "Ready" })).toBeVisible()
-  await page.getByRole("button", { name: "Table", exact: true }).click()
-  const row = page.getByRole("row").filter({ hasText: "Check the officer list in Sun Devil Central" })
-  await expect(row).toContainText("Ready")
-  await row.getByRole("button", { name: "Check the officer list in Sun Devil Central" }).click()
-  await expect(page.getByTestId("task-detail").getByRole("combobox", { name: "Task status", exact: true }).locator("option:checked")).toHaveText("Ready")
-  await page.reload()
-  await expect(page.getByTestId("task-board").getByRole("heading", { name: "Ready" })).toBeVisible()
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "t-sdc").status)).toBe("accepted")
 })
 
 test("+ New task is on the page head in every view, for an officer as well as the president", async ({ page }) => {

@@ -1,4 +1,5 @@
 import type { DemoState, NodeStatus, ReminderMode } from "../data/types"
+import { STATUS_DEFAULTS } from "../components/ui/statusDefaults"
 import { canLead } from "../data/permissions"
 import { forecastFor } from "../engine/forecast"
 import { addDays, daysBetween, fmtLong } from "../lib/dates"
@@ -45,10 +46,8 @@ const BLOCKED = {
   paused: "This task needs support. Ordinary reminders are paused.",
   legacy_history: "Review earlier reminders before enabling future reminders for this task.",
 }
-const STATUS: Record<NodeStatus, string> = {
-  accepted: "Claimed", unclaimed: "Not claimed", in_progress: "Working on it",
-  waiting: "Waiting on", blocked: "Stuck", done: "Done",
-}
+// A reply reads with the six fixed status names (S3, 2026-11-23), the same words as every status pill.
+const STATUS: Record<NodeStatus, string> = Object.fromEntries(Object.entries(STATUS_DEFAULTS).map(([status, { label }]) => [status, label])) as Record<NodeStatus, string>
 const name = (s: DemoState, id: string | null) => s.people.find(p => p.id === id)?.name ?? (id ? "Former member" : null)
 const currentVersion = (s: DemoState) => isReminderRuntime(s.reminderRuntime) && Number(s.reminderRuntime.version) === 2
 const runtimeState = (s: DemoState): CentreRuntimeState => currentVersion(s) ? "active"

@@ -196,7 +196,7 @@ export interface Org {
   workflowRoleTeams?: Record<string, string>
   /** Stable defaults bind semantic work groups to editable organization team names. */
   workflowPresetTeamIds?: Partial<Record<WorkflowPresetTeam, string>>
-  /** Task board look (v1.1): renamed statuses, colours, custom tags and which fields cards show. Meanings never change. */
+  /** Task board look (v1.1): renamed statuses, colours, custom tags and card fields. Kept in old saves but no longer applied or editable: the six statuses are fixed (S3, 2026-11-23); tags still show on tasks. */
   board?: BoardSettings
 }
 

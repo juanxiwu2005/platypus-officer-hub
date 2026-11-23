@@ -36,10 +36,11 @@ describe("creating a task says where it landed (audit §6.4a)", () => {
     expect(addTaskNotice(base, "waiting")).toBeNull()
   })
 
-  it("uses the club's own column names", () => {
-    const renamed = reducer(as("alex"), { type: "saveBoard", board: { labels: { accepted: "Ready", done: "Shipped" } } })
-    expect(addTaskNotice({ ...renamed, viewerId: "maya" }, "unclaimed")).toMatch(/in Ready/)
-    expect(addTaskNotice({ ...renamed, viewerId: "maya" }, "done")).toMatch(/cannot start as Shipped.*in Ready.*move it to Shipped/)
+  it("uses the six fixed status names, even when an old save renamed them (S3)", () => {
+    const renamed = { ...base, viewerId: "maya", org: { ...base.org, board: { labels: { accepted: "Ready", done: "Shipped" } } } }
+    expect(addTaskNotice(renamed, "unclaimed")).toMatch(/in To do/)
+    expect(addTaskNotice(renamed, "done")).toMatch(/cannot start as Done.*in To do.*move it to Done/)
+    expect(addTaskNotice(renamed, "done")).not.toMatch(/Ready|Shipped/)
   })
 })
 

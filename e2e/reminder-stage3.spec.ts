@@ -242,7 +242,7 @@ test("an ordinary owner's Waiting on automatically records Sam's email and grant
   await page.goto(followup.message!.taskUrl)
   const request = page.getByTestId("single-task-page")
   await expect(request).toContainText(DETAILS)
-  for (const name of ["Done", "Working on it", "Stuck", "Waiting on"]) await expect(request.getByRole("button", { name, exact: true })).toHaveCount(0)
+  for (const name of ["Done", "Working on it", "Stuck", "Waiting", "Waiting on"]) await expect(request.getByRole("button", { name, exact: true })).toHaveCount(0)
   await request.getByRole("button", { name: "Acknowledge", exact: true }).click()
   await expect(request.getByRole("button", { name: "Acknowledge", exact: true })).toBeDisabled()
   await page.reload()

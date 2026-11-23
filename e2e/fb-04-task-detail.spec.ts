@@ -44,7 +44,7 @@ const scan = async (page: Page) => (await new AxeBuilder({ page }).include("[dat
 
 // The universal Task Details (docs/feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md) replaced the three zones: one Due, a compact status
 // menu, the requirement and one submission form. Remind moved to the reminder centre; Edit is a separate drawer; planning dates stay private.
-const STATUS_OPTIONS = ["To do", "Working on it", "Stuck", "Waiting on", "Need more time\u2026"]
+const STATUS_OPTIONS = ["To do", "Working on it", "Stuck", "Waiting", "Need more time\u2026"]
 
 test("the owner: one Due, one primary button, four status updates, and no private planning dates", async ({ page }, info) => {
   const { n, owner } = await ruledStep(page)

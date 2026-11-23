@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject } from "react"
-import { useStore } from "../../data/store"
 import { describeHover, publishUi, routeOf } from "../../lib/uiLog"
 import type { DemoState, Node, NodeStatus } from "../../data/types"
 import type { ForecastResult } from "../../engine/forecast"
@@ -11,20 +10,19 @@ import type { ForecastResult } from "../../engine/forecast"
  */
 
 import { prefersReducedMotion, tokenMs } from "../../lib/motion"
-import { PALETTE, STATUS_DEFAULTS, STATUS_ORDER } from "./statusDefaults"
-export { PALETTE, STATUS_DEFAULTS, STATUS_ORDER }
+import { STATUS_DEFAULTS, STATUS_ORDER } from "./statusDefaults"
+export { STATUS_DEFAULTS, STATUS_ORDER }
 
 export type StatusStyles = Record<NodeStatus, { label: string; color: string }>
-export function statusStyles(state: DemoState): StatusStyles {
-  const b = state.org.board
-  return Object.fromEntries(STATUS_ORDER.map(s => [s, {
-    label: b?.labels?.[s]?.trim() || STATUS_DEFAULTS[s].label,
-    color: b?.colors?.[s] || STATUS_DEFAULTS[s].color,
-  }])) as StatusStyles
+/**
+ * The six status names and colours are fixed (S3, 2026-11-23). Renamed statuses or colours in an old save
+ * (org.board.labels / colors) stay in the data untouched but are never shown.
+ */
+export function statusStyles(_state?: DemoState): StatusStyles {
+  return Object.fromEntries(STATUS_ORDER.map(s => [s, { ...STATUS_DEFAULTS[s] }])) as StatusStyles
 }
 export function useStatusStyles() {
-  const { state } = useStore()
-  return statusStyles(state)
+  return statusStyles()
 }
 
 /** Solid coloured status label, the same everywhere (monday-style). */

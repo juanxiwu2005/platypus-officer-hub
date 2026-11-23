@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react"
 
-export type SettingsTab = "club" | "roles" | "workflow" | "tasks" | "links" | "me" | "admin"
-export const SETTINGS_TABS: readonly SettingsTab[] = ["club", "roles", "workflow", "tasks", "links", "me", "admin"]
+export type SettingsTab = "club" | "roles" | "workflow" | "links" | "me" | "admin"
+export const SETTINGS_TABS: readonly SettingsTab[] = ["club", "roles", "workflow", "links", "me", "admin"]
 export const isSettingsTab = (value: unknown): value is SettingsTab => typeof value === "string" && (SETTINGS_TABS as readonly string[]).includes(value)
 
 /** Settings provides this so a section can open another one (Roles & teams ↔ Workflow). */

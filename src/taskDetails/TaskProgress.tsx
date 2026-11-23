@@ -1,5 +1,6 @@
 import { useState } from "react"
-import type { Node } from "../data/types"
+import type { Node, NodeStatus } from "../data/types"
+import { STATUS_DEFAULTS, STATUS_ORDER } from "../components/ui/statusDefaults"
 import { useStore, type Action } from "../data/store"
 import { isOfficer, isPresident, officers } from "../data/permissions"
 import { validateReply, type ReplyInput, type TaskReply } from "../data/taskWorkflow"
@@ -8,7 +9,8 @@ import { isBudgetControlledNode } from "../engine/eventBudget"
 import { taskWorkActor } from "./authorization"
 import { TaskTargetForm } from "./TaskTargetForm"
 
-export const TASK_STATUS = { unclaimed: "Not claimed", accepted: "To do", in_progress: "Working on it", waiting: "Waiting on", blocked: "Stuck", done: "Done" }
+/** The six fixed status names (S3, 2026-11-23); the same words as every StatusPill. */
+export const TASK_STATUS = Object.fromEntries(STATUS_ORDER.map(s => [s, STATUS_DEFAULTS[s].label])) as Record<NodeStatus, string>
 export function TaskProgress({ node, actorId, authorization, initialReply, readOnly = false }: { node: Node; actorId: string; authorization?: TaskAuthorization; initialReply?: string | null; readOnly?: boolean }) {
   const { state, tryDispatch, getState } = useStore()
   const [form, setForm] = useState(initialReply === "waiting" || initialReply === "extension" ? initialReply : "")
@@ -16,8 +18,7 @@ export function TaskProgress({ node, actorId, authorization, initialReply, readO
   const [input, setInput] = useState<ReplyInput>({ waitingOn: node.waitingOn ?? "",  })
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
-  // A status renamed in Settings > Tasks reads the same here as on the board; the defaults keep this panel's own wording.
-  const label = (status: keyof typeof TASK_STATUS) => state.org.board?.labels?.[status]?.trim() || TASK_STATUS[status]
+  const label = (status: NodeStatus) => TASK_STATUS[status]
   const editable =!readOnly && taskWorkActor(state, node.id, authorization) === actorId && state.people.some(p => p.id === actorId && isOfficer(p)) && (!node.ownerId || node.ownerId === actorId || isPresident(state, actorId)) && !(node.status === "done" && isBudgetControlledNode(node))
   function update(reply: Exclude<TaskReply, "extension"> | "claim", value: ReplyInput = {}) {
     setError(""); setNotice("")

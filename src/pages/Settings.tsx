@@ -4,7 +4,6 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
-import { BoardSettingsPanel } from "../components/BoardSettings"
 import { GoalsEditor, ProfileForm, RoleCard, WorkspaceEditor } from "../components/SettingsForms"
 import { RolesTeams } from "../components/settings/RolesTeams"
 import { SettingsNavContext, isSettingsTab, type SettingsTab } from "../components/settings/settingsNav"
@@ -26,7 +25,7 @@ export function InviteLink({ code }: { code: string }) {
 
 type Tab = SettingsTab
 const TABS: { id: Tab; label: string; lead: boolean }[] = [
-  { id: "club", label: "Club", lead: true }, { id: "roles", label: "Roles & teams", lead: true }, { id: "workflow", label: "Workflow", lead: true }, { id: "tasks", label: "Tasks", lead: true }, { id: "links", label: "Links & files", lead: true },
+  { id: "club", label: "Club", lead: true }, { id: "roles", label: "Roles & teams", lead: true }, { id: "workflow", label: "Workflow", lead: true }, { id: "links", label: "Links & files", lead: true },
   { id: "me", label: "My preferences", lead: false }, { id: "admin", label: "Admin", lead: true },
 ]
 
@@ -49,14 +48,10 @@ export default function Settings() {
     <div className="settings">
       <nav className="settings-nav" aria-label="Settings sections">{tabs.map(t => <button key={t.id} type="button" aria-current={active === t.id ? "page" : undefined} onClick={() => go(t.id)}>{t.label}</button>)}</nav>
       <div className="settings-body">
-        {active === "me" ? <MySettings /> : active === "admin" ? <Admin /> : active === "workflow" ? <Suspense fallback={<p>Loading workflows…</p>}><WorkflowLibrary /></Suspense> : active === "tasks" ? <TaskSettings /> : <ClubSettings tab={active} />}
+        {active === "me" ? <MySettings /> : active === "admin" ? <Admin /> : active === "workflow" ? <Suspense fallback={<p>Loading workflows…</p>}><WorkflowLibrary /></Suspense> : <ClubSettings tab={active} />}
       </div>
     </div>
   </SettingsNavContext.Provider>
-}
-
-function TaskSettings() {
-  return <section className="card form-stack" data-testid="task-settings"><BoardSettingsPanel /></section>
 }
 
 /** Debounced auto-save with a single Undo step. */

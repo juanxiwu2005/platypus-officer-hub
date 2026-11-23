@@ -200,7 +200,7 @@ for (const width of [375, 390, 768]) {
     await page.goto("/#/settings")
     const activate = async (target: import("@playwright/test").Locator) => info.project.name === "mobile" ? target.tap() : target.click()
     const nav = page.getByRole("navigation", { name: "Settings sections" })
-    for (const name of ["Roles & teams", "Workflow", "Tasks", "Links & files", "My preferences", "Admin", "Club", "Roles & teams"]) {
+    for (const name of ["Roles & teams", "Workflow", "Links & files", "My preferences", "Admin", "Club", "Roles & teams"]) {
       const button = nav.getByRole("button", { name, exact: true })
       await activate(button)
       await expect(button).toHaveAttribute("aria-current", "page")
