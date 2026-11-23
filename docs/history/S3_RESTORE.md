@@ -32,3 +32,16 @@ Kept: `src/lib/dragSort.ts` (used by the archived Partners page), `.board-add*`,
 | Tests | saveBoard test in `src/test/v11.test.ts`, the a11y board-customization test, "board customization renames a status everywhere" in `e2e/tasks.spec.ts` |
 
 Behavior change to undo together with the editor: every place that showed a renamed status (StatusPill, `statusStyles`/`useStatusStyles`, board notices, the Task Details status menu, reminder-centre replies, Ask previews) now uses `STATUS_DEFAULTS`.
+
+## S3-W1 — Events shows one Flow with a Next up strip (merge `4b30b70`, commits `b3ffb27`, `63c9b9e`)
+
+| Removed | Where it lived |
+| --- | --- |
+| Events List view (table of Step, Owner, Status, Due with per-step Due and reminder notes) and its saved choice `platypus.v1.eventsView` in browser storage | `src/pages/Events.tsx`; `asuSentence` / `reminderSentence` in `src/lib/taskDue.ts` stay (unit-tested, no UI caller) |
+| Workflow version tag "name · vN" in the event head | `src/pages/Events.tsx` |
+| Event Details rail opening by itself on every event change (now a "Details" button) | `src/pages/Events.tsx` |
+| Flow help sentences ("Follow the dots…", "Select a task to work on it…", "This station is not a task…") and `.team-metro-help` CSS | `src/components/flow/TeamMetroChart.tsx`, `MilestoneExecutionChart.tsx` |
+| The "← event" link inside the Plan task panel (one back link remains) | `src/components/TaskDetail.tsx` (`eventLink` prop), `src/taskDetails/PlanTaskPanel.tsx` |
+| Owner name under every flow dot (now on a lane's first dot and where the owner changes; hovers and screen-reader labels still name every owner) | `src/components/flow/` |
+
+Added: `src/lib/nextUp.ts` (ranking) and `src/components/NextUp.tsx` (the strip); one permission message helper `eventBlocked` in `src/data/changeReview.ts`. Kept unchanged by owner decision: Budget view, Funding rail, "$ requested", per-event Edit flow.
