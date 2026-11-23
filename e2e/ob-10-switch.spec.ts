@@ -106,6 +106,8 @@ for (const door of ["Settings → Try officer setup", "/join", "/welcome/classic
     await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
     const before = (await onboardingRecord(page)).attempts[0].steps
     await page.goto("/#/settings")
+    await page.getByRole("button", { name: "Roles & teams", exact: true }).click()
+    await page.getByTestId("club-settings").getByText("Invite officers", { exact: true }).click()
     const tryLink = page.getByRole("link", { name: "Try officer setup" })
     const query = new globalThis.URL((await tryLink.getAttribute("href"))!).hash.replace(/^#\/join/, "")
     if (door === "Settings → Try officer setup") await tryLink.click()
