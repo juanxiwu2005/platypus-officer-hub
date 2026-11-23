@@ -36,7 +36,7 @@ const Help = lazy(() => import("./pages/Help"))
 const Officer = lazy(() => import("./pages/Officer"))
 const SetupEntry = lazy(() => import("./onboarding/gate/SetupEntry"))
 const Join = lazy(() => import("./pages/Join"))
-const Quest = lazy(() => import("./quest/Quest"))
+const Quest = lazy(() => import("./quest/sample/Sample"))
 const PhaseOne = lazy(() => import("./phase1/PhaseOne"))
 
 function screen(children: ReactNode, label: string, fullPage = false) {
