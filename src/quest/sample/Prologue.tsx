@@ -48,7 +48,7 @@ export function Prologue({ shot, clock, onShot, onFinish }: PrologueProps) {
   }
   const current = PROLOGUE_SHOTS[Math.min(Math.max(shot, 0), LAST_SHOT)]
   const running = started && !paused && !reduced
-  const label = reduced ? (started ? "Manual frames" : "Play") : running ? "Pause" : started ? "Resume" : "Play"
+  const label = reduced ? (started ? "Manual frames" : "Switch on HQ") : running ? "Pause" : started ? "Resume" : "Switch on HQ"
 
   return (
     <div>
