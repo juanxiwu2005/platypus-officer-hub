@@ -62,12 +62,12 @@ describe("Start workspace keeps the answer in org.settings.reminderMode", () => 
       expect(ws.org.settings.sendMode).toBe("review")
     }
   })
-  it("leaves it absent after Skip for now (null or nothing), and drops an answer from an earlier setup", () => {
+  it("without an answer (null or nothing) a new club gets the default review_then_auto (S2), never an earlier setup's answer", () => {
     const s = base(), d = clubDraft(s)
-    expect("reminderMode" in completeSetup(s, d, null, "", code).org.settings).toBe(false)
-    expect("reminderMode" in completeSetup(s, d, null, "", code, undefined, undefined, undefined, null).org.settings).toBe(false)
+    expect(completeSetup(s, d, null, "", code).org.settings.reminderMode).toBe("review_then_auto")
+    expect(completeSetup(s, d, null, "", code, undefined, undefined, undefined, null).org.settings.reminderMode).toBe("review_then_auto")
     const earlier = completeSetup(s, d, null, "", code, undefined, undefined, undefined, "auto_email")
-    expect("reminderMode" in startWorkspace(earlier, clubDraft(earlier), null, "", code, undefined, undefined, undefined, null).org.settings).toBe(false)
+    expect(startWorkspace(earlier, clubDraft(earlier), null, "", code, undefined, undefined, undefined, null).org.settings.reminderMode).toBe("review_then_auto")
   })
   it("refuses a value that is not one of the three", () => {
     const s = base(), d = clubDraft(s)
@@ -80,13 +80,15 @@ describe("Start workspace keeps the answer in org.settings.reminderMode", () => 
     const next = reducer(s, { type: "completeSetup", draft: d, event, date: "2026-11-19", inviteCode: code, reminderMode: "review_then_auto" })
     expect(next.org.settings.reminderMode).toBe("review_then_auto")
     expect(next.events.some(e => e.id.startsWith("setup-event-"))).toBe(true)
-    expect("reminderMode" in reducer(s, { type: "completeSetup", draft: d, event: null, date: "", inviteCode: code }).org.settings).toBe(false)
+    expect(reducer(s, { type: "completeSetup", draft: d, event: null, date: "", inviteCode: code }).org.settings.reminderMode).toBe("review_then_auto")
   })
   it("survives saving the club's settings page (old data without it stays valid)", () => {
     const s = base()
     const club = completeSetup(s, clubDraft(s), null, "", code, undefined, undefined, undefined, "review_then_self")
     expect(saveClubSettings(club, clubDraft(club), structuredClone(club.org.settings)).org.settings.reminderMode).toBe("review_then_self")
-    expect(saveClubSettings(s, clubDraft(s), { ...s.org.settings, clubBufferBusinessDays: 4 }).org.settings.reminderMode).toBeUndefined()
+    const { reminderMode: _none, ...oldSettings } = s.org.settings; void _none
+    const old = { ...s, org: { ...s.org, settings: oldSettings } }
+    expect(saveClubSettings(old, clubDraft(old), { ...oldSettings, clubBufferBusinessDays: 4 }).org.settings.reminderMode).toBeUndefined()
   })
   it("Confirm names the answer in a few words", () => {
     expect(reminderLine("auto_email")).toBe("Reminders: Send automatically.")

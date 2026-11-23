@@ -226,7 +226,7 @@ describe("the standalone owner task", () => {
     const prepared = reducer(waiting, {type: "issueTaskAccessGrant", grant: helper})
     const facts = buildReminderFacts(prepared, NODE)!, people = reminderPeople(prepared)
     const mail = buildReminderMail({today: waiting.today, facts, candidate, recipient: people.find(p => p.id === candidate.recipientId)!, request: prepared.reminderRuntime!.waitingRequests[0], requesterName: people.find(p => p.id === facts.ownerId)?.name, taskUrl: taskAccessUrl("https://demo.example.org", helper)})
-    const delivered = reducer(prepared, { type: "confirmPlannedReminder", candidateId: candidate.id, via: "manual", message: {...mail, channel: "email", preparedOn: waiting.today, accessId: helper.id} })
+    const delivered = reducer(prepared, { type: "confirmPlannedReminder", candidateId: candidate.id, via: waiting.org.settings.reminderMode === "review_then_auto" ? "platypus" : "manual", message: {...mail, channel: "email", preparedOn: waiting.today, accessId: helper.id} })
     expect(delivered.reminderRuntime!.deliveries).toHaveLength(1)
     const { state, token } = await issued(delivered)
     const originalRequest = state.reminderRuntime!.waitingRequests[0]

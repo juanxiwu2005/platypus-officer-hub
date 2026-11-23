@@ -387,6 +387,8 @@ export function reducer(state: DemoState, action: Action): DemoState {
     next = workspace
   }
   if (action.type === "completeSetup") return enableReminderPlan(next)
+  // A reset demo or an imported file starts on the current reminder plan, like a loaded save (withCurrentReminders).
+  if (action.type === "reset" || action.type === "replace") return withCurrentReminders(next)
   if (!remindersEnabled(state) || ["reset", "replace", "enableReminderPlan", "upgradeReminderPlan", "reviewLegacyReminder", "recordReminderBatch", "recordReminderDigests", "advanceClock"].includes(action.type)) return next
   const updated = action.type === "saveTaskWork" ? action.input.submit ? [action.nodeId] : [] : action.type === "claimTask" || action.type === "replyTask" || action.type === "updateTaskTarget" ? [action.nodeId]
     : action.type === "officerAction" && grant ? [grant.nodeId]
@@ -690,7 +692,19 @@ function backUp(raw: string, tag: string): string | null {
  */
 export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice | null } {
   const loaded = readStateWithNotice()
-  return { ...loaded, state: ensureWorkflowPresetTeams(loaded.state) }
+  // Data held back for download (migration_blocked) is kept exactly as it was read.
+  if (loaded.notice?.kind === "migration_blocked") return { ...loaded, state: ensureWorkflowPresetTeams(loaded.state) }
+  return { ...loaded, state: withCurrentReminders(ensureWorkflowPresetTeams(loaded.state)) }
+}
+
+/**
+ * S2 (Juanxi, 2026-11-22; supersedes the 2026-11-16 rule that an old save upgrades only when a lead presses "Enable updated reminders"):
+ * every loaded, reset or imported state runs on the current reminder plan. A legacy plan (none yet, or a valid version 1) is upgraded by
+ * the same pure logic as the upgradeReminderPlan action, keeping every setting and all history; an invalid runtime is kept for recovery.
+ * It is not a user action, so it is not logged, and it does not depend on the viewer. Returns the same object when nothing changes.
+ */
+export function withCurrentReminders(s: DemoState): DemoState {
+  return upgradeReminderPlan(s)
 }
 
 function readStateWithNotice(): { state: DemoState; notice: StorageNotice | null } {

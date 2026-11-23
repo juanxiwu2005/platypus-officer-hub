@@ -43,12 +43,13 @@ async function record(s: DemoState) {
 
 beforeEach(() => { localStorage.clear(); vi.stubGlobal("crypto", webcrypto) })
 
-describe("stage one: actual reducer integration, without changing legacy activation", () => {
-  it("does not silently activate an old saved club, and only leads can enable the new rules", () => {
+describe("stage one: actual reducer integration", () => {
+  it("upgrades an old saved club automatically on load (S2), while the explicit action stays lead-only", () => {
     const s = fixture()
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
     const loaded = loadState()
-    expect(loaded.reminderRuntime).toBeUndefined()
+    expect(loaded.reminderRuntime?.version).toBe(2)
+    expect(loaded.reminderRuntime).toEqual(enable(s).reminderRuntime)
     expect(loaded.nodes).toEqual(s.nodes)
     const officer = { ...s, viewerId: "jordan" }
     expect(reducer(officer, { type: "enableReminderPlan" }).reminderRuntime).toBeUndefined()

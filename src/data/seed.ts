@@ -5,6 +5,7 @@ import { DUTY_TEMPLATES } from "./structure"
 import { syncBudgetFlow } from "../engine/eventBudget"
 import { sampleHandoff } from "./sampleScenario"
 import { normalizeTerms } from "./roleTerms"
+import { DEFAULT_REMINDER_MODE } from "./reminderMode"
 
 // v20 also completes the demo plan when saved data skipped the v18-to-v19 update.
 export const SCHEMA_VERSION = 23
@@ -150,6 +151,7 @@ export function seedDemo(today: string | undefined = undefined, workflow: "legac
         maxRemindersPerTask: 3,
         sendMode: "review",
         quietHours: { from: "22:00", to: "08:00" },
+        reminderMode: DEFAULT_REMINDER_MODE,
       },
       workspace: { calendarUrl: "https://calendar.google.com/", messaging: "whatsapp", driveLink: "", planningNotes: "Programs plans the event; marketing prepares the flyer; finance submits funding requests. The president reviews decisions.", files: [] },
       setupCompletedOn: null,
