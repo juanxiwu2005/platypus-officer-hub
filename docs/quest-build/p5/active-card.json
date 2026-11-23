@@ -3,19 +3,16 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-03K-completion-prefix.md",
+  "card": "docs/quest-build/cards/P5-G1-venue-review.md",
   "readFiles": [
-    "src/quest/sample/model.ts",
-    "src/quest/sample/transitions.ts",
-    "src/quest/foundation.ts",
-    "src/engine/questSchedule.ts"
+    "src/quest/sample/venue.ts"
   ],
   "writeFiles": [
-    "src/quest/sample/storage.ts",
-    "src/quest/sample/storage.test.ts"
+    "src/quest/sample/venue.ts",
+    "src/quest/sample/venue.test.ts"
   ],
   "agentCommands": [
-    "npx vitest run src/quest/sample/storage.test.ts",
+    "npx vitest run src/quest/sample/venue.test.ts",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
@@ -23,7 +20,7 @@
       "npx",
       "vitest",
       "run",
-      "src/quest/sample/storage.test.ts"
+      "src/quest/sample/venue.test.ts"
     ],
     [
       "npx",
@@ -51,5 +48,7 @@
   "models": {
     "coder": "asu/glm-5-3",
     "critic": "asu/deepseek-v4-1-flash"
-  }
+  },
+  "reviewBaseline": "8c59a42a190e0851f1b1cb1d39ce779ca47e7189",
+  "sizeLimit": 220
 }

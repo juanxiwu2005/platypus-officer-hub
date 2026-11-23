@@ -1206,3 +1206,4 @@ Owner requested simple Chinese design questions first; generate the six static s
 | 2026-11-23T03:20:39.014Z | P5 native proposal check | npx vitest run src/quest/sample/venue.test.ts | Exit0, 1.56seconds |
 | 2026-11-23T03:20:42.368Z | P5 native proposal check | npm run lint | Exit0, 4.91seconds |
 | 2026-11-23T03:20:46.259Z | P5 native proposal check | npx tsc --noEmit -p tsconfig.json | Exit0, 8.80seconds |
+| 2026-11-23T03:20:46.491Z | P5-G1 / scoped setup | Prepared exact docs/quest-build/cards/P5-G1-venue-review.md; coder edits src/quest/sample/venue.ts, src/quest/sample/venue.test.ts; all other tools/paths denied. Coder GLM 5.3, critic DeepSeek. Effective permissions verified after reload by the run wrapper. | Normal supervised card; legacy queue remains paused. |
