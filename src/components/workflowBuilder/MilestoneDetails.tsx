@@ -109,7 +109,7 @@ function TaskDetails({ step, graph, snapshot, state, teams, policy, eventDate, o
   const { steps, branches } = snapshot
   const patch = (value: Partial<StepTemplate>) => onChange({ ...snapshot, steps: steps.map(item => item.key === step.key ? { ...item, ...value } : item) })
   const labels = roleLabels(state.roles), locked = isAsuStep(step), cannotDelete = builderDeletionReason(step, policy, steps)
-  // A step that came with the preset can be brought back by More → Restore Platypus preset.
+  // A step that came with the preset can be brought back by Versions → Restore Platypus preset.
   const restorable = policy === "standard" && !cannotDelete && !step.custom && EVENT_STEPS.some(original => original.key === step.key)
   const waits = step.dependsOn ?? []
   const candidates = steps.filter(candidate => candidate.key !== step.key && !waits.includes(candidate.key) && !graphError(steps.map(item => item.key === step.key ? { ...item, dependsOn: [...waits, candidate.key] } : item)))
