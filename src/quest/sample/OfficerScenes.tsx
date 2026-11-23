@@ -14,6 +14,7 @@ const SEGMENTS = ["Arrivals", "Talk", "Closing"] as const
 
 function Booking({ draft, onEdit, onCheck }: Omit<OfficerSceneProps, "stage">) {
   const paper = useRef<HTMLButtonElement>(null)
+  const root = useRef<HTMLElement | null>(null)
   const held = useRef(false)
   const [picked, setPicked] = useState(false)
   const [cursor, setCursor] = useState(0)
@@ -42,7 +43,6 @@ function Booking({ draft, onEdit, onCheck }: Omit<OfficerSceneProps, "stage">) {
   const pick = () => { setCursor(Math.max(0, desks.findIndex(person => person.id === draft.requestor))); setPicked(true); setNote("Room request picked up. Choose a desk.") }
   const key = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.altKey) { drag.cardProps("request").onKeyDown(event); return }
-    if (event.key === "Escape" && picked) { setPicked(false); setNote("Placement cancelled."); return }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
       if (!picked) { pick(); return }
@@ -53,18 +53,35 @@ function Booking({ draft, onEdit, onCheck }: Omit<OfficerSceneProps, "stage">) {
       setCursor(next); setNote(`${desks[next].name} desk. Enter to place.`)
     }
   }
+  // Escape from anywhere in the booking scene (paper, desk target, actions) cancels a pick; pointer drags keep their own Escape in useDragSort.
+  const cancelPick = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key !== "Escape" || !picked || drag.draggingId !== null) return
+    setPicked(false)
+    setNote("Placement cancelled.")
+    paper.current?.focus({ preventScroll: true })
+  }
+  const targetKey = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    if (!picked || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return
+    event.preventDefault()
+    const next = Math.max(0, Math.min(desks.length - 1, index + (event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : -1)))
+    setCursor(next); setNote(`${desks[next].name} desk. Enter to place.`)
+    root.current?.querySelector<HTMLButtonElement>(`[data-officer-target="${desks[next].id}"]`)?.focus({ preventScroll: true })
+  }
   const requestPaper = <button ref={paper} type="button" {...drag.cardProps("request")} data-rewind-focus="" aria-pressed={picked}
     className={`sample-paper${picked ? " is-selected" : ""}${drag.draggingId === "request" ? " is-dragged" : ""}`}
     onClick={() => { if (!picked) pick() }} onKeyDown={key}>
     <span aria-hidden="true">✉</span> Room request
   </button>
-  return <section className="sample-scene" aria-label="Room request handoff">
+  return <section className="sample-scene" aria-label="Room request handoff" ref={root} onKeyDown={cancelPick}>
     <p className="quest-instruction">Hand the room request to an account holder.</p>
     <div className="sample-desks">
       {desks.map((person, index) => <div key={person.id} data-drop-col={person.id}
         className={`sample-desk${drag.over?.dest === person.id ? " is-over" : ""}${picked && cursor === index ? " is-target" : ""}`}>
-        <button type="button" className="sample-desk-target" style={{ "--sample-portrait": `url("${hqArt}")`, "--sample-portrait-pos": PORTRAIT[person.id] } as CSSProperties}
-          onClick={() => { if (!picked) { setNote("Pick up the request first."); return } place(person.id, `Room request with ${person.name}.`) }}>
+        <button type="button" className="sample-desk-target" data-officer-target={person.id} aria-pressed={picked && cursor === index}
+          style={{ "--sample-portrait": `url("${hqArt}")`, "--sample-portrait-pos": PORTRAIT[person.id] } as CSSProperties}
+          onFocus={() => { if (picked) setCursor(index) }}
+          onClick={() => { if (!picked) { setNote("Pick up the request first."); return } place(person.id, `Room request with ${person.name}.`) }}
+          onKeyDown={(event) => targetKey(event, index)}>
           <span className="sample-desk-art" aria-hidden="true" />
           <span className="sample-desk-name">{person.name}</span>
           <span className="sample-desk-role">{person.role}</span>

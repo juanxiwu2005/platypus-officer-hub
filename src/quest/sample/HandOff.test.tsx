@@ -41,10 +41,9 @@ afterEach(() => {
   if (stubbedAnimate) { stubbedAnimate = false; delete (Element.prototype as { animate?: unknown }).animate }
   cleanup()
 })
-/** Real browsers fire a button's click after an Enter keydown the component did not preventDefault; jsdom does not, so model the activation explicitly. */
-const enter = (el: HTMLElement, activate: boolean) => {
-  fireEvent.keyDown(el, { key: "Enter" })
-  if (activate) fireEvent.click(el)
+/** Real browsers fire a button's click after an Enter keydown the component did not preventDefault; jsdom does not, so click only when the keydown was not prevented. */
+const enter = (el: HTMLElement) => {
+  if (fireEvent.keyDown(el, { key: "Enter" })) fireEvent.click(el)
 }
 describe("HandOff (via CommsScenes handoff stage)", () => {
   it("moves the three unique papers to Morgan and one back, with exact lists, IDs, labels and one node each", () => {
@@ -70,10 +69,10 @@ describe("HandOff (via CommsScenes handoff stage)", () => {
     const t = setup()
     const el = t.paper("approval")
     el.focus()
-    enter(el, true) // Enter activates the button: pick
+    enter(el) // Enter activates the button: pick
     expect(el.getAttribute("aria-pressed")).toBe("true"); expect(t.status()).toContain("picked"); fireEvent.keyDown(el, { key: "ArrowRight" }); expect(t.status()).toBe("Morgan's desk")
     expect(document.activeElement).toBe(el)
-    enter(el, false) // picked: HandOff handles Enter and prevents the activation click
+    enter(el) // picked: HandOff handles Enter and prevents the activation click
     t.sync()
     expect(t.getDraft().documents).toEqual(["approval"]); expect(t.onCheck).not.toHaveBeenCalled(); expect(t.drop("morgan").textContent).toContain("Approval")
     const el2 = t.paper("ritm")
@@ -86,9 +85,9 @@ describe("HandOff (via CommsScenes handoff stage)", () => {
     const el = t.paper("approval")
     expect(document.activeElement).toBe(el) // focus restored after the reparent
     const edits = t.onEdit.mock.calls.length
-    enter(el, true) // pick again; the cursor starts at the paper's current destination
+    enter(el) // pick again; the cursor starts at the paper's current destination
     expect(el.getAttribute("aria-pressed")).toBe("true")
-    enter(el, false) // picked: same-destination placement
+    enter(el) // picked: same-destination placement
     expect(t.getDraft().documents).toEqual(["approval"]); expect(t.onEdit.mock.calls.length).toBe(edits)
     expect(document.activeElement).toBe(el)
     expect(el.getAttribute("aria-pressed")).toBe("false")
@@ -118,7 +117,7 @@ describe("HandOff (via CommsScenes handoff stage)", () => {
     fireEvent.keyDown(t.target("morgan"), { key: "ArrowLeft" })
     expect(document.activeElement).toBe(t.target("tray"))
     fireEvent.keyDown(t.target("tray"), { key: "ArrowRight" })
-    enter(t.target("morgan"), true) // the target ignores Enter, so the activation click places the picked paper
+    enter(t.target("morgan")) // the target ignores Enter, so the activation click places the picked paper
     t.sync()
     expect(t.getDraft().documents).toEqual(["approval"])
     expect(document.activeElement).toBe(t.paper("approval"))
