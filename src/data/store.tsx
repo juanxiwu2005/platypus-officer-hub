@@ -2,7 +2,8 @@ import { changeHandoff, repairLegacyHandoff, type HandoffAction } from "./handof
 import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Phase, StepTemplate, WorkflowBranch, WorkflowTemplateDraft, WorkflowTeam } from "./types"
+import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, OnboardingChecklist, Phase, StepTemplate, WorkflowBranch, WorkflowTemplateDraft, WorkflowTeam } from "./types"
+import { countItems, sameChecklist, sanitizeChecklist } from "../lib/checklist"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
 import { assignedNotice, canApplyOp, canChangeEvent, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
 import { nudgeBlocked } from "../lib/nudges"
@@ -190,6 +191,8 @@ export type Action =
   | { type: "discardWorkflowTemplateDraft"; id: string }
   | { type: "restoreWorkflowPreset"; id: string }
   | { type: "saveWorkflowTeams"; teams: WorkflowTeam[]; roleTeams: Record<string, string> }
+  /** Settings → Onboarding: the whole checklist template, sanitized against the current roles. Null removes it (start over). */
+  | { type: "saveOnboardingChecklist"; checklist: OnboardingChecklist | null }
 
 const NODE_FIELDS: (keyof NodePatch)[] = ["externalLinks", "title", "instructions", "completionCriteria", "tags", "ownerId", "clubDeadlineOverride", "estDays", "startPolicy", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
@@ -641,9 +644,29 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "discardWorkflowTemplateDraft": return discardWorkflowTemplateDraft(state, action.id)
     case "restoreWorkflowPreset": return restoreWorkflowPreset(state, action.id)
     case "saveWorkflowTeams": return saveWorkflowTeams(state, action.teams, action.roleTeams)
+    case "saveOnboardingChecklist": return saveOnboardingChecklist(state, action.checklist)
     case "saveWorkflow": return saveWorkflow(state, action.steps, action.branches)
     case "resetWorkflow": return resetWorkflow(state)
   }
+}
+
+/**
+ * Leads only (not in READ_ONLY_OK). The checklist is sanitized with the current role ids, so unknown or archived roles are
+ * dropped. The same state comes back when the input is not a checklist, when nothing but `updatedOn` would change, or
+ * when there is nothing to remove, so Undo and the log never record an empty save.
+ */
+function saveOnboardingChecklist(state: DemoState, raw: unknown): DemoState {
+  if (!canLead(state)) return state
+  const current = state.org.onboardingChecklist
+  if (raw === null) {
+    if (!current) return state
+    const { onboardingChecklist: _removed, ...org } = state.org
+    void _removed
+    return { ...state, org }
+  }
+  const next = sanitizeChecklist(raw, state.roles.map(r => r.id), state.today)
+  if (!next || (current && sameChecklist(current, next))) return state
+  return { ...state, org: { ...state.org, onboardingChecklist: next } }
 }
 
 /* ───────────── Storage: load, back up, save ───────────── */
@@ -824,6 +847,8 @@ function payloadOf(a: Action): unknown {
     case "confirmPlannedReminder": return { candidateId: a.candidateId, via: a.via, ...(a.message ? { message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : {}) }
     case "confirmNudgeSent": return a.message ? { nodeId: a.nodeId, channel: a.channel, via: a.via, message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
     case "replace": return { nodes: a.state.nodes.length, events: a.state.events.length }
+    // Counts only, like its "before" value: the default would copy (truncated) checklist titles on every debounced save.
+    case "saveOnboardingChecklist": { const modules = Array.isArray(a.checklist?.modules) ? a.checklist.modules : []; return { cleared: a.checklist === null, modules: modules.length, items: modules.reduce((n, m) => n + (Array.isArray(m?.items) ? m.items.length : 0), 0) } }
     case "officerAction": return { reply: a.reply, input: slim(a.input) }
     case "issueOfficerGrant": return { nodeId: a.grant.nodeId, ownerId: a.grant.ownerId, issuedOn: a.grant.issuedOn }
     case "fundingPackage": return { eventId: a.eventId, application: "[application package]" }
@@ -871,6 +896,8 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "removeEventStep": out = fields(node(a.nodeId), ["title", "dependsOn", "status", "estDays", "ownerId"]); break
     case "newWorkflowTemplate": case "saveWorkflowTemplateDraft": case "publishWorkflowTemplate": case "duplicateWorkflowTemplate": case "setDefaultWorkflowTemplate": case "discardWorkflowTemplateDraft": case "restoreWorkflowPreset": out = { templateIds: s.org.workflowTemplates?.map(template => template.id), defaultWorkflowTemplateId: s.org.defaultWorkflowTemplateId }; break
     case "saveWorkflowTeams": out = { workflowTeams: s.org.workflowTeams, workflowRoleTeams: s.org.workflowRoleTeams }; break
+    // Counts only: checklist titles are club text the log does not need. Guarded: an imported state may hold a damaged checklist.
+    case "saveOnboardingChecklist": { const c = s.org.onboardingChecklist, ok = Array.isArray(c?.modules) && c!.modules.every(m => Array.isArray(m?.items)); out = { onboardingModules: ok ? c!.modules.length : 0, onboardingItems: ok ? countItems(c!) : 0 }; break }
     case "saveWorkflow": case "resetWorkflow": out = { eventWorkflow: s.org.eventWorkflow }; break
     case "saveClubSettings": out = { name: s.org.name, mission: s.org.mission, settings: s.org.settings }; break
     case "saveProfile": out = fields(s.people.find(p => p.id === a.personId), Object.keys(a.patch)); break
