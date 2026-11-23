@@ -28,14 +28,18 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-G1-venue-review.md": "allow",
+          "docs/quest-build/cards/P5-G2-native-review.md": "allow",
           "src/quest/sample/venue.ts": "allow",
-          "src/quest/sample/venue.test.ts": "allow"
+          "src/lib/motion.ts": "allow",
+          "src/quest/sample/room3d.ts": "allow",
+          "src/quest/sample/RoomView.tsx": "allow",
+          "src/styles/quest-room.css": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/venue.ts": "allow",
-          "src/quest/sample/venue.test.ts": "allow"
+          "src/quest/sample/room3d.ts": "allow",
+          "src/quest/sample/RoomView.tsx": "allow",
+          "src/styles/quest-room.css": "allow"
         },
         "bash": {
           "*": "deny",
@@ -55,9 +59,12 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-G1-venue-review.md": "allow",
+          "docs/quest-build/cards/P5-G2-native-review.md": "allow",
           "src/quest/sample/venue.ts": "allow",
-          "src/quest/sample/venue.test.ts": "allow"
+          "src/lib/motion.ts": "allow",
+          "src/quest/sample/room3d.ts": "allow",
+          "src/quest/sample/RoomView.tsx": "allow",
+          "src/styles/quest-room.css": "allow"
         },
         "edit": {
           "*": "deny"
