@@ -1,0 +1,21 @@
+.sample-room-view { min-width: 0; width: 100%; }
+.sample-view-tools { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; margin-bottom: var(--s4); }
+.sample-view-tools button { min-width: 44px; min-height: 44px; border: 1px solid var(--edge); background: var(--surface); color: var(--ink); border-radius: var(--r-sm); padding: var(--s3) var(--s4); font: inherit; font-size: var(--fs-sm); }
+.sample-view-tools button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.sample-model-frame { position: relative; aspect-ratio: 16 / 9; min-height: 360px; overflow: hidden; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r-md); }
+.sample-model-frame[hidden] { display: none; }
+.sample-model-frame canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.sample-screen-name { position: absolute; transform: translate(-50%, -50%); pointer-events: none; font-size: var(--fs-xs); color: var(--ink); max-width: 18ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sample-room-caption { position: absolute; bottom: var(--s3); left: var(--s4); padding: var(--s2) var(--s3); border-radius: var(--r-sm); color: var(--muted); background: var(--surface); font-size: var(--fs-xs); pointer-events: none; }
+.sample-floor { width: 100%; min-width: 0; border: 1px solid var(--edge); border-radius: var(--r-sm); overflow: auto; }
+.sample-floor-row { display: grid; min-width: 528px; grid-template-columns: repeat(12, minmax(44px, 1fr)); }
+.sample-floor-cell { min-width: 44px; min-height: 44px; aspect-ratio: 1; padding: 0; background: var(--surface); color: var(--accent-ink); border: 1px solid var(--line); font-size: var(--fs-sm); }
+.sample-floor-cell.is-aisle { background: var(--warn-soft); }
+.sample-floor-cell.has-prop { background: var(--accent-soft); }
+.sample-floor-cell.is-selected { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sample-floor-cell > span { pointer-events: none; }
+.sample-room-view .sample-small { font-size: var(--fs-sm); color: var(--muted); }
+@media (max-width: 600px) {
+  .sample-model-frame { aspect-ratio: 4 / 3; min-height: 280px; }
+  .sample-view-tools button { flex: 1; }
+}

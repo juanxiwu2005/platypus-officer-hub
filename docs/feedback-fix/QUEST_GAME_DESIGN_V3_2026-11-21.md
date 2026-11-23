@@ -1,7 +1,7 @@
 # Game design v3: Mission: Speaker Night (interactive film, review version, 2026-11-21, Claude)
 
-**What changed:** Juanxi found v2 (`QUEST_GAME_SPEC_2026-11-21.md`) too much like a quiz. v3 is an **interactive film with a mission-control headquarters**: the story moves forward, the player drags, places, builds and turns things, text is minimal, and consequences are shown as animation. v2's 32 rules and their sources are **kept in full** as the rule library and are embedded in the interactions below (v2 numbering is reused, for example 2.5).
-**No code has been written yet.**
+**What changed:** Juanxi found v2 (`QUEST_GAME_SPEC_2026-11-21.md`) too much like a quiz. v3 is an **interactive film with a mission-control headquarters**: the story moves forward, the player drags, places, builds and turns things, text is minimal, and consequences are shown as animation. v2's 33 rules and their sources are **kept in full** as the rule library and are embedded in the interactions below (v2 numbering is reused, for example 2.5).
+**Status update, November 22, 2026:** the 33-rule library and P1 pipeline are complete. Juanxi approved all nine recommended design decisions; six [P3 static storyboard references](../quest-build/storyboards/p3-v1/README.md) are ready for visual acceptance. Scene/game implementation has not started. The questions in section 11 are retained as the original review record; current approvals are in [P3_DESIGN_DECISIONS.md](../quest-build/P3_DESIGN_DECISIONS.md).
 
 **Inspiration and IP boundaries:** v3 borrows genre techniques only: a mission-control headquarters (like the control tower in children's animated series), cinematic cutscenes, and Market Marshes' "play a real professional, make real decisions, iterate". It uses **no** characters, names, visuals, music or levels from PAW Patrol, Google's AI Quests or any other existing work; all characters, art and story are original. Scenes **never show ASU's real logo or sunburst** (the handbook itself forbids student organizations from using them).
 
@@ -144,7 +144,7 @@ Every mission follows the same beat: **briefing cutscene (≤20 s) → hands-on 
 - A separate lazy-loaded page, `/quest`, in its own bundle, so the home entry bundle does not grow.
 - React with SVG scenes and the Web Animations API; drag follows the existing pointer-drag code; **no game engine** (size and maintenance cost).
 - All dates come from the rule engine (`schedule.ts`); the big-screen flow chart reuses `MetroChart`; the venue layout is saved as an attachment to the event.
-- Rule library = v2's 32 rules (with source quotes and line numbers). Each interaction references only rule-library IDs; Pip may cite only the rule library and handbook text.
+- Rule library = v2's 33 rules (with source quotes and line numbers). Each interaction references only rule-library IDs; Pip may cite only the rule library and handbook text.
 - Data: as in v2 section 7 (first-try result, retries and time for each action; retests; escalated questions), plus the venue layout and the time capsule.
 
 **Art production:** about 12 scene backgrounds, 7 characters (5–6 expressions or poses each), about 40 props and the venue-builder kit. Recommendation: **all code-drawn SVG vector art** (controllable, light, recolorable, no licensing problems). For a more "film" look, AI-generated background paintings are possible, but each one must be reviewed and must contain no real logos or identifiable real people.

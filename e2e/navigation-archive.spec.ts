@@ -12,7 +12,7 @@ test("Team opens directly from the main navigation and remains current after ref
   await page.goto("/#/events")
   await closeRail(page)
   const nav = page.getByRole("navigation", { name: "Sections", exact: true })
-  await expect(nav.getByRole("link")).toHaveText([/^Reminders/, /^Plan/, /^Team/, /^Handoff/, /^Rules/, /^Settings/, /^Help/])
+  await expect(nav.getByRole("link")).toHaveText([/^Reminders/, /^Plan/, /^Team/, /^Handoff/, /^Rules/, /^Quest$/, /^Settings/, /^Help/])
   await expect(nav.getByRole("button", { name: "More", exact: true })).toHaveCount(0)
   await expect(nav.getByRole("link", { name: "Partners", exact: true })).toHaveCount(0)
   const team = nav.getByRole("link", { name: "Team", exact: true })

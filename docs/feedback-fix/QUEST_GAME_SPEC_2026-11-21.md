@@ -1,6 +1,8 @@
 # Game plan: Plan Your First Event (review version, 2026-11-21, Claude)
 
-> **Update, 2026-11-21:** the gameplay and screens are superseded by [`QUEST_GAME_DESIGN_V3_2026-11-21.md`](QUEST_GAME_DESIGN_V3_2026-11-21.md) (interactive film). Section 3 (the 32 rules with source quotes and line numbers), the sequel sources in section 4 and the data in section 7 remain v3's **rule library**; the multiple-choice format and the screens in section 2 are no longer used.
+> **Count correction, 2026-11-22 (owner confirmed):** the numbered scored decisions total 33 (4 + 6 + 7 + 6 + 4 + 3 + 3). All are retained. Unscored closing reflection 7.4 is excluded; no rule content is dropped or combined.
+
+> **Update, 2026-11-21:** the gameplay and screens are superseded by [`QUEST_GAME_DESIGN_V3_2026-11-21.md`](QUEST_GAME_DESIGN_V3_2026-11-21.md) (interactive film). Section 3 (the 33 rules with source quotes and line numbers), the sequel sources in section 4 and the data in section 7 remain v3's **rule library**; the multiple-choice format and the screens in section 2 are no longer used.
 
 
 Basis: `ONBOARDING_QUEST_PLAN_2026-11-21.md` (Juanxi has agreed to the direction). This file gives every detail for review; **no code has been written yet**.
@@ -15,7 +17,7 @@ Basis: `ONBOARDING_QUEST_PLAN_2026-11-21.md` (Juanxi has agreed to the direction
 | Item | Content |
 | --- | --- |
 | Who plays | All new execs (including the President); returning officers may take the "skip test" |
-| Length | 7 chapters, 32 decisions + 1 closing reflection, about 55 minutes, split over two days: day 1 chapters 1–4 (about 30 min), day 2 chapters 5–7 (about 25 min) |
+| Length | 7 chapters, 33 decisions + 1 closing reflection, about 55 minutes, split over two days: day 1 chapters 1–4 (about 30 min), day 2 chapters 5–7 (about 25 min) |
 | Story | Desert Founders Society holds a **Spring Speaker Night** at the Memorial Union in Tempe: a paid speaker, about 80 people, food provided, Instagram promotion. It runs from 7 weeks before the event to 1 week after |
 | Characters | Player = a new officer. **Guide Pip** (the Platypus mascot, equivalent to the right-panel Ask) gives only hints. Peers: Taylor (Treasurer), Morgan (Marketing), Riley (Events), Sam (Secretary), Alex (President), Dr. Lee (Advisor) |
 | Each decision | Scenario → options → "how sure are you" → result card (right: why + source text + workflow chart lights up; wrong: real-world consequence + source text + choose again) |
@@ -42,7 +44,7 @@ Basis: `ONBOARDING_QUEST_PLAN_2026-11-21.md` (Juanxi has agreed to the direction
 
 - Maximum per card: a 1-line title + scenario ≤40 words + options; no countdown, no rankings.
 - On mobile, the same flow is stacked vertically; every action can be completed by keyboard; motion uses only existing tokens.
-- Paper version: the 32 cards of S2–S4 can be exported as a PDF to play together at an exec meeting.
+- Paper version: the 33 cards of S2–S4 can be exported as a PDF to play together at an exec meeting.
 
 ---
 

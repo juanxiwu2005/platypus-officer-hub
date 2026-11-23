@@ -1,227 +1,73 @@
 {
   "$schema": "https://opencode.ai/config.json",
-
   "permission": {
+    "*": "deny",
     "external_directory": "deny",
     "read": {
-      "*": "allow",
-      ".env": "deny",
-      ".env.*": "deny",
-      "*/.env": "deny",
-      "*/.env.*": "deny"
+      "*": "deny"
     },
     "edit": {
-      "*": "allow",
-      ".env": "deny",
-      ".env.*": "deny",
-      "*/.env": "deny",
-      "*/.env.*": "deny",
-      ".git/**": "deny",
-      ".gitignore": "deny",
-      "AGENTS.md": "deny",
-      "docs/NIGHT_MODE.md": "deny",
-      "package.json": "deny",
-      "package-lock.json": "deny",
-      "opencode.json": "deny",
-      "scripts/night-mode.mjs": "deny",
-      ".nightmode/**": "deny",
-      ".github/**": "deny",
-      "netlify.toml": "deny"
+      "*": "deny"
     },
     "bash": {
-      "*": "deny",
-      "git status*": "allow",
-      "git diff*": "allow",
-      "git log*": "allow",
-      "git show*": "allow",
-      "git branch --show-current*": "allow",
-      "npm test*": "allow",
-      "npm run build*": "allow",
-      "npm run e2e*": "allow",
-      "npm run check*": "allow",
-      "npx playwright test*": "allow",
-      "ls*": "allow",
-      "cat*": "allow",
-      "head*": "allow",
-      "tail*": "allow",
-      "wc*": "allow",
-      "grep*": "allow",
-      "rg*": "allow",
-      "find*": "allow",
-      "git grep*": "allow",
-      "git ls-files*": "allow",
-      "npx tsc*": "allow",
-      "npx vitest*": "allow",
-      "npm run lint*": "allow"
-    }
+      "*": "deny"
+    },
+    "execute": "deny",
+    "code": "deny",
+    "run": "deny"
   },
   "agent": {
     "backend-coder": {
+      "steps": 300,
       "permission": {
+        "*": "deny",
+        "external_directory": "deny",
+        "execute": "deny",
+        "code": "deny",
+        "run": "deny",
+        "read": {
+          "*": "deny",
+          "docs/quest-build/AGENT_BRIEF.md": "allow",
+          "docs/quest-build/cards/P5-G3-readonly-plan.md": "allow",
+          "src/quest/sample/venue.ts": "allow",
+          "src/quest/sample/room3d.ts": "allow",
+          "src/styles/quest-room.css": "allow",
+          "src/quest/sample/RoomView.tsx": "allow"
+        },
         "edit": {
-          "*": "allow",
-          ".env": "deny",
-          ".env.*": "deny",
-          "*/.env": "deny",
-          "*/.env.*": "deny",
-          ".git/**": "deny",
-          ".gitignore": "deny",
-          "AGENTS.md": "deny",
-          "docs/NIGHT_MODE.md": "deny",
-          "package.json": "deny",
-          "package-lock.json": "deny",
-          "opencode.json": "deny",
-          "scripts/night-mode.mjs": "deny",
-          ".nightmode/**": "deny",
-          ".github/**": "deny",
-          "netlify.toml": "deny"
+          "*": "deny",
+          "src/quest/sample/RoomView.tsx": "allow"
         },
         "bash": {
           "*": "deny",
-          "git status*": "allow",
-          "git diff*": "allow",
-          "git log*": "allow",
-          "git show*": "allow",
-          "git branch --show-current*": "allow",
-          "npm test*": "allow",
-          "npm run build*": "allow",
-          "npm run e2e*": "allow",
-          "npm run check*": "allow",
-          "npx playwright test*": "allow",
-          "ls*": "allow",
-          "cat*": "allow",
-          "head*": "allow",
-          "tail*": "allow",
-          "wc*": "allow",
-          "grep*": "allow",
-          "rg*": "allow",
-          "find*": "allow",
-          "git grep*": "allow",
-          "git ls-files*": "allow",
-          "npx tsc*": "allow",
-          "npx vitest*": "allow",
-          "npm run lint*": "allow"
+          "npx tsc --noEmit -p tsconfig.json": "allow"
         }
-      },
-      "steps": 300
+      }
     },
-    "frontend-coder": {
+    "code-critic": {
+      "steps": 300,
       "permission": {
+        "*": "deny",
+        "external_directory": "deny",
+        "execute": "deny",
+        "code": "deny",
+        "run": "deny",
+        "read": {
+          "*": "deny",
+          "docs/quest-build/AGENT_BRIEF.md": "allow",
+          "docs/quest-build/cards/P5-G3-readonly-plan.md": "allow",
+          "src/quest/sample/venue.ts": "allow",
+          "src/quest/sample/room3d.ts": "allow",
+          "src/styles/quest-room.css": "allow",
+          "src/quest/sample/RoomView.tsx": "allow"
+        },
         "edit": {
-          "*": "allow",
-          ".env": "deny",
-          ".env.*": "deny",
-          "*/.env": "deny",
-          "*/.env.*": "deny",
-          ".git/**": "deny",
-          ".gitignore": "deny",
-          "AGENTS.md": "deny",
-          "docs/NIGHT_MODE.md": "deny",
-          "package.json": "deny",
-          "package-lock.json": "deny",
-          "opencode.json": "deny",
-          "scripts/night-mode.mjs": "deny",
-          ".nightmode/**": "deny",
-          ".github/**": "deny",
-          "netlify.toml": "deny"
-        }
-      },
-      "steps": 300
-    },
-    "api-designer": {
-      "permission": {
-        "edit": {
-          "*": "allow",
-          ".env": "deny",
-          ".env.*": "deny",
-          "*/.env": "deny",
-          "*/.env.*": "deny",
-          ".git/**": "deny",
-          ".gitignore": "deny",
-          "AGENTS.md": "deny",
-          "docs/NIGHT_MODE.md": "deny",
-          "package.json": "deny",
-          "package-lock.json": "deny",
-          "opencode.json": "deny",
-          "scripts/night-mode.mjs": "deny",
-          ".nightmode/**": "deny",
-          ".github/**": "deny",
-          "netlify.toml": "deny"
-        }
-      },
-      "steps": 300
-    },
-    "quick-draft": {
-      "permission": {
-        "edit": {
-          "*": "allow",
-          ".env": "deny",
-          ".env.*": "deny",
-          "*/.env": "deny",
-          "*/.env.*": "deny",
-          ".git/**": "deny",
-          ".gitignore": "deny",
-          "AGENTS.md": "deny",
-          "docs/NIGHT_MODE.md": "deny",
-          "package.json": "deny",
-          "package-lock.json": "deny",
-          "opencode.json": "deny",
-          "scripts/night-mode.mjs": "deny",
-          ".nightmode/**": "deny",
-          ".github/**": "deny",
-          "netlify.toml": "deny"
+          "*": "deny"
         },
         "bash": {
-          "*": "deny",
-          "git status*": "allow",
-          "git diff*": "allow",
-          "git log*": "allow",
-          "git show*": "allow",
-          "git branch --show-current*": "allow",
-          "npm test*": "allow",
-          "npm run build*": "allow",
-          "npm run e2e*": "allow",
-          "npm run check*": "allow",
-          "npx playwright test*": "allow",
-          "ls*": "allow",
-          "cat*": "allow",
-          "head*": "allow",
-          "tail*": "allow",
-          "wc*": "allow",
-          "grep*": "allow",
-          "rg*": "allow",
-          "find*": "allow",
-          "git grep*": "allow",
-          "git ls-files*": "allow",
-          "npx tsc*": "allow",
-          "npx vitest*": "allow",
-          "npm run lint*": "allow"
+          "*": "deny"
         }
-      },
-      "steps": 300
-    },
-    "docs-writer": {
-      "permission": {
-        "edit": {
-          "*": "allow",
-          ".env": "deny",
-          ".env.*": "deny",
-          "*/.env": "deny",
-          "*/.env.*": "deny",
-          ".git/**": "deny",
-          ".gitignore": "deny",
-          "AGENTS.md": "deny",
-          "docs/NIGHT_MODE.md": "deny",
-          "package.json": "deny",
-          "package-lock.json": "deny",
-          "opencode.json": "deny",
-          "scripts/night-mode.mjs": "deny",
-          ".nightmode/**": "deny",
-          ".github/**": "deny",
-          "netlify.toml": "deny"
-        }
-      },
-      "steps": 300
+      }
     }
   }
 }

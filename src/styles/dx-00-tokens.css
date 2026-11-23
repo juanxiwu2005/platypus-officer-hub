@@ -6,6 +6,8 @@
   --dur-press: 100ms;   /* the moment a control is pressed: feedback must feel immediate */
   --dur-fast: 150ms;    /* hover colour, small fades, menus appearing */
   --dur-base: 220ms;    /* panels and sheets moving in */
+  --dur-quest-shot: 10s; /* approved Quest-only, skippable prologue still */
+  --dur-quest-arrival: 5s; /* approved Quest-only guest arrival */
   --dur-slow: 320ms;    /* larger things settling */
   --ease-out: cubic-bezier(.2, .8, .2, 1);        /* things arriving: fast start, soft stop */
   --ease-in-out: cubic-bezier(.4, 0, .2, 1);      /* things moving from one place to another */
@@ -20,7 +22,7 @@
    changes state at once. Each package that moves things also writes its own fade-only version. */
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --dur-press: 1ms; --dur-fast: 1ms; --dur-base: 1ms; --dur-slow: 1ms;
+    --dur-press: 1ms; --dur-fast: 1ms; --dur-base: 1ms; --dur-slow: 1ms; --dur-quest-shot: 1ms; --dur-quest-arrival: 1ms;
     --spring-ui: linear; --spring-ui-dur: 1ms; --spring-pop: linear; --spring-pop-dur: 1ms;
   }
 }

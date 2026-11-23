@@ -1,0 +1,513 @@
+/**
+ * Rule library for the onboarding game "Mission: Speaker Night".
+ * Each rule quotes the ASU rules archive (03_Full_Rules_Archive.txt) verbatim.
+ * `record` is the catalog ID (src/data/policyCatalog.ts); `line` is the archive line number.
+ */
+export type QuestRole = "all" | "president" | "treasurer" | "events" | "marketing" | "secretary"
+
+export interface QuestRuleSource {
+  record: string
+  line: number
+  quote: string
+  /** Handbook section name for ASU-R-004; null for other records. */
+  section: string | null
+}
+
+export interface QuestRule {
+  /** "<mission>.<number>", for example "1.1". */
+  id: string
+  mission: number
+  /** Red-line rules must be answered correctly before the game counts as finished. */
+  redLine: boolean
+  /** The rule in plain English, at most 15 words. */
+  summary: string
+  sources: QuestRuleSource[]
+  /** Roles that act on this rule. */
+  leads: QuestRole[]
+  /** Cross-role handoff this rule implies, or null. */
+  handoff: string | null
+  /** Pip's hint, at most 12 words. Never the answer. */
+  hint: string
+}
+
+export const QUEST_RULES: readonly QuestRule[] = [
+  {
+    id: "1.1",
+    mission: 1,
+    redLine: true,
+    summary: "Only a top-three officer on the registration form submits budget requests.",
+    sources: [
+      {
+        record: "ASU-R-026",
+        line: 4521,
+        quote: "Only the top three officers of an organization should submit a budget request since they should’ve taken the required Appropriations Training course. Submissions from advisors or general members will not be considered.",
+        section: null,
+      },
+    ],
+    leads: ["president", "treasurer"],
+    handoff: "treasurer → top-three officer: a prepared budget request",
+    hint: "Check who is listed on the registration form.",
+  },
+  {
+    id: "1.2",
+    mission: 1,
+    redLine: false,
+    summary: "Every officer and the advisor complete anti-hazing training during registration.",
+    sources: [
+      {
+        record: "ASU-R-004",
+        line: 800,
+        quote: "All student organization officers and advisors will be required to complete anti-hazing training during the registration process.",
+        section: "Hazing Prevention",
+      },
+      {
+        record: "ASU-R-004",
+        line: 484,
+        quote: "These officers must complete the Student Organization Officer Training",
+        section: "Registering and Reregistering a Student Organization",
+      },
+    ],
+    leads: ["all"],
+    handoff: null,
+    hint: "One training applies to officers and advisors alike.",
+  },
+  {
+    id: "1.3",
+    mission: 1,
+    redLine: false,
+    summary: "A top-three officer must pass appropriations training with 100% before funding requests.",
+    sources: [
+      {
+        record: "ASU-R-037",
+        line: 5429,
+        quote: "In order to pass the training, a top 3 officer (for student organizations) must receive a 100% on each quiz and affirm that you completed the course in all funding requests you submit.",
+        section: null,
+      },
+    ],
+    leads: ["president", "treasurer"],
+    handoff: null,
+    hint: "Funding training is tied to the person who submits.",
+  },
+  {
+    id: "1.4",
+    mission: 1,
+    redLine: false,
+    summary: "USG funding requires at least 10 members on the roster.",
+    sources: [
+      {
+        record: "ASU-R-030",
+        line: 4955,
+        quote: "a minimum of 10 members is required for USG funding",
+        section: null,
+      },
+    ],
+    leads: ["secretary", "treasurer"],
+    handoff: "secretary → treasurer: an accurate roster",
+    hint: "Count the members on the roster.",
+  },
+  {
+    id: "2.1",
+    mission: 2,
+    redLine: true,
+    summary: "Register the event in the Event Registry 30 days before the event.",
+    sources: [
+      {
+        record: "ASU-R-004",
+        line: 594,
+        quote: "Events should be registered 30 days prior to the event.",
+        section: "Event Registry",
+      },
+    ],
+    leads: ["events"],
+    handoff: "events → Mazevo account holder: the RITM number",
+    hint: "Your room request will ask for a number.",
+  },
+  {
+    id: "2.2",
+    mission: 2,
+    redLine: true,
+    summary: "Publicize the event only after it is approved.",
+    sources: [
+      {
+        record: "ASU-R-004",
+        line: 598,
+        quote: "Advertising the event prior to approval may result in event cancellation, event postponement, and/or referral for conduct review.",
+        section: "Event Approval and Event Promotion",
+      },
+    ],
+    leads: ["marketing", "events"],
+    handoff: "events → marketing: the approval and RITM number",
+    hint: "Has the event been approved yet?",
+  },
+  {
+    id: "2.3",
+    mission: 2,
+    redLine: false,
+    summary: "Up to three registered officers may request Mazevo accounts; advisors cannot.",
+    sources: [
+      {
+        record: "ASU-R-013",
+        line: 2143,
+        quote: "User Accounts can be requested by up to three (3) elected officers",
+        section: null,
+      },
+      {
+        record: "ASU-R-013",
+        line: 2143,
+        quote: "Organization advisors are not eligible to serve as requestors for student organizations",
+        section: null,
+      },
+    ],
+    leads: ["president", "events"],
+    handoff: null,
+    hint: "Check who holds a Mazevo account.",
+  },
+  {
+    id: "2.4",
+    mission: 2,
+    redLine: false,
+    summary: "Request Memorial Union spaces at least 16 days before the event.",
+    sources: [
+      {
+        record: "ASU-R-015",
+        line: 2438,
+        quote: "A minimum of sixteen (16) days is required to reserve all reservable spaces including conference rooms, ballroom, and other large and/or outdoor programming spaces.",
+        section: null,
+      },
+    ],
+    leads: ["events"],
+    handoff: null,
+    hint: "Count back from the event date.",
+  },
+  {
+    id: "2.5",
+    mission: 2,
+    redLine: true,
+    summary: "Send the RITM number at least 14 days ahead or the event is cancelled.",
+    sources: [
+      {
+        record: "ASU-R-014",
+        line: 2294,
+        quote: "Failure to register an event and/or communicate a RITM Number (formerly Event Registry Number) 14 or more days in advance of the event will result in the cancellation of the event and applicable fees will be applied.",
+        section: null,
+      },
+    ],
+    leads: ["events"],
+    handoff: "events → Mazevo account holder: the RITM number",
+    hint: "Student Unions needs one number from the registry.",
+  },
+  {
+    id: "2.6",
+    mission: 2,
+    redLine: false,
+    summary: "The advisor must attend events with guest speakers or outside participants.",
+    sources: [
+      {
+        record: "ASU-R-004",
+        line: 453,
+        quote: "Advisor attendance is required for events that include guest speakers, performers, vendors, external partners, travel, contracts, or other activities involving individuals or entities outside of the organization.",
+        section: "Student Organization Advisor",
+      },
+    ],
+    leads: ["events", "president"],
+    handoff: "events → advisor: the event date",
+    hint: "Who must attend when outsiders take part?",
+  },
+  {
+    id: "3.1",
+    mission: 3,
+    redLine: false,
+    summary: "Include item quotes, vendor details, tax and shipping in budget requests.",
+    sources: [
+      { record: "ASU-R-037", line: 5544, quote: "make sure to include screenshots and quotes for the items you are requesting", section: null },
+      { record: "ASU-R-037", line: 5544, quote: "Don’t forget to add tax or shipping if needed for your request.", section: null },
+      { record: "ASU-R-037", line: 5544, quote: "Include the vendor name, description of the item(s), and the total of the items.", section: null },
+    ],
+    leads: ["events", "marketing", "treasurer"],
+    handoff: "events and marketing → treasurer: item details, quotes, tax and shipping",
+    hint: "What evidence would the person submitting your budget need?",
+  },
+  {
+    id: "3.2",
+    mission: 3,
+    redLine: true,
+    summary: "Submit funding requests four weeks before items are needed; allow six weeks for speakers.",
+    sources: [
+      { record: "ASU-R-037", line: 5476, quote: "the budget request is due at least 4 weeks prior to the items needed unless the request includes a speaker agreement, then the paperwork is due 6 weeks out from the event.", section: null },
+      { record: "ASU-R-038", line: 6580, quote: "Events that fail to meet the required submission deadlines are automatically ineligible for funding.", section: null },
+    ],
+    leads: ["treasurer", "events"],
+    handoff: null,
+    hint: "Which part of this event needs the longer lead time?",
+  },
+  {
+    id: "3.3",
+    mission: 3,
+    redLine: true,
+    summary: "Purchase totals must match approved amounts; ask Appropriations before changing them.",
+    sources: [
+      { record: "ASU-R-037", line: 5594, quote: "The total estimated amount MUST match the amount approved from your Budget Request.", section: null },
+      { record: "ASU-R-026", line: 4540, quote: "Contact the USG-T Appropriations Committee.", section: null },
+    ],
+    leads: ["treasurer"],
+    handoff: null,
+    hint: "Compare the approved amount with the final purchase total.",
+  },
+  {
+    id: "3.4",
+    mission: 3,
+    redLine: true,
+    summary: "Stay within each approved budget line; savings on one cannot increase another.",
+    sources: [
+      { record: "ASU-R-029", line: 4849, quote: "Your awarded funds can only be spent on the items included in your approved budget request at the amounts requested.", section: null },
+      { record: "ASU-R-029", line: 4849, quote: "You will not be able to spend $150 on fliers even if you only spent $50 on pens.", section: null },
+    ],
+    leads: ["treasurer", "marketing"],
+    handoff: null,
+    hint: "Does an unchanged overall total keep each line within its limit?",
+  },
+  {
+    id: "3.5",
+    mission: 3,
+    redLine: true,
+    summary: "Wait for approval before purchasing; earlier expenses will not be reimbursed.",
+    sources: [
+      { record: "ASU-R-025", line: 4363, quote: "Purchases made before approval will not be reimbursed.", section: null },
+      { record: "ASU-R-038", line: 6625, quote: "Budget requests for expenses already purchased or partially purchased prior to approval will be automatically denied and not reimbursed.", section: null },
+    ],
+    leads: ["all"],
+    handoff: null,
+    hint: "Check whether approval came before the purchase.",
+  },
+  {
+    id: "3.6",
+    mission: 3,
+    redLine: false,
+    summary: "USG funds cannot cover expedited shipping, production or processing fees.",
+    sources: [
+      { record: "ASU-R-028", line: 4768, quote: "Expedited shipping, production, or processing fees", section: null },
+      { record: "ASU-R-028", line: 4792, quote: "ASU cannot pay for these items, even if they have been approved to be funded by USG.", section: null },
+    ],
+    leads: ["treasurer"],
+    handoff: null,
+    hint: "Check the prohibited-expense list before paying for speed.",
+  },
+  {
+    id: "3.7",
+    mission: 3,
+    redLine: false,
+    summary: "Attach event flyers to purchase requests; wait 24 hours after budget approval.",
+    sources: [
+      { record: "ASU-R-029", line: 4881, quote: "All clubs and organizations MUST attach the flyer/advertisement used to promote an event to all purchase requests.", section: null },
+      { record: "ASU-R-037", line: 5585, quote: "You must wait 24-hours since your bill has been approved in order to submit a purchase request.", section: null },
+      { record: "ASU-R-035", line: 5194, quote: "Be sure your purchase request is submitted by a top three officer", section: null },
+    ],
+    leads: ["treasurer", "marketing"],
+    handoff: "marketing → treasurer: final event flyer or advertisement",
+    hint: "What promotional material does the purchase request need?",
+  },
+  {
+    id: "4.1",
+    mission: 4,
+    redLine: false,
+    summary: "USG-T event funding covers external speakers, panelists or performers up to $5,000 per event.",
+    sources: [
+      { record: "ASU-R-038", line: 6556, quote: "Maximum funding for external speakers, panelists, or performers is $5,000 per event.", section: null },
+    ],
+    leads: ["treasurer", "events"],
+    handoff: null,
+    hint: "Check the per-event cap before promising the full fee.",
+  },
+  {
+    id: "4.2",
+    mission: 4,
+    redLine: true,
+    summary: "Students must not sign contracts; send agreements through the university process.",
+    sources: [
+      { record: "ASU-R-037", line: 5676, quote: "Students do not have signature authority.", section: null },
+      { record: "ASU-R-037", line: 5677, quote: "DO NOT SIGN any contracts with vendors.", section: null },
+      { record: "ASU-R-004", line: 602, quote: "Any agreement signed by a student or student organization may result in personal liability for the individual and/or the organization.", section: "Contracts for Vendors, Guest Speakers, or Performers" },
+    ],
+    leads: ["events", "treasurer"],
+    handoff: "events → Business Office: the unsigned speaker or vendor agreement",
+    hint: "Who has authority to sign for the university?",
+  },
+  {
+    id: "4.3",
+    mission: 4,
+    redLine: false,
+    summary: "Vendor invoices must be made out to Arizona State University.",
+    sources: [
+      { record: "ASU-R-029", line: 4891, quote: "The USG-T business office is unable to remit payment for invoices made out to anyone other than \"Arizona State University.\"", section: null },
+    ],
+    leads: ["events", "treasurer"],
+    handoff: null,
+    hint: "Check the bill-to name before requesting an invoice.",
+  },
+  {
+    id: "4.4",
+    mission: 4,
+    redLine: true,
+    summary: "Use Sun Devil Hospitality at Memorial Union; request food exceptions 14 days ahead.",
+    sources: [
+      { record: "ASU-R-015", line: 2392, quote: "ASU Student Unions and Centers have an exclusive catering service with Sun Devil Hospitality. No other off-site catering services or third party food and beverage are permitted.", section: null },
+      { record: "ASU-R-004", line: 648, quote: "A food waiver must be submitted 14 days in advance of the event.", section: "Food Exception Request" },
+    ],
+    leads: ["events"],
+    handoff: null,
+    hint: "Does this venue have an exclusive caterer?",
+  },
+  {
+    id: "4.5",
+    mission: 4,
+    redLine: true,
+    summary: "Do not serve home-prepared food or drink at student organization campus events.",
+    sources: [
+      { record: "ASU-R-004", line: 633, quote: "No home-prepared food or drink is allowed at campus events sponsored by student organizations.", section: "Food at Events" },
+    ],
+    leads: ["all"],
+    handoff: null,
+    hint: "Where was the food prepared?",
+  },
+  {
+    id: "4.6",
+    mission: 4,
+    redLine: false,
+    summary: "Food purchases require a Business Meals Form, attendee list, and officer and advisor signatures.",
+    sources: [
+      { record: "ASU-R-037", line: 5655, quote: "Any purchase involving edible products must include a Business Meals Form and a list of every attendee.", section: null },
+      { record: "ASU-R-037", line: 5718, quote: "must be signed by a club officer and your advisor", section: null },
+    ],
+    leads: ["treasurer", "secretary"],
+    handoff: "secretary → treasurer: the complete attendee list",
+    hint: "What records and signatures does a food purchase need?",
+  },
+  {
+    id: "5.1",
+    mission: 5,
+    redLine: false,
+    summary: "Obtain approval, the RITM number and confirmed room before promoting the event.",
+    sources: [
+      { record: "ASU-R-004", line: 598, quote: "Once an event has been approved through the appropriate university processes, including the Event Registry, student organizations can advertise, promote, and/or publish events", section: "Event Approval and Event Promotion" },
+    ],
+    leads: ["events", "marketing"],
+    handoff: "events → marketing: event approval, RITM number and confirmed room",
+    hint: "Which confirmation does marketing need from the events lead?",
+  },
+  {
+    id: "5.2",
+    mission: 5,
+    redLine: false,
+    summary: "Place “at ASU®” after the club name; avoid @, sunburst logos and seals.",
+    sources: [
+      { record: "ASU-R-004", line: 390, quote: "Student organizations may use the geographical designation “at Arizona State University®”, “at ASU®”, or “at (ASU® College/School/Campus name)” at the end of their name with the appropriate licensing symbol included.", section: "Organization Name and Logo" },
+      { record: "ASU-R-004", line: 390, quote: "The word “at” must be used and not the @ symbol.", section: "Organization Name and Logo" },
+      { record: "ASU-R-004", line: 396, quote: "Students and student groups may not use the ASU sunburst logo or the seal.", section: "Organization Name and Logo" },
+    ],
+    leads: ["marketing"],
+    handoff: null,
+    hint: "Check the naming convention and which university marks are reserved.",
+  },
+  {
+    id: "5.3",
+    mission: 5,
+    redLine: false,
+    summary: "Printed marketing materials must not exceed $500 per event.",
+    sources: [
+      { record: "ASU-R-038", line: 6552, quote: "Printed marketing materials (e.g., flyers, posters) must not exceed $500 per event.", section: null },
+    ],
+    leads: ["marketing", "treasurer"],
+    handoff: null,
+    hint: "Check the printed-marketing cap before placing the order.",
+  },
+  {
+    id: "5.4",
+    mission: 5,
+    redLine: false,
+    summary: "Use licensed merchandise vendors; flag logos and attach artwork to the RFF.",
+    sources: [
+      { record: "ASU-R-009", line: 1530, quote: "Student clubs must use a licensed vendor for all merchandise.", section: null },
+      { record: "ASU-R-047", line: 9742, quote: "For any printed material or item containing an ASU logo, image, trademark, mascot, or branded content, \"Expense", section: null },
+      { record: "ASU-R-047", line: 9743, quote: "Includes Logo\" must be selected on the RFF.", section: null },
+      { record: "ASU-R-047", line: 9744, quote: "A copy of the artwork, design proof, mockup, screenshot, or image being used must be attached to the RFF for review.", section: null },
+    ],
+    leads: ["marketing", "treasurer"],
+    handoff: "marketing → treasurer: licensed vendor, Expense Includes Logo selection, and artwork",
+    hint: "Check the vendor and the form’s artwork fields.",
+  },
+  {
+    id: "6.1",
+    mission: 6,
+    redLine: false,
+    summary: "Weekday evening sound ends by 9 p.m.; maximum 75 dB measured at 30 feet.",
+    sources: [
+      { record: "ASU-R-015", line: 2376, quote: "Amplification is only permitted between the hours of 11:30am and 1:00pm and 5:00pm and 9:00pm Monday through Friday and 9:00am-9:00pm Saturday.", section: null },
+      { record: "ASU-R-015", line: 2376, quote: "Amplification may not exceed 75 decibels at a distance of 30 feet from the source of the amplification.", section: null },
+    ],
+    leads: ["events"],
+    handoff: null,
+    hint: "Which venue limits apply to the time and sound level?",
+  },
+  {
+    id: "6.2",
+    mission: 6,
+    redLine: true,
+    summary: "Call 911 for campus emergencies, identify ASU, then notify the Dean after medical transport.",
+    sources: [
+      { record: "ASU-R-004", line: 905, quote: "call 911 and tell the dispatchers you are on an ASU Campus and need to be connected to the ASU Police Department", section: "Medical Emergency Procedures" },
+      { record: "ASU-R-004", line: 914, quote: "If anyone is transported to a hospital or medical facility for treatment, please notify the ASU Dean of Students Office via this form.", section: "Medical Emergency Procedures" },
+    ],
+    leads: ["all"],
+    handoff: null,
+    hint: "Who can dispatch emergency help to the campus?",
+  },
+  {
+    id: "6.3",
+    mission: 6,
+    redLine: false,
+    summary: "Do not sell raffle tickets; free door prizes require equal chances for everyone.",
+    sources: [
+      { record: "ASU-R-004", line: 780, quote: "ASU and its departments and administrative units are NOT permitted to conduct raffles.", section: "Raffles" },
+      { record: "ASU-R-004", line: 780, quote: "Using an actual raffle ticket for a door prize is permitted, as long as attendees are not required to pay for the raffle ticket and everyone has an equal chance of receiving the prize.", section: "Raffles" },
+    ],
+    leads: ["marketing", "events"],
+    handoff: null,
+    hint: "Does anyone have to pay for a chance to win?",
+  },
+  {
+    id: "7.1",
+    mission: 7,
+    redLine: true,
+    summary: "Submit all itemized receipts to the Business Office within 10 days.",
+    sources: [
+      { record: "ASU-R-037", line: 5726, quote: "All itemized receipts need to be turned into the Business Office within 10 days", section: null },
+    ],
+    leads: ["all", "treasurer"],
+    handoff: "payer → treasurer: itemized receipts for Business Office submission",
+    hint: "Check the receipt deadline before putting paperwork aside.",
+  },
+  {
+    id: "7.2",
+    mission: 7,
+    redLine: false,
+    summary: "Unused funding cannot roll over; submit a new budget request each semester.",
+    sources: [
+      { record: "ASU-R-037", line: 5730, quote: "If funding was not used in a previous semester, it cannot be rolled over into the next semester. Therefore, a new budget request must be submitted each semester.", section: null },
+    ],
+    leads: ["treasurer", "president"],
+    handoff: null,
+    hint: "What happens to funding left from the previous semester?",
+  },
+  {
+    id: "7.3",
+    mission: 7,
+    redLine: false,
+    summary: "Missing required paperwork after approval causes the Business Office to revoke approved funding.",
+    sources: [
+      { record: "ASU-R-038", line: 6630, quote: "If a student, club, or organization fails to submit required paperwork following the approval of a Budget Request, the USG-T Business Office shall be required to rescind and deny the previously approved request.", section: null },
+    ],
+    leads: ["treasurer"],
+    handoff: null,
+    hint: "Does approval remove the obligation to submit the required paperwork?",
+  },
+]

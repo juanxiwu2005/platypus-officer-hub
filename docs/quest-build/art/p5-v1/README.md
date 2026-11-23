@@ -1,0 +1,3 @@
+# P5 art extension
+
+Owner accepted P4 local play and requested the same cast/style. prologue-empty.png in src/quest/assets is a built-in image generation edit of the accepted Club HQ: original room geometry and palette, quiet sunset lighting, people/Pip/labels/HUD removed. Runtime captions and controls are DOM. Exact prompt is beside this file; original generated PNG bytes are unchanged. Existing HQ/Countdown/consequence/Pip assets and P3 cast references remain unchanged. The native venue model uses token-derived flat shading and actual 3D furniture geometry; no dependency or real venue plan is introduced.

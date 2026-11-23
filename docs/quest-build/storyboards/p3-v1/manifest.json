@@ -1,0 +1,144 @@
+[
+  {
+    "id": "01",
+    "slug": "01-club-hq",
+    "width": 1672,
+    "height": 941,
+    "sha256": "8896db26b18f762302e9199286ee248671ee4f50b8364810faedb2cd0cfe708c",
+    "bytes": 2230473,
+    "method": "built-in image generation",
+    "review": "Six fictional adults and Pip present; clothing/skin/hair identities established; all four workstations, 49-day story context, gauges, muted/CC controls and legible short English labels visible. Accepted as continuity anchor for the remaining frames.",
+    "status": "PLANNER_REVIEWED; OWNER_VISUAL_ACCEPTANCE_PENDING",
+    "title": "Club HQ",
+    "caption": "Meet the crew and choose among the four workstations.",
+    "instruction": "Choose your next move.",
+    "instruction_words": 4,
+    "speech_bubbles": [
+      "Welcome to Club HQ!",
+      "Ready when you are."
+    ],
+    "max_bubble_words": 4,
+    "file": "01-club-hq.png",
+    "generation_attempts": 1
+  },
+  {
+    "id": "02",
+    "slug": "02-countdown-wall",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1977466,
+    "sha256": "1c435fd82d4e5ba978418162517e7e6a72db321da8d99d0c4e50bcb6963a79cd",
+    "method": "built-in image generation",
+    "reference_frames": [
+      "01"
+    ],
+    "review": "Riley/Morgan and Pip match HQ; readable drag interaction; approval gate precedes locked publicity; short English and mute/CC controls verified.",
+    "status": "PLANNER_REVIEWED; OWNER_VISUAL_ACCEPTANCE_PENDING",
+    "title": "Countdown Wall",
+    "caption": "Drag tasks onto the timeline; publicity stays behind approval.",
+    "instruction": "Drag each task before its deadline.",
+    "instruction_words": 6,
+    "speech_bubbles": [
+      "Teaser goes up tonight?"
+    ],
+    "max_bubble_words": 4,
+    "file": "02-countdown-wall.png",
+    "generation_attempts": 1
+  },
+  {
+    "id": "03",
+    "slug": "03-cancelled-rewind",
+    "width": 1672,
+    "height": 941,
+    "bytes": 1929115,
+    "sha256": "3bdf0e7ec6e7cd7a44fed85048ea785459df1225de12f96fea0862a8daf6f500",
+    "method": "built-in image generation",
+    "reference_frames": [
+      "01"
+    ],
+    "review": "Riley/Morgan and Pip match HQ; late-request consequence and Rewind affordance clear; English spelling checked; no points or quiz.",
+    "status": "PLANNER_REVIEWED; OWNER_VISUAL_ACCEPTANCE_PENDING",
+    "title": "Cancelled + Rewind",
+    "caption": "See a late-request consequence, then rewind and change the plan.",
+    "instruction": "Go back. Change the plan.",
+    "instruction_words": 5,
+    "speech_bubbles": [],
+    "max_bubble_words": 0,
+    "file": "03-cancelled-rewind.png",
+    "generation_attempts": 1
+  },
+  {
+    "id": "04",
+    "slug": "04-venue-builder",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2035464,
+    "sha256": "b50565ab5c86c76454f1a4da3e0beaa4241d85f74ff72023055cf0e81d7feec4",
+    "method": "built-in image edit",
+    "reference_frames": [
+      "04 first pass"
+    ],
+    "generation_attempts": 2,
+    "review": "Reserved front seating and accessibility spaces are now beside the stage; broad center/side aisles, two exits, inside-room catering and a visible flat cable cover are readable. Riley/Sam, Pip, HUD and palette preserved.",
+    "status": "PLANNER_REVIEWED; OWNER_VISUAL_ACCEPTANCE_PENDING",
+    "title": "Venue Builder",
+    "caption": "Build the room with six visible venue and accessibility checks.",
+    "instruction": "Build a room that works for everyone.",
+    "instruction_words": 7,
+    "speech_bubbles": [
+      "This looks inviting!",
+      "Accessible and smooth.",
+      "Check access and flow."
+    ],
+    "max_bubble_words": 4,
+    "file": "04-venue-builder.png"
+  },
+  {
+    "id": "05",
+    "slug": "05-showtime",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2073698,
+    "sha256": "475d86fb398e974cc2b96a3fdf4221bb2198a950c232dce56a1190575a10b952",
+    "method": "built-in image generation",
+    "reference_frames": [
+      "01",
+      "04 corrected"
+    ],
+    "review": "All six team identities match the HQ, including Dr. Lee and Riley. Corrected venue geometry and front reserved/accessibility seating carry through. Non-graphic fictional adult guest, empty dial-pad field, all keypad digits correct, no countdown/timer, hint-only Pip, English labels and mute/CC controls verified.",
+    "status": "PLANNER_REVIEWED; OWNER_VISUAL_ACCEPTANCE_PENDING",
+    "title": "Showtime",
+    "caption": "Choose the next emergency action without a countdown.",
+    "instruction": "Take the next step.",
+    "instruction_words": 4,
+    "speech_bubbles": [
+      "Someone needs help.",
+      "Who should you call?"
+    ],
+    "max_bubble_words": 4,
+    "file": "05-showtime.png",
+    "generation_attempts": 1
+  },
+  {
+    "id": "06",
+    "slug": "06-credits",
+    "width": 1672,
+    "height": 941,
+    "bytes": 2242658,
+    "sha256": "281ecfd718e051a7fbaabb668820875f4128b88567f7efd8aabbb9ca56a0f3ba",
+    "method": "built-in image generation",
+    "reference_frames": [
+      "01"
+    ],
+    "generation_attempts": 1,
+    "review": "All six adults and Pip match HQ. Readable newspaper headline and Produced by you; complete seven-stage Crew/Date/Budget/Speaker/Venue/Showtime/Handoff flow; no old countdown or score/badges.",
+    "status": "PLANNER_REVIEWED; OWNER_VISUAL_ACCEPTANCE_PENDING",
+    "title": "The Final Edition",
+    "caption": "Celebrate the event with a newspaper and its seven-stage flow.",
+    "instruction": "Your event. Ready for the next crew.",
+    "instruction_words": 7,
+    "speech_bubbles": [],
+    "max_bubble_words": 0,
+    "file": "06-credits.png"
+  }
+]
