@@ -27,7 +27,8 @@ test("dates and counts use equal-width digits", async ({ page }) => {
   await page.goto("/#/")
   await page.evaluate(() => window.localStorage.clear())
   await page.reload()
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
+  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
   // Concept F: the reminder centre's counts (Fix first) and the Due dates in a person's email panel.
   const count = page.getByTestId("rq-fix").locator(".rq-n")
   await expect(count).toBeVisible()

@@ -20,7 +20,7 @@ async function openHistory(page: Page) {
 const closeHistory = async (page: Page) => { await page.getByRole("button", { name: "Close details" }).click(); await closeRail(page) }
 const node = (state: DemoState, id = ROOM) => state.nodes.find(n => n.id === id)!
 
-/** Only saved input fixtures are installed. Enabling, confirming, assigning and sending use the real UI. */
+/** Only saved input fixtures are installed (an old save without a plan); loading upgrades it (S2). Confirming, assigning and sending use the real UI. */
 async function openLegacy(page: Page, mode: ReminderMode, options: { history?: boolean; count?: number } = {}) {
   await page.goto("/#/tasks")
   await savedDemo(page)
@@ -49,17 +49,21 @@ async function openLegacy(page: Page, mode: ReminderMode, options: { history?: b
   await page.evaluate(({ key, state }) => localStorage.setItem(key, JSON.stringify(state)), { key: KEY, state: scheduled })
   await page.goto("/#/")
   await page.reload()
-  await expect(page.getByTestId("reminder-plan-status")).toBeVisible()
   await closeRail(page)
+  await expect.poll(async () => (await read(page)).reminderRuntime?.version).toBe(2)
   const loaded = await read(page)
   expect(node(loaded).clubDeadline).toBe(TODAY)
+  // The automatic upgrade keeps every setting and all earlier history.
+  expect(loaded.org.settings).toEqual(scheduled.org.settings)
+  expect(loaded.nudges).toEqual(scheduled.nudges)
   return loaded
 }
 
+/** S2: a loaded old save is already on the current plan; the "Enable updated reminders" card never shows. */
 async function activate(page: Page) {
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
   await expect.poll(async () => (await read(page)).reminderRuntime?.version).toBe(2)
   await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "Enable updated reminders", exact: true })).toHaveCount(0)
 }
 async function detail(page: Page, id = ROOM) {
   await page.goto(`/#/tasks?node=${encodeURIComponent(id)}`)
@@ -106,9 +110,9 @@ test.afterEach(async ({ page }) => {
   expect(observations.get(page)!.errors, "the task and reminder pages have no uncaught browser errors").toEqual([])
 })
 
-test("an old save explicitly enables the plan without changing custom settings or history, and Details uses the approved universal submission layout", async ({ page }, info) => {
+test("an old save is upgraded on load without changing custom settings or history, and Details uses the approved universal submission layout", async ({ page }, info) => {
   const before = await openLegacy(page, "review_then_auto", { history: true })
-  expect(before.reminderRuntime).toBeUndefined()
+  expect(before.reminderRuntime).toMatchObject({ version: 2, mailRequiredAfter: 0 })
   await openHistory(page)
   await expect(page.getByTestId("rq-sent")).toContainText("Recipient not recorded")
   await closeHistory(page)
@@ -145,11 +149,12 @@ test("an old save explicitly enables the plan without changing custom settings o
   await screenshot(page, info, "details-universal-submission")
   await page.goto("/#/settings?reminders=1")
   await expect(page.getByRole("heading", { level: 1, name: "Settings", exact: true })).toBeVisible()
-  await expect(page.getByTestId("reminder-plan-settings")).toContainText("3 days overdue")
+  await expect(page.getByTestId("reminder-plan-settings")).toHaveText("At most 6 reminders per person a week. Review plan")
   await page.getByText("Deadline and follow-up defaults", { exact: true }).click()
-  await expect(page.getByRole("spinbutton", { name: "Legacy reminder 1 day", exact: true })).toHaveValue("4")
-  await expect(page.getByRole("spinbutton", { name: "Legacy reminder 1 day", exact: true })).toBeDisabled()
+  await expect(page.getByRole("spinbutton", { name: "Private check day", exact: true })).toHaveValue("11")
+  await expect(page.getByRole("spinbutton", { name: /Legacy reminder/ })).toHaveCount(0)
   expect((await read(page)).org.settings).toEqual(before.org.settings)
+  expect((await read(page)).org.settings.silenceProtocol.nudgeDays).toEqual([4, 8])
 })
 
 test("Send all persists complete unique-link snapshots, survives reload, and recognizes a same-day owner reply before reassignment", async ({ page }, info) => {

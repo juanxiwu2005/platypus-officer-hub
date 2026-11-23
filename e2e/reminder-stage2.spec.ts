@@ -29,7 +29,8 @@ async function openMail(page: Page, waiting = false) {
   await page.goto("/#/")
   await page.reload()
   await closeRail(page)
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
+  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
   await expect.poll(async () => (await demo(page)).reminderRuntime?.version).toBe(2)
   // Concept F: the reminder is part of the recipient's email for today, opened from the Reminders page.
   const recipientId = waiting ? "sam" : node.ownerId!

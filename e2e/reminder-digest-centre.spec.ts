@@ -21,7 +21,8 @@ test.beforeEach(async ({ page, context }) => {
   })
   await page.reload()
   await closeRail(page)
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
+  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
   await expect(page.getByTestId("rq-summary")).toBeVisible()
 })
 

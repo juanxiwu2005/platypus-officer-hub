@@ -86,7 +86,7 @@ test("AI off: a command becomes a labelled change set; owner edits apply and rej
 test("top tasks and the reminder centre's risk marks come from the app; a person's email is a rule-written draft with one entry per task", async ({ page }) => {
   let aiCalls = 0
   await page.route("**/api/nudge/draft", r => { aiCalls++; return r.fulfill({ json: { whyItMatters: "We build a stronger club together.", source: "ai" } }) })
-  await enableUpdatedReminders(page)
+  await enableUpdatedReminders(page, "review_then_self")   // the Gmail draft path; the sample club starts on review_then_auto
   const people = page.getByTestId("rq-people")
   await expect(people.getByTestId("rq-person-task").first().getByTestId("forecast").getByRole("button")).toHaveAttribute("aria-label", /At risk/)
   await ask(page, "What are my top 5 tasks?")

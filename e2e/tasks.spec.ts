@@ -83,7 +83,10 @@ test("finance completion stays in Event Budget instead of reporting an unsaved D
   expect(await savedTask(page, before.id)).toEqual(before)
 })
 
-test("a ten-day jump creates the five private stages and a recovery task, with human approval for takeover", async ({ page }) => {
+// S2: the demo always has a reminder plan now, so the two legacy reminder days (3 and 5) no longer become stages; the rule engine's
+// reminders replace them. The three leadership stages remain. Under the plan an owner change ends the private follow-up case
+// (afterReminderAction), so after the takeover is approved the case shows as stopped and offers no further approval.
+test("a ten-day jump creates the three leadership stages and a recovery task, with human approval for takeover", async ({ page }) => {
   await page.goto("/#/tasks")
   await expect(page.getByRole("heading", { name: "Tasks", exact: true })).toBeVisible()
   const initialToday = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).today as string)
@@ -94,14 +97,17 @@ test("a ten-day jump creates the five private stages and a recovery task, with h
   await expect(page.getByTestId("demo-date")).toContainText(expectedLabel)
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).today)).toBe(expectedDay.toISOString().slice(0, 10))
   const log = page.getByTestId("protocol-log")
-  await expect(log.locator("li")).toHaveCount(5)
-  for (const day of [3, 5, 7, 8, 10]) await expect(log.getByText(new RegExp(`^Day ${day} ·`))).toBeVisible()
+  await expect(log.locator("li")).toHaveCount(3)
+  for (const day of [7, 8, 10]) await expect(log.getByText(new RegExp(`^Day ${day} ·`))).toBeVisible()
+  for (const day of [3, 5]) await expect(log.getByText(new RegExp(`^Day ${day} ·`))).toHaveCount(0)
   await expect(log).toContainText("24 hours")
   await expect(log).toContainText("Jordan Patel")
+  await expect(log.getByRole("button", { name: "Approve recovery timeline", exact: true })).toBeVisible()
+  await expect(log).not.toContainText("stopped")
   await log.getByRole("button", { name: "Approve suggested owner", exact: true }).click()
-  await expect(log.getByRole("button", { name: "Temporary owner assigned" })).toBeDisabled()
-  await log.getByRole("button", { name: "Approve recovery timeline", exact: true }).click()
-  await expect(log.getByRole("button", { name: "Recovery plan applied" })).toBeDisabled()
+  await expect.poll(async () => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "t-silence").ownerId)).toBe("alex")
+  await expect(log).toContainText("stopped")
+  await expect(log.getByRole("button")).toHaveCount(0)
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.some((n: { id: string }) => n.id.startsWith("retro:")))).toBe(true)
   await viewAs(page, "maya")
   await expect(page.getByTestId("president-review")).toHaveCount(0)
