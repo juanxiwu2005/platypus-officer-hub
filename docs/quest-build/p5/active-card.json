@@ -3,7 +3,7 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-06-comms-scenes.md",
+  "card": "docs/quest-build/cards/P5-06A-handoff.md",
   "readFiles": [
     "src/quest/sample/model.ts",
     "src/quest/sample/decisions.ts",
@@ -11,8 +11,8 @@
     "src/styles/quest-foundation.css"
   ],
   "writeFiles": [
-    "src/quest/sample/CommsScenes.tsx",
-    "src/styles/quest-comms.css"
+    "src/quest/sample/HandOff.tsx",
+    "src/styles/quest-handoff.css"
   ],
   "agentCommands": [
     "npx tsc --noEmit -p tsconfig.json"
