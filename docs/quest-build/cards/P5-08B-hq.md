@@ -20,7 +20,7 @@ No unlisted source/docs/configuration/directories/archives, installs/dependencie
 
 
 ## Critical completion and readonly boundary
-The Date chapter/mission is complete ONLY after state.completed includes advisor (booking+timeline+advisor), not merely timeline. Use advisor for Date rail readiness. Venue only after venue. Venue Table uses canEnter(state,"handoff"), never a direct unlock. Do not create any successful history/state in this component. New rehearsal/download/replay call only provided callbacks. Existing business workflow/store remains untouched.
+The Date chapter/mission is complete ONLY after state.completed includes advisor (booking+timeline+advisor), not merely timeline. Require booking, timeline and advisor together for Date/Turnout/completion-caption readiness; advisor alone is necessary but insufficient for an incomplete state. Venue only after venue. Venue Table uses canEnter(state,"handoff"), never a direct unlock. Do not create any successful history/state in this component. New rehearsal/download/replay call only provided callbacks. Existing business workflow/store remains untouched.
 
 ## Stable adapter
 IntroHQ.tsx contains only named reexports Prologue from ./Prologue and ClubHQ from ./ClubHQ (optional exported prop types). No state, hooks, timer, styles, logic or duplicate implementation here. This preserves the existing future Sample integration API. ClubHQ imports ../../styles/quest-story.css and approved ../assets/club-hq.png. This CSS contains ONLY new HQstyles, namespaced sample-hq-, and scoped descendants of that new root if needed. Do not redefine .quest-hq-caption globally or include Prologue CSS; Prologue imports its own stylesheet. Reuse P4 quest-hq/quest-hq-art/quest-stations crop and styling; decorative fill0/100has no animation/score.
@@ -29,3 +29,5 @@ Keep all original station/gauge/chapter/replay/download behaviors, responsive an
 
 ## Done
 Only npx tsc --noEmit -p tsconfig.json. Final10tests and planner real-browser HQgates/replay/mobile/word checks before adoption. Short truthful English handoff.
+
+Boundary clarification after independent review: a partial completed set is not a completed Date mission. Require all three exact Mission2stageIDs for the derived Date/Turnout/caption boolean, keeping canEnter for Venue Table. Keep Crew/other chapters Later. Safety gauge label is Safety, ready status Room ready; lit Date/Venue text explicitly includes Ready so color is not the only cue. No new business logic, scoring or altered predicate for other gauges.
