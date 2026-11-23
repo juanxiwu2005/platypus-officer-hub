@@ -4,11 +4,11 @@ import { DEFAULT_PERSONAL_BUFFER, computeSchedule, forecastClock, personalBuffer
 export const FORECAST_RUNS = 1000
 export const EFFORT: Record<Tier, [number, number]> = { light: [1, 2], medium: [3, 5], heavy: [5, 10] }
 export const FORECAST_ASSUMPTIONS = [
-  "1,000 seeded runs; independent uniform draws. Light 1–2, medium 3–5, heavy 5–10 student working days (1–2 work weeks).",
-  "Unfinished work starts now after all dependencies; close-out starts after the event. Busy weeks, finals and semester breaks are skipped for student work.",
-  "School submission lead times are R06/R07/R09/R10, not measured approval durations. When approval is still pending, the model uses those lead times plus 2–4 working days as a conservative planning assumption.",
-  "USG cold start: allow at least 6–8 calendar weeks from a new funding request. Source: owner planning experience F3, PRODUCT_PLAN §9; not official turnaround data. No cross-club approval observations are claimed.",
-  "Personal buffer is used only for scheduling, never for contributions. Percentages describe assumptions, not a guarantee. Missing owners or dependency loops are treated as unresolved.",
+  "Light tasks take 1–2 working days, medium 3–5, heavy 5–10.",
+  "Open work starts after the steps it waits for. Busy weeks, finals and breaks are skipped.",
+  "Pending ASU approvals get the ASU lead time plus 2–4 working days.",
+  "A first USG funding request needs at least 6–8 weeks. From planning experience, not official data.",
+  "Extra days never count toward contributions. Percentages are estimates, not a guarantee. Steps with no owner count as unresolved.",
 ]
 export type ForecastColor = "green" | "yellow" | "red"
 export const forecastColor = (p: number): ForecastColor => p >= .8 ? "green" : p >= .5 ? "yellow" : "red"

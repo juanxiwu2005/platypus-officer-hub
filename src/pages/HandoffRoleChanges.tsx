@@ -18,7 +18,6 @@ export function RoleChanges({ roleId }: { roleId: string }) {
   const openTasks = roleTasks(state, role, role.holderId).filter(n => n.status !== "done")
   const myContacts = state.contacts.filter(c => c.ownerRoleId === roleId)
   const toggle = (list: string[], set: (v: string[]) => void, id: string) => set(list.includes(id) ? list.filter(x => x !== id) : [...list, id])
-  const target = state.roles.find(r => r.id === to)
   return <details className="step-card" data-testid="role-changes">
     <summary><b>Change this role</b></summary>
     <p className="small"><b>Move work to another role</b></p>
@@ -26,11 +25,11 @@ export function RoleChanges({ roleId }: { roleId: string }) {
     {openTasks.length + myContacts.length === 0 ? <p className="small muted">This role has no open tasks or contacts.</p> : <>
       {openTasks.slice(0, 12).map(n => <label key={n.id} className="check-label"><input type="checkbox" checked={tasks.includes(n.id)} onChange={() => toggle(tasks, setTasks, n.id)} /><span className="small">{n.title}</span></label>)}
       {myContacts.map(c => <label key={c.id} className="check-label"><input type="checkbox" checked={contacts.includes(c.id)} onChange={() => toggle(contacts, setContacts, c.id)} /><span className="small">Contact: {c.name}</span></label>)}
-      <p className="small muted">Tasks wait for {target?.holderId ? "the new holder" : "someone"} to tap “I've got it”. Nothing is sent.</p>
+      <p className="small muted">Tasks wait to be claimed.</p>
       <button type="button" className="btn small" disabled={!to || (!tasks.length && !contacts.length)} onClick={() => { change({ kind: "moveWork", fromRoleId: roleId, toRoleId: to, taskIds: tasks, contactIds: contacts }); setTasks([]); setContacts([]) }}>Move selected</button>
     </>}
     <p className="small"><b>Close this role</b></p>
-    <p className="small muted">The role leaves every list. Its name, who held it and its handoff record stay; its remaining tasks, contacts and steps move to the role you choose.</p>
+    <p className="small muted">History stays; everything else moves to the role you choose.</p>
     {role.holderId && <p className="small warn-text">Someone still holds this role. Hand it over to “Nobody yet” first.</p>}
     {role.fn === "president" && <p className="small warn-text">The president role cannot be closed.</p>}
     <label className="field"><span className="small">Move everything else to</span><select value={into} onChange={e => setInto(e.target.value)}>{others.map(r => <option key={r.id} value={r.id}>{r.displayName}</option>)}</select></label>
@@ -45,7 +44,7 @@ export function StarterQuestions({ roleId }: { roleId: string }) {
   const [draft, setDraft] = useState<string[]>(() => ROLE_START_PROMPTS.map((_, i) => role?.startNotes?.[i] ?? ""))
   if (!canNudge || !role) return null
   return <div data-testid="starter-questions">
-    <p className="small"><b>A new role: three questions</b> <span className="muted">There is no history yet, so these are what the next officer starts from.</span></p>
+    <p className="small"><b>A new role: three questions</b></p>
     {ROLE_START_PROMPTS.map((q, i) => <label key={q} className="field"><span className="small">{q}</span>
       <textarea rows={2} maxLength={300} value={draft[i]} onChange={e => setDraft(draft.map((x, j) => j === i ? e.target.value : x))} onBlur={() => { if (draft[i].trim() !== (role.startNotes?.[i] ?? "")) change({ kind: "startNote", roleId, index: i, answer: draft[i] }) }} />
     </label>)}

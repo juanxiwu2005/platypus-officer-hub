@@ -47,7 +47,7 @@ describe("three deadlines: the plan's own example (§4)", () => {
     expect(p.club).toBe("2026-10-30")
     expect(p.official).toBe("2026-11-04")
     expect(p.explain.official).toContain("R09")
-    expect(p.explain.club).toContain("club buffer")
+    expect(p.explain.club).toContain("days early")
     expect(p.explain.latestStart).toContain("Maya")
   })
 })

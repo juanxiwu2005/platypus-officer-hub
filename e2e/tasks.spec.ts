@@ -75,7 +75,7 @@ test("finance completion stays in Event Budget instead of reporting an unsaved D
   await expect(detail.getByRole("combobox", { name: "Task status", exact: true }).locator("option[value=done]")).toHaveCount(0)
   await expect(detail).toContainText("Completion is managed in Event Budget.")
   // The only status line is the draft autosave note: nothing reports a Done update.
-  await expect(detail.getByRole("status")).toHaveText(["Changes save automatically."])
+  await expect(detail.getByRole("status")).toHaveText([""])
   expect(await savedTask(page, before.id)).toEqual(before)
   await detail.getByRole("link", { name: "Event Budget", exact: true }).click()
   await expect(page).toHaveURL(/events\?event=e-night&view=budget/)

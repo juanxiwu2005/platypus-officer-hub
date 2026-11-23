@@ -39,7 +39,7 @@ export function TaskEditPanel({ node, due, onClose }: { node: Node; due: string 
     const patch = { title: title.trim(), instructions: instructions.trim(), ownerId: owner || null, externalLinks, ...(date !== originalDate.current ? { clubDeadlineOverride: date || null } : {}) }
     const accepted = tryDispatch({ type: "updateNode", id: node.id, patch, expectedTask: base.current })
     const saved = getState().nodes.find(n => n.id === node.id)
-    if (!accepted || saved?.title !== patch.title || saved.instructions !== patch.instructions || saved.ownerId !== patch.ownerId || JSON.stringify(saved.externalLinks) !== JSON.stringify(externalLinks)) { setError("Your changes were not saved. Your inputs are kept here. Check for newer changes or restore browser saving, then try again."); return }
+    if (!accepted || saved?.title !== patch.title || saved.instructions !== patch.instructions || saved.ownerId !== patch.ownerId || JSON.stringify(saved.externalLinks) !== JSON.stringify(externalLinks)) { setError("Changes not saved. Try again."); return }
     onClose()
   }
   return createPortal(<div className="task-edit-backdrop"><div className="task-edit-panel" role="dialog" aria-modal="true" aria-labelledby="edit-task-heading" ref={panel} data-testid="task-edit">

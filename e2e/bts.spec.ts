@@ -44,7 +44,7 @@ test("the switch turns on and off, keeps its state after a reload, and removes t
   expect(await setting(page)).toBe("1")
   await closeRail(page)
   await expect(page.locator(".bts").first()).toBeVisible()
-  await expect(page.getByTestId("reminder-centre")).toContainText("Checks use the rule engine's latest start and Task due; a final check is 3 days overdue. One email per person per day.")
+  await expect(page.getByTestId("reminder-centre")).toContainText("Checks use each task's Start by and Due dates; a final check is 3 days overdue. One email per person per day.")
   await page.reload()
   await page.waitForTimeout(300)
   await expect(page.locator(".bts").first()).toBeVisible()
@@ -66,7 +66,7 @@ test("when on: dates show where they come from on Reminders, Events and Tasks", 
   // Concept F: the people list keeps the rule engine's order, and the page note says which dates the checks use.
   await expect(page.getByTestId("rq-people").locator(".bts")).toContainText("Rule engine")
   await expect(page.getByTestId("rq-people").locator(".bts")).toContainText("Tasks keep the rule engine's order: overdue, due, past due, then starts and follow-ups.")
-  await expect(page.getByTestId("reminder-centre").locator(".bts").first()).toContainText("latest start and Task due")
+  await expect(page.getByTestId("reminder-centre").locator(".bts").first()).toContainText("Start by and Due dates")
   await page.goto("/#/events")
   await expect(page.locator("main .bts").first()).toBeVisible()
   // S3 removed the List view, and with it the per-step Due and reminder notes; the event's own notes stay.

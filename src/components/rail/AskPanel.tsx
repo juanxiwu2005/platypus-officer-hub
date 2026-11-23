@@ -150,7 +150,7 @@ export function AskPanel() {
       }
     } catch {
       emitUi("ui.answer", { answer: "error", ms: Date.now() - started }, false)
-      setMessages(m => [...m, { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Something went wrong. Please try again." }], source: "Platypus" }])
+      setMessages(m => [...m, { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Something went wrong. Try again." }], source: "Platypus" }])
     } finally {
       if (!refining) untrack(ctrl)
       if (owner.current === ctrl) { owner.current = null; setBusy(false) }
@@ -223,7 +223,7 @@ export function AskPanel() {
     dispatch({ type: "draftChanges", changeSet: { id, sentence: `Plan ${c.prefill.name} on ${c.date}`, ops: [op], status: "pending", source: "Your details + the saved workflow", ...(workflowChoice ? { workflowChoices: { 0: workflowChoice } } : {}) } })
     setMessages(m => [...m,
       { id: uid(), role: "user", text: [c.prefill.name, c.date, `${c.prefill.headcount} people`, `food: ${c.prefill.food && c.prefill.food !== "none" ? FOOD[c.prefill.food] : "no"}`, c.prefill.speaker ? "guest speaker or performer" : null].filter(Boolean).join(" · ") },
-      { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Review the details, then apply them to open the plan." }, { kind: "changes", changeSetId: id }], source: "Saved workflow" },
+      { id: uid(), role: "assistant", cards: [{ kind: "text", text: "Review, then apply to open the plan." }, { kind: "changes", changeSetId: id }], source: "Saved workflow" },
     ])
   }
   /** The task form creates at once, as the viewer, with Undo: one task per owner. Its one date is Due (FB-5): no buffer. */
@@ -308,8 +308,8 @@ function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (
         <b>Plan check{ev ? `: ${ev.name}` : ""}</b>
         {card.risks.length ? <ul className="review-risks">{card.risks.map((r, i) => <li key={i}>{r.text}{r.rules.map(id => { const rule = ruleById(id); return rule && <a key={id} className="small" href={rule.sources[0].url} target="_blank" rel="noreferrer"> {id} ↗</a> })}</li>)}</ul> : <p className="small">Nothing stands out beyond the playbook's steps.</p>}
         <BtsRow>
-          {card.label.startsWith("AI") ? <Bts kind="ai" label={card.label}>The AI suggested these risks from the playbook plus what you wrote. The browser keeps only rule IDs the rule book has and dates the app already knows. POST /api/event/review</Bts> : <Bts label={card.label}>No AI wrote this list. These are the schedule engine's own warnings for the event, each tied to its rule where there is one.</Bts>}
-          <Bts label="Rule engine">Every step date is computed by the schedule engine; the AI never sets a date.</Bts>
+          {card.label.startsWith("AI") ? <Bts kind="ai" label={card.label}>The AI suggested these risks from the playbook plus what you wrote. Only rules in the rule book and dates the app already knows are kept.</Bts> : <Bts label={card.label}>No AI wrote this list. These are the rule engine's own warnings for the event, each tied to its rule where there is one.</Bts>}
+          <Bts label="Rule engine">Every step date is computed by the rule engine; the AI never sets a date.</Bts>
         </BtsRow>
       </div>
     }

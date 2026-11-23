@@ -227,7 +227,7 @@ describe("browser: asking to plan an event always ends in the planning form", ()
     vi.stubGlobal("fetch", send)
     const r = await respond("Plan an event about March 3 for networking night with 50 people", { ...state, aiEnabled: false }, "alex", null, "/", [])
     expect(form(r.cards)).toMatchObject({ date: "2027-03-03", prefill: { headcount: 50 } })
-    expect(r.source).toBe("Local demo grammar · AI off")
+    expect(r.source).toBe("Platypus · AI off")
     expect(send).not.toHaveBeenCalled()
   })
   it("work on an existing event is still not a new event", () => {
