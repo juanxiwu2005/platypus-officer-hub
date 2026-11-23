@@ -28,24 +28,23 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-06B-promotion.md": "allow",
+          "docs/quest-build/cards/P5-06AT-regression.md": "allow",
+          "src/quest/sample/CommsScenes.tsx": "allow",
+          "src/quest/sample/HandOff.tsx": "allow",
+          "src/quest/sample/Promotion.tsx": "allow",
           "src/quest/sample/model.ts": "allow",
           "src/quest/sample/decisions.ts": "allow",
           "src/lib/dragSort.ts": "allow",
-          "src/styles/quest-foundation.css": "allow",
-          "src/quest/sample/HandOff.tsx": "allow",
-          "src/quest/sample/Promotion.tsx": "allow",
-          "src/quest/sample/CommsScenes.tsx": "allow",
-          "src/styles/quest-promotion.css": "allow"
+          "src/engine/questSchedule.ts": "allow",
+          "src/quest/sample/HandOff.test.tsx": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/Promotion.tsx": "allow",
-          "src/quest/sample/CommsScenes.tsx": "allow",
-          "src/styles/quest-promotion.css": "allow"
+          "src/quest/sample/HandOff.test.tsx": "allow"
         },
         "bash": {
           "*": "deny",
+          "npx vitest run src/quest/sample/HandOff.test.tsx": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
@@ -61,15 +60,15 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-06B-promotion.md": "allow",
+          "docs/quest-build/cards/P5-06AT-regression.md": "allow",
+          "src/quest/sample/CommsScenes.tsx": "allow",
+          "src/quest/sample/HandOff.tsx": "allow",
+          "src/quest/sample/Promotion.tsx": "allow",
           "src/quest/sample/model.ts": "allow",
           "src/quest/sample/decisions.ts": "allow",
           "src/lib/dragSort.ts": "allow",
-          "src/styles/quest-foundation.css": "allow",
-          "src/quest/sample/HandOff.tsx": "allow",
-          "src/quest/sample/Promotion.tsx": "allow",
-          "src/quest/sample/CommsScenes.tsx": "allow",
-          "src/styles/quest-promotion.css": "allow"
+          "src/engine/questSchedule.ts": "allow",
+          "src/quest/sample/HandOff.test.tsx": "allow"
         },
         "edit": {
           "*": "deny"
