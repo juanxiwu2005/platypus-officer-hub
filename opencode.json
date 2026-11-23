@@ -28,21 +28,21 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-08-intro-hq.md": "allow",
+          "docs/quest-build/cards/P5-08A-prologue.md": "allow",
           "src/quest/sample/model.ts": "allow",
           "src/engine/questSchedule.ts": "allow",
           "src/lib/motion.ts": "allow",
           "src/styles/quest-foundation.css": "allow",
           "src/styles/dx-00-tokens.css": "allow",
-          "src/quest/sample/IntroHQ.tsx": "allow",
+          "src/quest/sample/Prologue.tsx": "allow",
           "src/quest/sample/story.ts": "allow",
-          "src/styles/quest-story.css": "allow"
+          "src/styles/quest-prologue.css": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/IntroHQ.tsx": "allow",
+          "src/quest/sample/Prologue.tsx": "allow",
           "src/quest/sample/story.ts": "allow",
-          "src/styles/quest-story.css": "allow"
+          "src/styles/quest-prologue.css": "allow"
         },
         "bash": {
           "*": "deny",
@@ -61,15 +61,15 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-08-intro-hq.md": "allow",
+          "docs/quest-build/cards/P5-08A-prologue.md": "allow",
           "src/quest/sample/model.ts": "allow",
           "src/engine/questSchedule.ts": "allow",
           "src/lib/motion.ts": "allow",
           "src/styles/quest-foundation.css": "allow",
           "src/styles/dx-00-tokens.css": "allow",
-          "src/quest/sample/IntroHQ.tsx": "allow",
+          "src/quest/sample/Prologue.tsx": "allow",
           "src/quest/sample/story.ts": "allow",
-          "src/styles/quest-story.css": "allow"
+          "src/styles/quest-prologue.css": "allow"
         },
         "edit": {
           "*": "deny"
