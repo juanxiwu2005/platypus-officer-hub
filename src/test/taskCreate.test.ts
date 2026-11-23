@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
 import { reducer } from "../data/store"
-import { addTaskNotice, canMoveTask, startStatus } from "../data/board"
+import { canMoveTask, startStatus } from "../data/board"
 
 /**
  * Audit §6.4: creating a task used to land somewhere else without saying so, and creating in Done
@@ -14,43 +14,26 @@ const added = (s = base, title = "Order name tags", status: Parameters<typeof st
   return { next, task: next.nodes.at(-1)! }
 }
 
-describe("creating a task says where it landed (audit §6.4a)", () => {
-  it("an officer's new task is their own in To do, and the notice says so", () => {
-    const maya = as("maya")
-    const { task } = added(maya, "Order name tags", "unclaimed")
+describe("creating a task lands where startStatus says (audit §6.4a)", () => {
+  it("an officer's new task is their own in To do", () => {
+    const { task } = added(as("maya"), "Order name tags", "unclaimed")
     expect(task.status).toBe("accepted")
     expect(task.ownerId).toBe("maya")
-    expect(addTaskNotice(maya, "unclaimed")).toMatch(/is yours, so it is in To do/)
   })
 
-  it("a lead posting in Not claimed leaves it unclaimed and unowned, with nothing to explain", () => {
+  it("a lead posting in Not claimed leaves it unclaimed and unowned", () => {
     const { task } = added(base, "Order name tags", "unclaimed")
     expect(task.status).toBe("unclaimed")
     expect(task.ownerId).toBeNull()
-    expect(addTaskNotice(base, "unclaimed")).toBeNull()
-  })
-
-  it("says nothing when the card lands in the column it was added from", () => {
-    expect(addTaskNotice(as("maya"), "accepted")).toBeNull()
-    expect(addTaskNotice(as("maya"), "in_progress")).toBeNull()
-    expect(addTaskNotice(base, "waiting")).toBeNull()
-  })
-
-  it("uses the six fixed status names, even when an old save renamed them (S3)", () => {
-    const renamed = { ...base, viewerId: "maya", org: { ...base.org, board: { labels: { accepted: "Ready", done: "Shipped" } } } }
-    expect(addTaskNotice(renamed, "unclaimed")).toMatch(/in To do/)
-    expect(addTaskNotice(renamed, "done")).toMatch(/cannot start as Done.*in To do.*move it to Done/)
-    expect(addTaskNotice(renamed, "done")).not.toMatch(/Ready|Shipped/)
   })
 })
 
 describe("creating a task cannot finish it (audit §6.4b)", () => {
-  it("a new task in the Done column starts in To do, with no completion date", () => {
+  it("a new task asked for as Done starts in To do, with no completion date", () => {
     for (const who of ["alex", "maya"]) {
       const { task } = added(as(who), "Pretend this is finished", "done")
       expect(task.status).toBe("accepted")
       expect(task.completedOn).toBeUndefined()
-      expect(addTaskNotice(as(who), "done")).toMatch(/cannot start as Done/)
     }
   })
 

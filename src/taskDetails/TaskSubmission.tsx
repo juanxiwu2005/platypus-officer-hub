@@ -31,6 +31,12 @@ function ReadSubmission({ node, work }: { node: Node; work: TaskWork }) {
     {error && <p className="small late-text" role="alert">{error}</p>}
   </section>
 }
+type UndoOffer = { workspaceKey: string; status: NodeStatus; waitingOn: string | null; waitingOnPersonId: string | null; revision: number; ownerVersion: number; ownerId: string | null }
+/**
+ * S3: the Undo mark done offer outlives closing Task Details, so the task can be reopened from the Tasks page's Done group.
+ * It lives in memory only (a reload drops it; then the status menu reopens) and undoCompletion still checks every guard.
+ */
+const undoOffers = new Map<string, UndoOffer>()
 function EditableSubmission({ node, actorId, authorization, work }: { node: Node; actorId: string; authorization?: TaskAuthorization; work: TaskWork }) {
   const { state, tryDispatch, getState } = useStore()
   const detailsId = useId(), input = useRef<HTMLInputElement>(null), section = useRef<HTMLElement>(null)
@@ -38,7 +44,9 @@ function EditableSubmission({ node, actorId, authorization, work }: { node: Node
   const session = useMemo(() => taskDraftSession({ workspaceKey: state.demoLinkKey, nodeId: node.id, actorId, ownerId: node.ownerId, ownerVersion: node.ownerVersion ?? 0, workRevision: work.revision, details: initialRecord?.details ?? "", files: (initialRecord?.attachmentIds ?? []).flatMap(id => work.files.find(f => f.id === id) ?? []), hasDraft: work.drafts.some(d => d.authorId === actorId) }), [state.demoLinkKey, node.id, node.ownerId, node.ownerVersion, actorId])
   const draft = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot)
   const [error, setError] = useState(""), [notice, setNotice] = useState(""), [submitting, setSubmitting] = useState(false)
-  const [undo, setUndo] = useState<{ workspaceKey: string; status: NodeStatus; waitingOn: string | null; waitingOnPersonId: string | null; revision: number; ownerVersion: number; ownerId: string | null } | null>(null)
+  const undoKey = `${state.demoLinkKey}:${node.id}:${actorId}:${authorization?.kind ?? ""}`
+  const [undo, setUndoState] = useState<UndoOffer | null>(() => { const kept = undoOffers.get(undoKey); return kept && kept.revision === work.revision && kept.ownerId === node.ownerId && kept.ownerVersion === (node.ownerVersion ?? 0) ? kept : null })
+  const setUndo = (offer: UndoOffer | null) => { if (offer) undoOffers.set(undoKey, offer); else undoOffers.delete(undoKey); setUndoState(offer) }
   const alive = useRef(true)
   useEffect(() => { alive.current = true; return () => { alive.current = false; void session.flush().catch(() => {}) } }, [session])
   useEffect(() => { const published = work.submissions.at(-1); session.adoptPublished(published?.details ?? "", (published?.attachmentIds ?? []).flatMap(id => work.files.find(f => f.id === id) ?? []), work.revision) }, [session, work, draft.loading])

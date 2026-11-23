@@ -34,7 +34,7 @@ function reorder(s: DemoState, nodeId: string, status: NodeStatus, beforeId: str
   const ranks = new Map(column.map((n, i) => [n.id, i]))
   return { ...s, nodes: s.nodes.map(n => ranks.has(n.id) ? { ...n, rank: ranks.get(n.id) } : n) }
 }
-export const byRank = (a: Node, b: Node) => (a.rank ?? 1e6) - (b.rank ?? 1e6) || (a.latestStart ?? "9999").localeCompare(b.latestStart ?? "9999") || a.id.localeCompare(b.id)
+const byRank =(a: Node, b: Node) => (a.rank ?? 1e6) - (b.rank ?? 1e6) || (a.latestStart ?? "9999").localeCompare(b.latestStart ?? "9999") || a.id.localeCompare(b.id)
 
 export function moveTask(s: DemoState, nodeId: string, to: NodeStatus, beforeId: string | null = null): DemoState {
   const n = s.nodes.find(x => x.id === nodeId)
@@ -61,9 +61,9 @@ export function moveTask(s: DemoState, nodeId: string, to: NodeStatus, beforeId:
 }
 
 /**
- * A new task never lands in Done, and an officer's new task is their own, so the column a person
- * adds from is not always the column the card appears in. `startStatus` is the one source of truth
- * for where it lands, and `addTaskNotice` says so in the person's own words when it differs.
+ * A new task never lands in Done, and an officer's new task is their own, so the status a person
+ * asks for is not always the status the task starts in. `startStatus` is the one source of truth
+ * for where it lands.
  */
 export function startStatus(s: DemoState, asked: NodeStatus): NodeStatus {
   // Creating cannot finish a task: reopening a done task needs the president or VP (canMoveTask),
@@ -72,14 +72,6 @@ export function startStatus(s: DemoState, asked: NodeStatus): NodeStatus {
   // Only a lead can post a task for someone else to claim; anyone else's new task is their own.
   if (wanted === "unclaimed") return canLead(s) ? "unclaimed" : "accepted"
   return wanted
-}
-
-/** What to tell the person when the card will not land in the column they added from; null when it will. */
-export function addTaskNotice(s: DemoState, asked: NodeStatus): string | null {
-  const landed = startStatus(s, asked)
-  if (landed === asked) return null
-  if (asked === "done") return `A new task cannot start as ${label(s, "done")}. It is in ${label(s, landed)} — move it to ${label(s, "done")} once the work is finished.`
-  return `A task you add is yours, so it is in ${label(s, landed)}. Only the president or VP can post one for someone else to claim.`
 }
 
 /**
