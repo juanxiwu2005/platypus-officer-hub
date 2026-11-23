@@ -93,6 +93,6 @@
   .dg-fix-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--s2); }
   .dg-fix-row .dg-task-title { grid-column: 1 / -1; }
   .dg-fix-row .dg-chip { justify-self: start; }
-  .dg-top-row .btn { flex: 1 1 100%; }
+  .dg-top-row .btn { flex: 1 1 100%; justify-content: center; }
   .dg-inline:not([hidden]) { margin-inline: 0; }
 }

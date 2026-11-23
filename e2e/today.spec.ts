@@ -81,7 +81,7 @@ test("AI off: a command becomes a labelled change set; owner edits apply and rej
   await expect(page.getByTestId("applied-set").last()).toContainText("Undone")
 })
 
-// FB-8: the risk list is gone; forecast-red tasks carry a risk mark on the reminder centre. Concept F: a person's email opens in the rail,
+// FB-8: the risk list is gone; forecast-red tasks carry a risk mark on the reminder centre. Concept F / S2: a person's email opens in place,
 // written by the rules (an available AI line is not used), with one task entry per task.
 test("top tasks and the reminder centre's risk marks come from the app; a person's email is a rule-written draft with one entry per task", async ({ page }) => {
   let aiCalls = 0
@@ -94,8 +94,8 @@ test("top tasks and the reminder centre's risk marks come from the app; a person
   await closeRail(page)
   const person = people.getByTestId("rq-person").first()
   const lines = await person.getByTestId("rq-person-task").evaluateAll(list => list.map(li => (li as HTMLElement).dataset.node!))
-  await person.locator(".dg-person-head").click()
-  const panel = page.getByTestId("digest-panel")
+  await person.getByTestId("rq-person-toggle").click()
+  const panel = person.getByTestId("rq-person-email")
   const body = panel.getByTestId("digest-body")
   await expect(body).toContainText("Task due:")
   await expect(body).toContainText("Thank you")
@@ -103,10 +103,10 @@ test("top tasks and the reminder centre's risk marks come from the app; a person
   await expect(body.getByRole("link", { name: "Open task", exact: true })).toHaveCount(lines.length)
   for (const node of lines) await expect(body.locator(`a[href*="node=${encodeURIComponent(node)}&"]`)).toHaveCount(1)
   await expect(panel.getByRole("link", { name: /^(Done|Waiting on…|Need help|Need more time)$/ })).toHaveCount(0)
-  const draft = panel.getByRole("link", { name: "Open Gmail draft" })
+  const draft = panel.getByRole("link", { name: "Open in Gmail" })
   await expect(draft).toHaveAttribute("href", /^https:\/\/mail.google.com\/mail\/\?view=cm/)
   expect(decodeURIComponent((await draft.getAttribute("href"))!)).toContain("Task due:")
-  await expect(panel.getByTestId("digest-sent-self")).toHaveCount(0)
+  await expect(panel.getByRole("button", { name: "I sent this" })).toHaveCount(0)
   expect(aiCalls).toBe(0)
   const entry = (await body.getByRole("link", { name: "Open task", exact: true }).first().getAttribute("href"))!
   await page.goto(entry)
@@ -134,7 +134,7 @@ test("officers cannot prepare a reminder or approve a change", async ({ page }) 
 // Concept F (2026-11-19): a summary card, one email per person, Fix first; the history line appears only once something is recorded.
 test("Reminders: summary, people and Fix first in place of the risk rows, event chains, goals and the weekly star", async ({ page }) => {
   await enableUpdatedReminders(page)
-  await expect(page.getByTestId("rq-summary")).toContainText("Review 3 emails · 5 tasks · 0 sent today")
+  await expect(page.getByTestId("rq-summary")).toContainText("3 people to remind")
   await expect(page.getByTestId("rq-person")).toHaveCount(3)
   await expect(page.getByTestId("rq-fix").getByRole("heading", { level: 2, name: /^Fix first/ })).toBeVisible()
   await expect(page.getByTestId("rq-history")).toHaveCount(0)

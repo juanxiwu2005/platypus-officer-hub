@@ -1,3 +1,4 @@
+import { enableUpdatedReminders } from "./reminderHelpers"
 import { expect, test, type Page, type TestInfo } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { savedDemo } from "./demo-contract"
@@ -49,7 +50,9 @@ async function openLegacy(page: Page, mode: ReminderMode, options: { history?: b
   await page.evaluate(({ key, state }) => localStorage.setItem(key, JSON.stringify(state)), { key: KEY, state: scheduled })
   await page.goto("/#/")
   await page.reload()
-  await expect(page.getByTestId("reminder-plan-status")).toBeVisible()
+  // S2: an older plan shows no Enable card on the home page (saves are to upgrade on load).
+  await expect(page.getByTestId("reminder-centre")).toBeAttached()
+  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
   await closeRail(page)
   const loaded = await read(page)
   expect(node(loaded).clubDeadline).toBe(TODAY)
@@ -57,7 +60,7 @@ async function openLegacy(page: Page, mode: ReminderMode, options: { history?: b
 }
 
 async function activate(page: Page) {
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  await enableUpdatedReminders(page)
   await expect.poll(async () => (await read(page)).reminderRuntime?.version).toBe(2)
   await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
 }
@@ -156,10 +159,11 @@ test("Send all persists complete unique-link snapshots, survives reload, and rec
   await openLegacy(page, "review_then_auto")
   await activate(page)
   // Two people, so two emails.
-  await expect(page.getByTestId("send-all-digests")).toHaveText("Send all 2 emails")
+  await expect(page.getByTestId("rq-summary")).toContainText("2 people to remind")
+  await expect(page.getByTestId("send-all-digests")).toHaveText("Send all")
   await page.getByTestId("send-all-digests").click()
   await expect.poll(async () => (await read(page)).reminderRuntime!.deliveries.length).toBe(2)
-  await expect(page.getByTestId("reminder-centre")).toContainText("2 emails recorded. Demo: nothing is sent.")
+  await expect(page.getByTestId("reminder-centre")).toContainText("Sent to 2 people.")
   const saved = await read(page), deliveries = saved.reminderRuntime!.deliveries
   for (const delivery of deliveries) completeMail(delivery, saved)
   expect(new Set(deliveries.map(d => d.candidateId)).size).toBe(2)

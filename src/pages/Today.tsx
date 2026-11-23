@@ -111,7 +111,9 @@ function PersonRow({ p, mode, reviewing, forecast }: { p: DigestPerson; mode: Re
   const [note, setNote] = useState("")
   const [opened, setOpened] = useState<string | null>(null)
   const toggle = useRef<HTMLButtonElement>(null)
-  const { prepared, problem, retry } = usePreparedDigest(open ? p.group : null, p.recipientId, digestVia(mode))
+  // With no mode chosen yet, a lead sends the email themselves, as in the rail.
+  const via = digestVia(mode)
+  const { prepared, problem, retry } = usePreparedDigest(open ? p.group : null, p.recipientId, via)
   useEffect(() => { setOpened(null) }, [prepared])
   const status = p.group ? reviewing ? "reviewing" : "next" : "sent"
   const first = firstName(p.name)
@@ -151,7 +153,7 @@ function PersonRow({ p, mode, reviewing, forecast }: { p: DigestPerson; mode: Re
       {open && (p.group ? <>
         {prepared ? <Mail label={`Email to ${p.name}`} to={prepared.digest.intendedEmail} subject={prepared.digest.subject} body={prepared.digest.body} />
           : !problem && !persistenceFailed && <p className="small muted" role="status">Preparing the email…</p>}
-        {mode === "review_then_self" && <div className="dg-nav">
+        {via === "manual" && <div className="dg-nav">
           {prepared ? <a className="btn btn-primary small" data-testid="rq-person-gmail" href={composeUrl("email", prepared.digest.body, prepared.digest.subject)} target="_blank" rel="noreferrer" onClick={() => setOpened(prepared.groupId)}>Open in Gmail</a>
             : <button type="button" className="btn btn-primary small" data-testid="rq-person-gmail" disabled>Open in Gmail</button>}
           {prepared && opened === prepared.groupId && <button type="button" className="btn small" data-testid="rq-person-sent-self" disabled={busy || persistenceFailed} onClick={event => record("manual", event.detail)}>I sent this</button>}

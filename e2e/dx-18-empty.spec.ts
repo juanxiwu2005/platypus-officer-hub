@@ -29,7 +29,7 @@ test("Reminders: an empty section says so instead of showing nothing", async ({ 
   await closeRail(page)
   const yours = page.getByTestId("your-reminders")
   await expect(yours.getByRole("heading", { name: "Coming up", exact: true })).toBeVisible()
-  await expect(yours).toContainText("No reminders coming up for you this week.")
+  await expect(yours).toContainText("Nothing this week.")
   await expect(yours.getByRole("heading", { name: "Recorded for you", exact: true })).toBeVisible()
   await expect(yours).toContainText("No recorded reminders yet.")
 })

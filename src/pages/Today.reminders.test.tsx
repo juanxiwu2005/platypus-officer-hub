@@ -229,6 +229,13 @@ describe("reminder centre (concept F): one email per person", () => {
     expect(record.mock.calls[0][2]).toBe("manual")
     expect(record.mock.calls[0][1].map(p => p.recipientId)).toEqual(["maya"])
     expect(screen.queryByText(/The draft recipient is blank/)).toBeNull()
+    cleanup()
+    // With no mode chosen yet, the lead sends it themselves, as in the rail.
+    show(seedClub(null))
+    const first = within(people()[0])
+    fireEvent.click(first.getByRole("button", { name: "Email to Maya Chen" }))
+    await first.findByRole("link", { name: "Open in Gmail" })
+    expect(first.queryByRole("button", { name: /^Send/ })).toBeNull()
   })
 
   it("auto_email shows no send button, only status; no mode links to the choice", () => {

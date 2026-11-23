@@ -1,3 +1,4 @@
+import { enableUpdatedReminders } from "./reminderHelpers"
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { closeRail, demoClock, viewAs } from "./helpers"
@@ -50,16 +51,21 @@ async function open(page: Page, mode?: ReminderMode, legacyHistory = false) {
   await expect(page.locator("main h1")).toHaveText("Reminders")
   await closeRail(page)
   await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  await enableUpdatedReminders(page)
   await expect.poll(async () => (await demo(page)).reminderRuntime?.version).toBe(2)
   if (mode === "auto_email") await expect.poll(async () => (await demo(page)).reminderRuntime?.deliveries.length).toBe(3)
 }
 const person = (page: Page, id = "jordan") => page.locator(`[data-testid="rq-person"][data-recipient="${id}"]`)
 const panel = (page: Page) => page.getByTestId("digest-panel")
-/** Open one person's combined email in the right rail and wait until the rule-written email is ready. */
+/** S2: open one person's combined email in place and wait until the rule-written email is ready. */
 async function openEmail(page: Page, id = "jordan") {
-  await person(page, id).locator(".dg-person-head").click()
-  await expect(panel(page).getByTestId("digest-body")).toBeVisible()
+  await person(page, id).getByTestId("rq-person-toggle").click()
+  await expect(person(page, id).getByTestId("digest-body")).toBeVisible()
+}
+/** S2: the row's own Send ("I review, Platypus sends") records that person's email. */
+async function sendRow(page: Page, id = "jordan") {
+  await person(page, id).getByTestId("rq-person-send").click()
+  await expect(person(page, id)).toHaveAttribute("data-state", "sent")
 }
 const closePanel = async (page: Page) => { await panel(page).getByRole("button", { name: "Close email" }).click(); await closeRail(page) }
 async function openHistory(page: Page) {
@@ -70,16 +76,17 @@ const closeHistory = async (page: Page) => { await page.getByRole("button", { na
 
 test("no mode: today's tasks are one email for Jordan, with a link to choose a mode and no repeated week list", async ({ page, isMobile }) => {
   await open(page)
-  await expect(page.getByTestId("rq-summary")).toContainText("Review 1 email · 3 tasks · 0 sent today")
+  await expect(page.getByTestId("rq-summary")).toContainText("1 person to remind")
   // The old Today cards and the old five lists are gone.
   for (const gone of ["Needs a nudge", "Semester goals", "Superstar of the week", "This week", "Needs your OK"]) await expect(page.getByRole("heading", { name: gone })).toHaveCount(0)
   await expect(page.getByTestId("event-strip")).toHaveCount(0)
   await expect(page.getByTestId("rq-person")).toHaveCount(1)
   await expect(person(page).getByTestId("rq-person-task")).toHaveCount(3)
-  await expect(person(page)).toContainText("Up next")
-  await expect(person(page)).toContainText("Also has 1 other open task")
-  // B3: the task planned for next week is one quiet line, not a second list that repeats today's tasks.
-  await expect(page.getByTestId("rq-next")).toHaveText(/^Next check: (Mon|Tue|Wed|Thu|Fri|Sat|Sun), Nov \d+ · 1 planned this week$/)
+  // S2: no "Up next", other-task count or mode chip; the next check shows only once nothing is left to send today.
+  await expect(person(page)).not.toContainText("Up next")
+  await expect(person(page)).not.toContainText("other open task")
+  await expect(page.getByTestId("reminder-mode-chip")).toHaveCount(0)
+  await expect(page.getByTestId("rq-next")).toHaveCount(0)
   await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
   await expect(page.getByTestId("rq-fix")).toHaveCount(0)
   await shot(page, "president-no-mode", isMobile)
@@ -94,27 +101,25 @@ test("no mode: today's tasks are one email for Jordan, with a link to choose a m
   await choice.getByRole("radio", { name: "I review, Platypus sends" }).check()
   await expect.poll(async () => (await demo(page)).org.settings.reminderMode).toBe("review_then_auto")
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Reminders" }).click()
-  await expect(page.getByTestId("send-all-digests")).toHaveText("Send all 1 email")
+  await expect(page.getByTestId("send-all-digests")).toHaveText("Send all")
 })
 
-test("I review, then I send: Open draft 1 of 1 → Gmail draft → I sent this email records one email for three tasks, by the president", async ({ page, isMobile }) => {
+test("I review, then I send: the row opens in Gmail → I sent this records one email for three tasks, by the president", async ({ page, isMobile }) => {
   await open(page, "review_then_self")
   await expect(page.getByTestId("choose-mode")).toHaveCount(0)
   await shot(page, "president-review-then-self", isMobile)
-  await page.getByRole("button", { name: "Open draft 1 of 1" }).click()
-  await expect(panel(page).getByTestId("digest-body")).toBeVisible()
-  await expect(panel(page).getByTestId("digest-send-next")).toHaveCount(0)
-  await expect(panel(page).getByTestId("digest-sent-self")).toHaveCount(0)
-  const draft = panel(page).getByTestId("digest-open-draft")
+  await expect(page.getByTestId("rq-person-send")).toHaveCount(0)
+  await openEmail(page)
+  await expect(person(page).getByTestId("rq-person-sent-self")).toHaveCount(0)
+  const draft = person(page).getByRole("link", { name: "Open in Gmail" })
   await expect(draft).toHaveAttribute("href", /^https:\/\/mail\.google\.com\/mail\/\?view=cm/)
   await draft.evaluate(a => a.removeAttribute("target"))           // stay on the page: the draft itself is not part of this test
   await draft.evaluate(a => a.addEventListener("click", e => e.preventDefault()))
   await draft.click()
-  await panel(page).getByTestId("digest-sent-self").click()
-  await expect(panel(page)).toContainText("All emails recorded. Demo: nothing is sent.")
-  await closePanel(page)
+  await person(page).getByRole("button", { name: "I sent this" }).click()
   await expect(person(page)).toHaveAttribute("data-state", "sent")
-  await expect(page.getByTestId("rq-summary")).toContainText("Nothing to send today. · 1 sent today")
+  await expect(person(page).getByText("Sent", { exact: true })).toBeVisible()
+  await expect(page.getByTestId("rq-summary")).toContainText("Nothing to send today.")
   const state = await demo(page)
   expect(state.nudges).toEqual([])
   expect(state.reminderRuntime!.deliveries.map(d => d.nodeId).sort()).toEqual(TASKS.slice(0, 3).sort())
@@ -126,16 +131,14 @@ test("I review, then I send: Open draft 1 of 1 → Gmail draft → I sent this e
   await expect(page.getByTestId("rq-sent")).toContainText("To Jordan · 3 tasks")
 })
 
-test("I review, Platypus sends: Send & next records the whole email; every task keeps its own checked mail and link", async ({ page, isMobile }) => {
+test("I review, Platypus sends: the row's Send records the whole email; every task keeps its own checked mail and link", async ({ page, isMobile }) => {
   await open(page, "review_then_auto")
   await shot(page, "president-review-then-auto", isMobile)
   await openEmail(page)
-  await expect(panel(page)).toContainText("Email 1 of 1 · to Jordan")
-  await expect(panel(page).getByTestId("digest-body").getByRole("link", { name: "Open task" })).toHaveCount(3)
-  await expect(panel(page).getByTestId("digest-open-draft")).toHaveCount(0)
-  await panel(page).getByTestId("digest-send-next").click()
-  await expect(panel(page)).toContainText("All emails recorded. Demo: nothing is sent.")
-  await closePanel(page)
+  await expect(person(page).getByTestId("digest-body").getByRole("link", { name: "Open task" })).toHaveCount(3)
+  await expect(person(page).getByRole("link", { name: "Open in Gmail" })).toHaveCount(0)
+  await shot(page, "president-review-then-auto-expanded", isMobile)
+  await sendRow(page)
   const saved = await demo(page)
   expect(saved.nudges).toEqual([])
   expect(saved.reminderRuntime!.deliveries).toHaveLength(3)
@@ -157,7 +160,7 @@ test("I review, Platypus sends: Send & next records the whole email; every task 
 test("I review, Platypus sends: Send all N emails records every email in one store action", async ({ page }) => {
   await open(page, "review_then_auto")
   await page.getByTestId("send-all-digests").click()
-  await expect(page.getByText("1 email recorded. Demo: nothing is sent.")).toBeVisible()
+  await expect(page.getByText("Sent to 1 person.")).toBeVisible()
   await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
   const saved = await demo(page)
   expect(saved.reminderRuntime!.deliveries).toHaveLength(3)
@@ -172,12 +175,13 @@ test("Send automatically: the email is recorded without a button, survives reloa
   await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
   await expect(page.getByTestId("open-first-draft")).toHaveCount(0)
   await expect(person(page)).toHaveAttribute("data-state", "sent")
-  await expect(page.getByTestId("rq-summary")).toContainText("1 sent today")
+  await expect(page.getByTestId("rq-summary")).toContainText("Sent automatically")
+  await expect(page.getByTestId("rq-person-send")).toHaveCount(0)
   const saved = await demo(page)
   expect(saved.nudges).toEqual([])
   expect(saved.reminderRuntime!.deliveries.every(d => d.via === "automatic" && d.message?.checked)).toBe(true)
   expect(saved.reminderRuntime!.digests).toHaveLength(1)
-  await expect(page.getByTestId("rq-history")).toContainText("1 sent this week · 0 replied · 0 no reply")
+  await expect(page.getByTestId("rq-history")).toHaveText("History")
   const ids = saved.reminderRuntime!.deliveries.map(d => d.id)
   await page.reload()
   await closeRail(page)
@@ -192,10 +196,7 @@ test("Send automatically: the email is recorded without a button, survives reloa
 
 test("Follow up: a recorded email starts the no-reply clock; Follow up opens that person's next email", async ({ page }) => {
   await open(page, "review_then_auto")
-  await openEmail(page)
-  await panel(page).getByTestId("digest-send-next").click()
-  await expect(panel(page)).toContainText("All emails recorded.")
-  await closePanel(page)
+  await sendRow(page)
   await openHistory(page)
   await expect(page.getByTestId("rq-no-reply")).toHaveCount(0)
   await closeHistory(page)
@@ -204,13 +205,13 @@ test("Follow up: a recorded email starts the no-reply clock; Follow up opens tha
   await closeRail(page)
   await openHistory(page)
   const wait = page.getByTestId("rq-no-reply").locator('[data-node="centre-room"]')
-  await expect(wait).toContainText("3 days since reminder")
+  await expect(wait).toContainText("No reply · 3 days")
   await expect(wait.getByRole("button", { name: "Follow up" })).toBeEnabled()
   expect((await demo(page)).protocolLog.filter(e => e.kind === "reminder")).toEqual([])
   await wait.getByRole("button", { name: "Follow up" }).click()
   await expect(panel(page).getByTestId("digest-body")).toBeVisible()
   await panel(page).getByTestId("digest-send-next").click()
-  await expect(panel(page)).toContainText("recorded. Demo: nothing is sent.")
+  await expect(panel(page)).toContainText("All sent.")
   await closePanel(page)
   const saved = await demo(page)
   const history = saved.reminderRuntime!.deliveries.filter(d => d.nodeId === "centre-room")
@@ -228,7 +229,7 @@ test("an officer who is not a lead sees a read-only Your reminders", async ({ pa
   await expect(mine.getByRole("heading", { name: "Your reminders" })).toBeVisible()
   await expect(mine).toContainText("Coming up")
   await expect(mine).toContainText("Planned reminder")
-  await expect(mine.getByText("Automatic demo", { exact: true })).toHaveCount(3)
+  await expect(mine.getByText("Sent", { exact: true })).toHaveCount(3)
   expect((await demo(page)).reminderRuntime!.deliveries.every(d => d.recipientId === "jordan")).toBe(true)
   await expect(page.getByTestId("reminder-centre")).toHaveCount(0)
   for (const name of [/^Send all/, /^Open draft/, "Follow up", "History"]) await expect(page.locator("main").getByRole("button", { name, exact: typeof name === "string" })).toHaveCount(0)
@@ -259,9 +260,7 @@ test("older reminders keep unknown recipients until a lead explicitly confirms t
 
 test("an owner's same-day task reply appears against the recorded recipient and suppresses no-reply", async ({ page }) => {
   await open(page, "review_then_auto")
-  await openEmail(page)
-  await panel(page).getByTestId("digest-send-next").click()
-  await expect(panel(page)).toContainText("All emails recorded.")
+  await sendRow(page)
   const delivery = (await demo(page)).reminderRuntime!.deliveries.find(d => d.nodeId === "centre-room")!
   await page.goto(delivery.message!.taskUrl)
   await page.getByTestId("task-detail").getByRole("combobox", { name: "Task status", exact: true }).selectOption("in_progress")
@@ -270,8 +269,8 @@ test("an owner's same-day task reply appears against the recorded recipient and 
   await expect(page.getByTestId("reminder-centre")).toBeVisible()
   // Leaving the task closes its details; on a phone the side panel goes with it.
   if ((page.viewportSize()?.width ?? 1280) < 1200) await expect(page.getByTestId("rail")).toBeHidden()
-  await expect(page.getByTestId("rq-history")).toContainText("1 replied")
   await openHistory(page)
+  await expect(page.getByTestId("rq-replies").getByTestId("rq-row")).toHaveCount(1)
   const reply = page.getByTestId("rq-replies").locator('[data-node="centre-room"]')
   await expect(reply).toContainText("Working on it")
   await expect(reply).toContainText("Jordan Patel")
