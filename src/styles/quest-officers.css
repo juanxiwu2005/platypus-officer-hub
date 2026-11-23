@@ -1,0 +1,24 @@
+/* P5-05 officer handoff scenes: request desks and advisor shift. Loaded only with the sample mission pages. */
+.sample-scene { display: flex; flex-direction: column; gap: var(--s5); }
+.sample-desks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s5); }
+.sample-desk { position: relative; display: flex; flex-direction: column; gap: var(--s3); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); padding: var(--s4); }
+.sample-desk.is-target, .sample-desk.is-over { background: var(--accent-soft); outline: 2px solid var(--accent); outline-offset: -2px; }
+.sample-desk-target { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s3); width: 100%; min-height: 44px; padding: var(--s4); border: 1px solid var(--edge); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); text-align: left; }
+.sample-desk-art { align-self: stretch; aspect-ratio: 4 / 3; border-radius: var(--r-sm); border: 1px solid var(--edge); background-image: var(--sample-portrait); background-size: 600% auto; background-position: var(--sample-portrait-pos); background-repeat: no-repeat; }
+.sample-desk-name { font-weight: 750; }
+.sample-desk-role { font-size: var(--fs-xs); color: var(--muted); }
+.sample-paper { display: inline-flex; align-items: center; gap: var(--s3); min-height: 44px; padding: var(--s3) var(--s5); border: 1px solid var(--accent); border-radius: var(--r-sm); background: var(--surface); color: var(--accent-ink); font-weight: 700; font-size: var(--fs-sm); touch-action: pan-y; user-select: none; }
+.sample-paper.is-selected { box-shadow: 0 0 0 2px var(--accent); }
+.sample-paper.is-dragged { z-index: var(--z-dropdown); box-shadow: var(--elev-3); cursor: grabbing; }
+.sample-tray { position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); min-height: 84px; padding: var(--s5); border: 1px dashed var(--line); border-radius: var(--r-md); }
+.sample-tray.is-over { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.sample-caption { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
+.sample-advisor { display: flex; align-items: center; gap: var(--s5); }
+.sample-advisor-portrait { width: 96px; height: 96px; flex-shrink: 0; border-radius: var(--r-circle); border: 1px solid var(--edge); background-image: var(--sample-portrait); background-size: 600% auto; background-position: var(--sample-portrait-pos); background-repeat: no-repeat; }
+.sample-timeline { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3); margin: 0; padding: 0; list-style: none; }
+.sample-timeline li { padding: var(--s4); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface-2); color: var(--muted); font-size: var(--fs-sm); }
+.sample-timeline li.is-included { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 700; }
+.sample-shift { display: grid; gap: var(--s3); }
+.sample-shift label { font-size: var(--fs-sm); font-weight: 650; }
+.sample-shift input[type="range"] { width: 100%; min-height: 44px; accent-color: var(--accent); }
+@media (max-width: 600px) { .sample-desks { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
