@@ -86,7 +86,7 @@ export function FirstEventPlan({ planner }: { planner: FirstEventPlanner }) {
     {preview && event && <>
       <EventChain key={play} dots={dots} today={state.today} drawing={drawing === play && play > 0} stale={stale} onDrawn={() => setDrawing(null)} />
       <div className="ob6-buffer">
-        <span id="ob6-buffer-label" className="ob6-buffer-label">{c.buffer} · {c.days}</span>
+        <span id="ob6-buffer-label" className="ob6-buffer-label">{c.buffer}</span>
         <div className="seg ob6-seg" role="group" aria-labelledby="ob6-buffer-label">
           {BUFFER_CHOICES.map(n => <button key={n} type="button" aria-pressed={buffer === n} aria-label={`${n} ${n === 1 ? c.day : c.days}`} onClick={() => patch({ buffer: n })}>{n}</button>)}
         </div>

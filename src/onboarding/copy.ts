@@ -41,7 +41,7 @@ export const onboardingCopy = {
       mission: "Plan events together and follow through.",
     },
     firstEvent: {
-      title: "Your first event", cta: "Plan it", buffer: "Club buffer", bufferHint: "Your club finishes this many working days before each official deadline.", bufferExample: "Example: ASU {official} → {club}.", details: "Event details",
+      title: "Your first event", cta: "Plan it", buffer: "Days early", bufferExample: "Example: ASU {official} → {club}.", details: "Event details",
       sentenceLabel: "Your first event, in one sentence", examplesLabel: "Examples", planning: "Planning…", chainLabel: "First steps and dates",
       stale: "Press Plan it to update the steps.", notEvent: "Describe one event starting with Plan, then review its details.",
       dateError: "Choose a date that is today or later in Event details.", day: "day", days: "days",

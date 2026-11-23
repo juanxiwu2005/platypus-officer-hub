@@ -85,7 +85,7 @@ test("a sentence that is not one event says what to do and draws nothing", async
 test("the buffer is a five-way control; turning it re-plans the dates (a club whose steps follow the ASU rules)", async ({ page }) => {
   await page.addInitScript(demo => { if (!localStorage.getItem("platypus.v1.demo")) localStorage.setItem("platypus.v1.demo", JSON.stringify(demo)) }, byRuleDemo())
   await plan(page, "Spring dinner")
-  const group = page.getByRole("group", { name: /Club buffer/ })
+  const group = page.getByRole("group", { name: /Days early/ })
   await expect(group.getByRole("button")).toHaveCount(5)
   await expect(group.getByRole("button", { name: "3 days" })).toHaveAttribute("aria-pressed", "true")   // the draft's buffer
   await expect(page.getByTestId("buffer-example")).toBeVisible()
@@ -103,7 +103,7 @@ test("the buffer is a five-way control; turning it re-plans the dates (a club wh
   await expect(page).toHaveURL(/team$/)
   await page.goBack()
   await expect(page).toHaveURL(/name$/)
-  await expect(page.getByRole("group", { name: /Club buffer/ }).getByRole("button", { name: "5 days" })).toHaveAttribute("aria-pressed", "true")
+  await expect(page.getByRole("group", { name: /Days early/ }).getByRole("button", { name: "5 days" })).toHaveAttribute("aria-pressed", "true")
   await expect(chain(page)).toBeVisible()      // the planned event survives the round trip
 })
 
@@ -315,6 +315,6 @@ test("the buffer example is computed by the engine and changes with every choice
   }
   expect(new Set(seen).size).toBe(5)                         // five buffers, five different club dates
   // Short dates keep the planned screen within its 60-word budget: "Example: ASU Nov 13 → Nov 10."
-  // The label above already says "Club buffer", so the example marks itself as an example instead of repeating "club".
+  // The label above already says "Days early", so the example marks itself as an example instead of repeating "club".
   expect(seen.every(t => /^Example: ASU \w{3} \d+ → \w{3} \d+\.$/.test(t))).toBe(true)
 })
