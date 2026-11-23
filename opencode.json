@@ -28,24 +28,22 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-04-countdown-view.md": "allow",
-          "src/quest/Quest.tsx": "allow",
-          "src/quest/foundation.ts": "allow",
-          "src/engine/questSchedule.ts": "allow",
+          "docs/quest-build/cards/P5-05-officer-scenes.md": "allow",
+          "src/quest/sample/model.ts": "allow",
+          "src/quest/sample/decisions.ts": "allow",
           "src/lib/dragSort.ts": "allow",
-          "src/lib/dates.ts": "allow",
+          "src/quest/Quest.tsx": "allow",
           "src/styles/quest-foundation.css": "allow",
-          "src/quest/sample/Timeline.tsx": "allow",
-          "src/quest/sample/Timeline.test.tsx": "allow"
+          "src/quest/sample/OfficerScenes.tsx": "allow",
+          "src/styles/quest-officers.css": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/Timeline.tsx": "allow",
-          "src/quest/sample/Timeline.test.tsx": "allow"
+          "src/quest/sample/OfficerScenes.tsx": "allow",
+          "src/styles/quest-officers.css": "allow"
         },
         "bash": {
           "*": "deny",
-          "npx vitest run src/quest/sample/Timeline.test.tsx": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
@@ -61,15 +59,14 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-04-countdown-view.md": "allow",
-          "src/quest/Quest.tsx": "allow",
-          "src/quest/foundation.ts": "allow",
-          "src/engine/questSchedule.ts": "allow",
+          "docs/quest-build/cards/P5-05-officer-scenes.md": "allow",
+          "src/quest/sample/model.ts": "allow",
+          "src/quest/sample/decisions.ts": "allow",
           "src/lib/dragSort.ts": "allow",
-          "src/lib/dates.ts": "allow",
+          "src/quest/Quest.tsx": "allow",
           "src/styles/quest-foundation.css": "allow",
-          "src/quest/sample/Timeline.tsx": "allow",
-          "src/quest/sample/Timeline.test.tsx": "allow"
+          "src/quest/sample/OfficerScenes.tsx": "allow",
+          "src/styles/quest-officers.css": "allow"
         },
         "edit": {
           "*": "deny"
