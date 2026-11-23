@@ -20,9 +20,8 @@ export function EventDetail({ eventId }: { eventId: string }) {
   const copy = async () => { try { await navigator.clipboard.writeText(event.details ?? ""); setCopied(true) } catch { setCopied(false) } }
   return <section className="event-detail" aria-label="Event details">
     <h2>{event.name}</h2>
-    <p className="small muted">Shared event information for forms, collaborators and browser assistants.</p>
     <label className="field"><span>Event Details</span><textarea rows={16} maxLength={5000} value={details} placeholder="Describe the event, agenda, audience, venue needs, partners, supplies, accessibility needs, and anything a form or assistant should know." onChange={e => { setDetails(e.target.value); setSaved(false) }} onBlur={save} /></label>
     <div className="action-row"><button type="button" className="btn btn-primary" onClick={save}>Save details</button>{saved && <span className="small good-text">Saved</span>}</div>
-    <div className="event-copy"><button type="button" className="btn" disabled={!event.details?.trim()} onClick={copy}>{copied ? "Event details copied" : "Copy All Event Details"}</button>{!event.details?.trim() && <span className="small muted">Save Event Details first.</span>}</div>
+    <div className="event-copy"><button type="button" className="btn" disabled={!event.details?.trim()} onClick={copy}>{copied ? "Event details copied" : "Copy details"}</button>{!event.details?.trim() && <span className="small muted">Save Event Details first.</span>}</div>
   </section>
 }

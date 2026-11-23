@@ -1,6 +1,5 @@
 .team-metro-wrap { min-width: 0; }
 .events-layout:has(.team-metro-wrap) > .events-content:only-child { grid-column: 1 / -1; }
-.team-metro-help { margin-top: 0; }
 .team-metro { max-width: 100%; --label-w: 124px; }
 .team-metro-lane { position: absolute; left: 0; right: 0; pointer-events: none; }
 .team-metro-team { position: sticky; left: 0; display: grid; gap: var(--s2); width: 142px; padding: var(--s3) var(--s5); background: var(--surface); border-right: 1px solid var(--line); transform: translateY(-50%); overflow-wrap: anywhere; z-index: var(--z-local); }

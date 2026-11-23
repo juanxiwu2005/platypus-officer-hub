@@ -216,7 +216,7 @@ test("saved two-day workflows open actual Plan tasks while day stations remain f
   await page.getByTestId("flow-event-day-2").click()
   const station = page.getByTestId("execution-milestone-details")
   await expect(station).toContainText("fixed date")
-  await expect(station).toContainText("not a task")
+  await expect(station.getByRole("button", { name: /submit|mark done/i })).toHaveCount(0)   // a station is not a task (S3 removed the sentence)
   await expect(station.getByRole("combobox", { name: "Task status", exact: true })).toHaveCount(0)
   await closeRail(page)
   const shared = tasks.find(node => node.stepKey === "shared")!

@@ -62,7 +62,6 @@ export function MilestoneExecutionChart({ state, sched, forecast, eventId, selec
       {date && <p>Event date <strong><time dateTime={date}>{fmtShort(date)}</time></strong></p>}
       {description && <p>{description}</p>}
       <p className="small muted">From {event.workflowRun?.templateName} · v{event.workflowRun?.templateVersion}. {day ? "This date is fixed by the activity date and the saved day offset. It is not moved by incomplete tasks." : "This station marks the workflow boundary."}</p>
-      <p className="small muted">This station is not a task. Task progress and submitted work stay on the task dots.</p>
     </section>)
     return () => rail.setWorkflowDetail(null)
   }, [station, event, graph, projection, rail.setWorkflowDetail])
@@ -82,7 +81,6 @@ export function MilestoneExecutionChart({ state, sched, forecast, eventId, selec
   if (!event || !projection) return null
   const scale = layout ? Math.min(1, Math.max(0.86, (available - 4) / layout.width)) : 1
   return <div className="team-metro-wrap wfm mxe" data-testid="milestone-execution-chart">
-    <p className="small muted">Select a task to work on it. Event-day stations show the fixed activity dates.</p>
     {layout && graph && <div className="wfm-scroll mxe-scroll" data-testid="flow-chart" ref={viewport} tabIndex={0} role="region" aria-label="Activity milestone workflow">
       <div className="wfm-size" style={{ width: layout.width * scale, height: layout.height * scale }}><div className="wfm-stage" style={{ width: layout.width, height: layout.height, "--wfm-scale": scale } as CSSProperties}>
         {layout.segments.map(segment => <div key={segment.branch.id} className={`wfm-segment wfm-tone-${Math.max(0, projection.teams.findIndex(team => team.id === segment.branch.teamId)) % 4} mxe-segment`} data-testid="milestone-execution-branch" data-branch-id={segment.branch.id} data-team-id={segment.branch.teamId} style={{ left: segment.x, top: segment.y, width: segment.width, height: segment.height }}><b>{projection.teams.find(team => team.id === segment.branch.teamId)?.name ?? "Team unavailable"}</b><span>{segment.points.length} task{segment.points.length === 1 ? "" : "s"}</span></div>)}

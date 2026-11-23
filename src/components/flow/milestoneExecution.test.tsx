@@ -76,7 +76,7 @@ describe("milestone activity chart", () => {
     const details = screen.getByTestId("execution-milestone-details")
     expect(within(details).getByRole("heading", { name: "Closing day" })).toBeTruthy()
     expect(within(details).getByText("Apr 17")).toBeTruthy()
-    expect(details.textContent).toContain("not a task")
+    expect(details.textContent).toContain("Event day · fixed date")
     expect(within(details).queryByRole("button", { name: /mark done/i })).toBeNull()
     expect(onSelect).toHaveBeenCalledTimes(1)
     expect(state).toEqual(before)

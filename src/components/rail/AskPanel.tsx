@@ -13,7 +13,7 @@ import { useRail } from "./RailContext"
 import { AppliedCard, ChangeCard } from "./ChangeCard"
 import { Bts, BtsRow } from "../Bts"
 import { OwnerPicker, ownersToPeople, TaskDueFields } from "./TaskFields"
-import { canChangeEvent, canCreateEvent, canLead } from "../../data/changeReview"
+import { canChangeEvent, canCreateEvent, canLead, eventBlocked } from "../../data/changeReview"
 import { policySourceById } from "../../data/policyCatalog"
 import { answerSummary, emitUi } from "../../lib/uiLog"
 import { readAiBudget } from "../../lib/api"
@@ -356,16 +356,16 @@ export function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "fo
   const finals = /^\d{4}-\d{2}-\d{2}$/.test(date) ? findPeriod(date, FINALS) : null
   return <form className="mini-card plan-form" data-testid="plan-form" data-form-id={card.id} autoComplete="off" onSubmit={e => {
     e.preventDefault()
-    if (!allowed) return setError("The president chooses who can create events (Settings).")
+    if (!allowed) return setError(eventBlocked(state, "create") ?? "")
     if (!f.name.trim()) return setError("Give the event a name.")
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < state.today) return setError("Pick a date from today on.")
     if (!workflowChoice || !findWorkflowTemplateVersion(state, workflowChoice.templateId, workflowChoice.templateVersion)) return setError("Choose a saved workflow version.")
     const details = f.details.trim()
     onDone({ ...card, done: true, date, prefill: { ...f, name: f.name.trim(), details: details || undefined } }, workflowChoice)
   }}>
-    <b>I need these details</b>
-    {card.thinking && <p className="small muted" data-testid="ai-reading">AI is reading your message and will fill in what it can…</p>}
-    {filled && <p className="small muted" data-testid="ai-filled">AI filled in what you told it. Check and change anything.</p>}
+    <b>New event</b>
+    {card.thinking && <p className="small muted" data-testid="ai-reading">Reading…</p>}
+    {filled && <p className="small muted" data-testid="ai-filled">Filled from your message.</p>}
     <label>Event name<input name="platypus-event-title" autoComplete="off" value={f.name} maxLength={80} onChange={e => edit({ name: e.target.value })} placeholder="e.g. Founder Dinner" /></label>
     <WorkflowTemplatePicker state={state} value={workflowChoice} onChange={setWorkflowChoice} />
     <div className="form-2">
@@ -377,7 +377,7 @@ export function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "fo
     <label className="check-label"><input type="checkbox" checked={f.speaker} onChange={e => edit({ speaker: e.target.checked, checks: { ...f.checks, speaker: e.target.checked } })} />Guest speaker or performer</label>
     <fieldset className="checklist"><legend>Situation-based checklist</legend>{EVENT_CHECKLIST.filter(x => x.key !== "food" && x.key !== "speaker").map(item => <label key={item.key} className="check-label"><input type="checkbox" checked={f.checks[item.key] === true} onChange={e => toggleCheck(item.key, e.target.checked)} />{item.label}</label>)}</fieldset>
     <label>Details<textarea rows={3} maxLength={500} autoComplete="off" value={f.details} onChange={e => edit({ details: e.target.value })} placeholder="Anything unusual: a stage build, a company visit, flying out of state, a competition…" /></label>
-    {!allowed && <p className="small muted">The president chooses who can create events.</p>}
+    {!allowed && <p className="small muted">{eventBlocked(state, "create")}</p>}
     {error && <p className="small late-text" role="alert">{error}</p>}
     <button className="btn btn-primary" type="submit" disabled={!allowed}>Continue</button>
   </form>
@@ -409,8 +409,8 @@ function TaskForm({ card, onDone }: { card: Extract<ChatCard, { kind: "taskform"
     onDone({ ...c, title: c.title.trim(), thinking: false })
   }}>
     <b>New task</b>
-    {card.thinking && <p className="small muted" data-testid="ai-reading">AI is reading your message and will fill in what it can…</p>}
-    {filled && <p className="small muted" data-testid="ai-filled">AI filled in what you told it. Check and change anything.</p>}
+    {card.thinking && <p className="small muted" data-testid="ai-reading">Reading…</p>}
+    {filled && <p className="small muted" data-testid="ai-filled">Filled from your message.</p>}
     <label>Task name<input aria-label="Task name" name="platypus-task-title" autoComplete="off" value={c.title} maxLength={100} onChange={e => edit({ title: e.target.value })} placeholder="e.g. Order name tags" /></label>
     <OwnerPicker value={c.owners} onChange={owners => edit({ owners })} />
     {people > 1 && <p className="small muted">Makes {people} tasks, one for each person, so everyone has their own deadline.</p>}
@@ -448,8 +448,7 @@ function EventDateCard({ card, onDone }: { card: Extract<ChatCard, { kind: "even
     {ev && <p className="small muted">Now {fmtLong(ev.date)}.</p>}
     <label>New date<input type="date" aria-label="New date" value={date} min={state.today} onChange={e => setDate(e.target.value)} /></label>
     {finals && <p className="small late-text" role="alert">{fmtLong(date)} is during {finals.label}. ASU does not allow events then (R13).</p>}
-    <p className="small muted">The rule engine reschedules every step, then I check the plan again.</p>
-    {!allowed && <p className="small muted">The president chooses who can change events.</p>}
+    {!allowed && <p className="small muted">{eventBlocked(state, "change")}</p>}
     {error && <p className="small late-text" role="alert">{error}</p>}
     <button className="btn btn-primary" type="submit" disabled={!allowed}>Move event</button>
   </form>

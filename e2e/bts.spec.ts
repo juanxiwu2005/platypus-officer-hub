@@ -69,12 +69,8 @@ test("when on: dates show where they come from on Reminders, Events and Tasks", 
   await expect(page.getByTestId("reminder-centre").locator(".bts").first()).toContainText("latest start and Task due")
   await page.goto("/#/events")
   await expect(page.locator("main .bts").first()).toBeVisible()
-  await page.getByTestId("view-list").click()
-  const list = page.getByTestId("event-list")
-  // FB-4: the List view's notes explain the one Due (with the ASU sentence where a rule sets one) and when the reminder goes out.
-  await expect(list.locator(".bts").filter({ hasText: "Due" }).first()).toBeVisible()
-  await expect(list.locator(".bts").filter({ hasText: "ASU needs this by" }).first()).toBeVisible()
-  await expect(list.locator(".bts").filter({ hasText: "Reminder goes out" }).first()).toBeVisible()
+  // S3 removed the List view, and with it the per-step Due and reminder notes; the event's own notes stay.
+  await expect(page.locator("main .bts").filter({ hasText: "Rule engine" }).first()).toBeVisible()
   await page.goto("/#/tasks")
   await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.getByTestId("my-tasks").locator(".bts").first()).toBeVisible()

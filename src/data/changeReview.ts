@@ -23,6 +23,15 @@ export const canCreateEvent = (s: DemoState) => {
  * and only while they are a current officer (the reducer already makes former and incoming officers read-only).
  */
 export const canChangeEvent = (s: DemoState) => canCreateEvent(s) && !s.people.some(p => p.id === s.viewerId && !isOfficer(p))
+/**
+ * The one permission line for events (S3), for "+ New event", Ask's event forms and the event date. It names who can:
+ * the president or VP, plus the officers they choose when Settings says so. Null when this viewer may.
+ */
+export function eventBlocked(s: DemoState, verb: "create" | "change"): string | null {
+  if (s.people.some(p => p.id === s.viewerId && !isOfficer(p))) return `Only current officers can ${verb} events.`
+  if (canCreateEvent(s)) return null
+  return (s.org.settings.eventCreators ?? "leads") === "chosen" ? `Only the president, VP and officers they choose can ${verb} events.` : `Only the president or VP can ${verb} events.`
+}
 /** Tasks are open to everyone: for yourself, or for anyone else in the club (Juanxi, 2026-10-27). */
 export function canApplyOp(s: DemoState, op: { op: string; eventId?: string | null }): boolean {
   // Administrative tasks are open to all officers. Altering an event workflow is a

@@ -4,6 +4,7 @@ import { reducer } from "../data/store"
 import { newTaskNotice } from "../data/board"
 import { newEventForm } from "../lib/assistant"
 import { newEventBlocked } from "../pages/Events"
+import { canChangeEvent, eventBlocked } from "../data/changeReview"
 import { defaultTaskDue } from "../engine/taskDates"
 import type { DemoState } from "../data/types"
 
@@ -83,5 +84,12 @@ describe("+ New event (PLAN 8.1)", () => {
     expect(newEventBlocked(as("sam", withCreators("chosen", ["sam"])))).toBeNull()
     expect(newEventBlocked(as("maya", withCreators("everyone")))).toBeNull()
     expect(newEventBlocked(as("riley", withIncoming(withCreators("everyone"))))).toBe("Only current officers can create events.")
+  })
+  it("uses the same line, and the same people, for changing an event (S3)", () => {
+    for (const s of [base, as("maya"), as("maya", withCreators("chosen", ["sam"])), as("sam", withCreators("chosen", ["sam"])), as("riley", withIncoming(withCreators("everyone")))]) {
+      expect(eventBlocked(s, "change") === null).toBe(canChangeEvent(s))
+      expect(eventBlocked(s, "change")).toBe(newEventBlocked(s)?.replace("create events", "change events") ?? null)
+    }
+    expect(eventBlocked(as("maya"), "change")).toBe("Only the president or VP can change events.")
   })
 })
