@@ -35,7 +35,8 @@
           "src/engine/questSchedule.ts": "allow",
           "src/lib/dates.ts": "allow",
           "src/quest/sample/SourceDialog.tsx": "allow",
-          "src/styles/quest-sources.css": "allow"
+          "src/styles/quest-sources.css": "allow",
+          "src/styles/quest-foundation.css": "allow"
         },
         "edit": {
           "*": "deny",
@@ -66,7 +67,8 @@
           "src/engine/questSchedule.ts": "allow",
           "src/lib/dates.ts": "allow",
           "src/quest/sample/SourceDialog.tsx": "allow",
-          "src/styles/quest-sources.css": "allow"
+          "src/styles/quest-sources.css": "allow",
+          "src/styles/quest-foundation.css": "allow"
         },
         "edit": {
           "*": "deny"

@@ -42,3 +42,5 @@ Only allowed command `npx tsc --noEmit -p tsconfig.json` passes. No Vitest comma
 
 ## Existing guard and style isolation clarification
 A JSX style prop must itself be an object literal with named CSS-variable keys (cast CSSProperties when necessary); never pass a style helper call or spread. The existing AST guard checks the attribute expression, even if a helper returns only variables. Keep shared quest-* classes unchanged; prefix new module classes with sample-source-. Do not redefine generic sample-scene/sample-paper/sample-tray from other modules. No guard exclusions.
+
+Planner style-reference clarification: src/styles/quest-foundation.css is explicitly read-only allowed. Use its actual --s*/--fs*/--r*/--ink/--line tokens; no invented alias/fallback fonts/radii/colors. Native close and Escape must notify parent once, Back must use the same native close path.

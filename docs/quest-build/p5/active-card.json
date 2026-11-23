@@ -9,7 +9,8 @@
     "src/quest/sample/venue.ts",
     "src/data/policyCatalog.ts",
     "src/engine/questSchedule.ts",
-    "src/lib/dates.ts"
+    "src/lib/dates.ts",
+    "src/styles/quest-foundation.css"
   ],
   "writeFiles": [
     "src/quest/sample/SourceDialog.tsx",
