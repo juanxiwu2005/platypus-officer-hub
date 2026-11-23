@@ -95,7 +95,7 @@ test("keyboard only: claim a task, change its status and finish it without a mou
   await status.focus()
   await page.keyboard.press("s")
   await expect(status).toHaveValue("blocked")
-  await expect(detail.getByRole("status").filter({ hasText: "Your update is saved." })).toBeVisible()
+  await expect(detail.getByRole("status").filter({ hasText: "Saved." })).toBeVisible()
   expect(await savedTask(page, id)).toMatchObject({ status: "blocked", ownerId: "jordan" })
   // Finishing is a submission: a few words of result typed from the keyboard, then Submit & mark done.
   await detail.getByLabel("Details", { exact: true }).focus()

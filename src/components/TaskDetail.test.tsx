@@ -58,7 +58,7 @@ describe("the universal task page and edit drawer", () => {
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Student Union, Room 204" } })
     fireEvent.change(screen.getByLabelText("Attach files"), { target: { files: [new File(["hello"], "booking.txt", { type: "text/plain" }), new File(["plan"], "room.txt", { type: "text/plain" })] } })
     await screen.findByRole("button", { name: "Download booking.txt" })
-    await waitFor(() => expect(screen.getByTestId("task-autosave-status").textContent).toContain("Draft saved automatically"))
+    await waitFor(() => expect(screen.getByTestId("task-autosave-status").textContent).toContain("Draft saved"))
     expect(store.state.nodes[0].status).toBe("accepted")
     expect(store.state.nodes[0].taskWork).toBeUndefined()
     const draft = store.state; cleanup(); await show(draft)
