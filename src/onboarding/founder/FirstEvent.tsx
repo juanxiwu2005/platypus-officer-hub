@@ -73,9 +73,10 @@ export function FirstEventPlan({ planner }: { planner: FirstEventPlanner }) {
   return <section className="ob6" data-testid="first-event" aria-labelledby="ob6-h">
     <h2 id="ob6-h">{c.title}</h2>
     <textarea className="ob6-sentence" aria-label={c.sentenceLabel} placeholder={c.sentenceExample} maxLength={1000} rows={3} value={draft.sentence} onChange={e => edit(e.target.value)} />
-    <div className="ob6-examples" role="group" aria-label={c.examplesLabel}>
+    {/* The examples are a way in: once a plan is shown they step aside (the sentence stays editable), which keeps screen 1 within 60 words. */}
+    {!preview && <div className="ob6-examples" role="group" aria-label={c.examplesLabel}>
       {c.examples.map(x => <button key={x.label} type="button" className="chip" onClick={() => edit(x.sentence)}>{x.label}</button>)}
-    </div>
+    </div>}
     <div className="ob-actions">
       <button type="button" className="btn btn-primary" disabled={!draft.sentence.trim()} onClick={() => void plan()}>{busy ? c.planning : c.cta}</button>
     </div>

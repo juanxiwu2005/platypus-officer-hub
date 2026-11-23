@@ -1,12 +1,10 @@
 /* OB-04: this file belongs to one work package only (docs/onboarding-redesign/WORK_PACKAGES.md). Tokens only.
    Screens: Name (founder/Name.tsx, with the first event since ob-6) and the constitution reading (founder/Constitution.tsx, inline on Team
-   since ob-6). No shifting on a choice: only colour and a 1px press. The name's live preview card was removed in ob-6 (S6). */
+   since ob-6). No shifting on a choice: only colour and a 1px press. The name's live preview card and the school line were removed in ob-6 (S6). */
 
-/* Name: the club name and the fixed school, above the first event. */
+/* Name: the club name, above the first event. */
 .ob-name-main { display: grid; gap: var(--s5); }
 .ob-name-main h1 { margin: 0; }
-.ob-name-school { display: flex; align-items: center; gap: var(--s3); margin: 0; color: var(--muted); font-size: var(--fs-md); }
-.ob-name-school b { font-weight: 600; color: var(--ink); }
 
 /* Constitution: three option rows, the first one recommended. */
 .ob-const { display: grid; gap: var(--s4); }

@@ -15,8 +15,7 @@ export const onboardingCopy = {
   // founder flow: screen 1 (name and first event), screen 2 (team, with the constitution reading), screen 3 (invite)
   founder: {
     name: {
-      title: "Name your club", field: "Club name", school: "ASU Tempe", example: "e.g. Sun Devil Robotics Club",
-      schoolWhy: "Platypus is set up for ASU clubs in this version, so the school is fixed.", schoolLabel: "School",
+      title: "Name your club", field: "Club name", example: "e.g. Sun Devil Robotics Club",
     },
     constitution: {
       open: "Import roles from your constitution", sample: "Use sample", upload: "Upload a file", paste: "Paste text",
