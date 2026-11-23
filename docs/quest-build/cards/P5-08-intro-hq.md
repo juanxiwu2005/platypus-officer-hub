@@ -49,3 +49,7 @@ Import ../../styles/quest-story.css and reuse quest-hq/quest-hq-art/quest-statio
 A JSX style prop must itself be an object literal with named CSS-variable keys (cast CSSProperties when necessary); never pass a style helper call or spread. The existing AST guard checks the attribute expression, even if a helper returns only variables. Keep shared quest-* classes unchanged; prefix new module classes with sample-story- or sample-hq-. Do not redefine generic sample-scene/sample-paper/sample-tray from other modules. No guard exclusions.
 
 When reduced motion is active, keep playback paused/manual or clearly label the Play control as manual; do not show a running-playback state with no timer. Next/Skip always work.
+
+## Superseded before adoption
+
+The initial combined269line output failed the150line size gate. Original bytes/raw run retained in the local audit. Replaced by P5-08A (Prologue/story data) and P5-08B (HQ/tiny exports). No feature removed, budget raised or test weakened. Added exact fixes for always-available Next/Skip, reduced-motion activation pauses until explicitResume, Date chapter after advisor, and no shared global CSSoverride.
