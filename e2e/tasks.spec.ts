@@ -145,9 +145,9 @@ test("the task entry opens only its task, does not update on load, and supports 
 
 test("tampered and reset task entries cannot update any task", async ({ page, isMobile }) => {
   await enableUpdatedReminders(page)
-  // Concept F: the first person's email in the rail; each task line ends in its own "Open task" entry.
-  await page.getByTestId("rq-person").first().locator(".dg-person-head").click()
-  const link = page.getByTestId("digest-panel").getByTestId("digest-body").getByRole("link", { name: "Open task", exact: true }).first()
+  // Concept F / S2: the first person's email, opened in place; each task line ends in its own "Open task" entry.
+  await page.getByTestId("rq-person").first().getByTestId("rq-person-toggle").click()
+  const link = page.getByTestId("rq-person").first().getByTestId("digest-body").getByRole("link", { name: "Open task", exact: true }).first()
   await expect(link).toHaveAttribute("href", /access=/)
   const href = (await link.getAttribute("href"))!
   await page.goto(`${href}0`)

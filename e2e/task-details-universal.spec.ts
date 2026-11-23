@@ -127,13 +127,13 @@ test("the email's single link opens the same submission form and remains readabl
   await seed(page, "alex", "review_then_auto")
   await page.goto("/#/"); await closeRail(page)
   // Concept F: the room task is one line of Jordan's email; the email carries exactly one "Open task" link for it.
-  await page.getByTestId("rq-person").filter({ has: page.getByTestId("rq-person-task").filter({ hasText: "Reserve a room" }) }).locator(".dg-person-head").click()
-  const mail = page.getByTestId("digest-panel")
+  const mail = page.getByTestId("rq-person").filter({ has: page.getByTestId("rq-person-task").filter({ hasText: "Reserve a room" }) })
+  await mail.getByTestId("rq-person-toggle").click()      // S2: the email opens in place
   await expect(mail.getByTestId("digest-body").getByRole("link", { name: "Open task", exact: true }).first()).toBeVisible()
   const links = mail.getByTestId("digest-body").locator(`a[href*="node=${encodeURIComponent(ROOM)}&"]`)
   await expect(links).toHaveCount(1)
   const href = (await links.getAttribute("href"))!
-  await mail.getByTestId("digest-send-next").click()
+  await mail.getByTestId("rq-person-send").click()
   await expect.poll(async () => (await savedDemo(page)).reminderRuntime!.deliveries.some(d => d.nodeId === ROOM)).toBe(true)
   const delivery = (await savedDemo(page)).reminderRuntime!.deliveries.find(d => d.nodeId === ROOM)!
   expect(delivery.message!.taskUrl).toBe(href)

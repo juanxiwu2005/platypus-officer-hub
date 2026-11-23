@@ -92,7 +92,9 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   if (process.env.SHOW_TIMELINE) console.info(file.timeline.map((r: { seq: number; type: string; desc: string }) => `${String(r.seq).padStart(3)} ${r.type.padEnd(16)} ${r.desc}`).join("\n"))
 
   const p = (e: Entry) => e.payload
-  const mine = log.filter(e => ["ui.task", "ui.visibility", "ui.edit"].includes(e.type)).map(e => ({ type: e.type, ...p(e) }))
+  // S2: until saves upgrade on load, the explicit reminder upgrade reloads the page before the session; that page close is not part of it.
+  const session = log.slice(log.findIndex(e => e.type === "ui.task"))
+  const mine = session.filter(e => ["ui.task", "ui.visibility", "ui.edit"].includes(e.type)).map(e => ({ type: e.type, ...p(e) }))
   expect(mine).toEqual([
     { type: "ui.task", task: 1, event: "start", route: "/" },
     { type: "ui.edit", route: "/rules", field: "Search sources", kind: "search", area: "main", event: "start" },
@@ -120,7 +122,7 @@ test("task markers, a field edit, a hover card and time away are exported in ord
     at(e => e.type === "ui.task" && p(e).event === "start" && p(e).task === 1),
     at(e => e.type === "ui.edit" && p(e).event === "end"),
     at(e => e === hovers[0]),
-    at(e => e.type === "ui.visibility" && p(e).state === "hidden"),
+    at(e => e.type === "ui.visibility" && p(e).state === "hidden" && p(e).via === "tab"),
     at(e => e.type === "ui.task" && p(e).implicit === true),
     at(e => e.type === "ui.task" && p(e).event === "done" && p(e).task === 2),
     log.length - 1,

@@ -1,3 +1,4 @@
+import { enableUpdatedReminders } from "./reminderHelpers"
 import { test, expect, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { seedDemo } from "../src/data/seed"
@@ -21,8 +22,7 @@ async function open(page: Page, waiting = false, mode: ReminderMode = "review_th
   await page.goto("/#/")
   await page.evaluate(({ key, state }) => localStorage.setItem(key, JSON.stringify(state)), { key: KEY, state })
   await page.reload(); await closeRail(page)
-  // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
-  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
+  await enableUpdatedReminders(page)   // S2: already on the current reminder plan; this only checks it (no "Enable updated reminders" card)
   await expect.poll(async () => (await read(page)).reminderRuntime?.version).toBe(2)
   return state
 }
@@ -30,13 +30,15 @@ async function simulateDate(page: Page, today: string) {
   await page.evaluate(({ key, today }) => { const state = JSON.parse(localStorage.getItem(key)!); state.today = today; localStorage.setItem(key, JSON.stringify(state)) }, { key: KEY, today })
   await page.reload(); await closeRail(page)
 }
-/** Concept F: one person's email opens in the right rail; Send & next records it. */
+const row = (page: Page, recipientId: string) => page.locator(`[data-testid="rq-person"][data-recipient="${recipientId}"]`)
+/** Concept F / S2: one person's email opens in place on the page; the row's Send records it. */
 async function openEmail(page: Page, recipientId: string) {
-  await page.locator(`[data-testid="rq-person"][data-recipient="${recipientId}"] .dg-person-head`).click()
-  await expect(page.getByTestId("digest-body")).toBeVisible()
+  await row(page, recipientId).getByTestId("rq-person-toggle").click()
+  await expect(row(page, recipientId).getByTestId("digest-body")).toBeVisible()
 }
-async function approve(page: Page, count: number) {
-  await page.getByTestId("digest-send-next").click()
+/** With a recipient: the row's Send. Without: Send & next in the right rail (opened by History's Follow up). */
+async function approve(page: Page, count: number, recipientId?: string) {
+  await (recipientId ? row(page, recipientId).getByTestId("rq-person-send") : page.getByTestId("digest-send-next")).click()
   await expect.poll(async () => (await read(page)).reminderRuntime!.deliveries.length).toBe(count)
 }
 async function openHistory(page: Page) {
@@ -52,7 +54,7 @@ test.beforeEach(async ({ page, context }) => {
 test("no reply produces one actionable follow-up, then an enabled task review instead of a dead button", async ({ page }, info) => {
   const initial = await open(page)
   await openEmail(page, "jordan")
-  await approve(page, 1)
+  await approve(page, 1, "jordan")
   await simulateDate(page, addDays(initial.today, 2))
   await openHistory(page)
   const noReply = page.getByTestId("rq-no-reply")
@@ -73,7 +75,7 @@ test("no reply produces one actionable follow-up, then an enabled task review in
 test("helper promises survive refresh, are checked on the promised day, and provision notifies the owner", async ({ page }, info) => {
   const initial = await open(page, true)
   await openEmail(page, "sam")
-  await approve(page, 1)
+  await approve(page, 1, "sam")
   const first = (await read(page)).reminderRuntime!.deliveries[0]
   await page.goto(first.message!.taskUrl)
   const panel = page.getByTestId("single-task-page")
@@ -97,8 +99,8 @@ test("helper promises survive refresh, are checked on the promised day, and prov
   if (info.project.name === "mobile") await expect(page.getByTestId("rail")).toBeHidden()
   await closeRail(page)
   await openEmail(page, "sam")
-  await expect(page.getByTestId("digest-body")).toContainText("Input was expected by")
-  await approve(page, 2)
+  await expect(row(page, "sam").getByTestId("digest-body")).toContainText("Input was expected by")
+  await approve(page, 2, "sam")
   expect((await read(page)).reminderRuntime!.deliveries[1].reason).toBe("waiting_followup")
   await page.goto(first.message!.taskUrl)
   await panel.getByRole("button", { name: "Update provided", exact: true }).click()

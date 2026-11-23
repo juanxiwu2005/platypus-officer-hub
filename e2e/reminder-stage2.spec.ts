@@ -1,3 +1,4 @@
+import { enableUpdatedReminders } from "./reminderHelpers"
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { savedDemo } from "./demo-contract"
@@ -29,14 +30,13 @@ async function openMail(page: Page, waiting = false) {
   await page.goto("/#/")
   await page.reload()
   await closeRail(page)
-  // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
-  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
+  await enableUpdatedReminders(page)   // S2: already on the current reminder plan; this only checks it (no "Enable updated reminders" card)
   await expect.poll(async () => (await demo(page)).reminderRuntime?.version).toBe(2)
-  // Concept F: the reminder is part of the recipient's email for today, opened from the Reminders page.
+  // Concept F: the reminder is part of the recipient's email for today, opened in place on the Reminders page (S2).
   const recipientId = waiting ? "sam" : node.ownerId!
-  await page.locator(`[data-testid="rq-person"][data-recipient="${recipientId}"] .dg-person-head`).click()
-  const panel = page.getByTestId("digest-panel")
-  await expect(panel.getByTestId("digest-send-next")).toBeEnabled()
+  const panel = page.locator(`[data-testid="rq-person"][data-recipient="${recipientId}"]`)
+  await panel.getByTestId("rq-person-toggle").click()
+  await expect(panel.getByTestId("rq-person-send")).toBeEnabled()
   await expect(panel.getByTestId("digest-body").getByRole("link", { name: "Open task" }).first()).toBeVisible()
   // The combined email has one "Open task" link per task; pick this task's link by its node.
   const entry = await panel.getByTestId("digest-body").getByRole("link", { name: "Open task" }).evaluateAll((links, id) => links.map(a => (a as HTMLAnchorElement).href)
@@ -62,8 +62,8 @@ test("one rule-written mail opens a reusable task entry in Plan: Working, reload
   await expect(panel.getByTestId("ai-wait")).toHaveCount(0)
   await expect(panel.getByRole("link", { name: /^(Done|Working on it|Stuck|Waiting on)$/ })).toHaveCount(0)
   await page.screenshot({ path: info.outputPath(`mail-${isMobile ? "phone" : "desktop"}.png`), fullPage: true })
-  await panel.getByTestId("digest-send-next").click()
-  await expect(panel).toContainText("recorded. Demo: nothing is sent.")
+  await panel.getByTestId("rq-person-send").click()
+  await expect(panel).toHaveAttribute("data-state", "sent")
   const saved = (await demo(page)).reminderRuntime!.deliveries.find(d => d.nodeId === nodeId)!
   expect(saved.message!.body).toContain("40 attendees")
   expect((await demo(page)).nudges).toEqual([])
@@ -149,10 +149,10 @@ test("altered entries and reassignment withdraw the old recipient's action right
 
 test("a waiting follow-up goes to Sam and its task entry only responds to the help request", async ({ page }) => {
   const { panel, nodeId, ownerId } = await openMail(page, true)
-  await expect(panel.getByRole("heading", { level: 2 })).toHaveText("Sam Okafor")
+  await expect(panel.getByTestId("rq-person-toggle")).toHaveText(/Sam Okafor/)
   await expect(panel.getByTestId("digest-body")).toContainText("Reserve a room")
-  await panel.getByTestId("digest-send-next").click()
-  await expect(panel).toContainText("recorded. Demo: nothing is sent.")
+  await panel.getByTestId("rq-person-send").click()
+  await expect(panel).toHaveAttribute("data-state", "sent")
   const saved = (await demo(page)).reminderRuntime!.deliveries.find(d => d.nodeId === nodeId)!
   expect(saved.message!.body).toContain("Please confirm our room requirements")
   expect(saved.recipientId).toBe("sam")

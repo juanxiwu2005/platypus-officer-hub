@@ -7,12 +7,14 @@
 // Each page has two limits (Juanxi 2026-10-29): [what shows at first glance, every word the page carries].
 // A page fails if it is over either. Pass --report-only to print without failing.
 // Each page is measured on its own fresh demo, in the state an officer actually uses:
-//   /          a fresh demo first shows only the "Enable updated reminders" card, so the script presses it
-//              and counts the reminder centre behind it (what a president sees from then on).
+//   /          the reminder centre a president sees. S2 removed the "Enable updated reminders" card (saves are to
+//              upgrade on load); while a fresh demo still has the older plan, the script applies the same upgrade
+//              the store's `upgradeReminderPlan` action applies, reloads, and counts the reminder centre.
 //   /settings  the enforced row is the first tab (Club). Every other Settings tab gets an extra "info" row
 //              that is report-only and never fails the check (their budgets are not set yet).
 import { chromium } from "@playwright/test"
 import { spawn } from "node:child_process"
+import { createServer } from "vite"
 
 const args = process.argv.slice(2)
 const enforce = !args.includes("--report-only")
@@ -55,14 +57,22 @@ const screens = r => `${(r.height / 900).toFixed(1)} screens`
 const shot = async (page, name) => { if (out) await page.screenshot({ path: `${out}/${name}.png`, fullPage: true }) }
 const slug = s => s.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
 
-/** On a fresh demo the home page only offers the migration card: press it and wait for the real reminder centre. */
+/** The rule engine's own upgrade, loaded from the source (no browser control exists for it since S2). */
+async function loadUpgrade() {
+  const vite = await createServer({ server: { middlewareMode: true }, appType: "custom", logLevel: "silent" })
+  try { return (await vite.ssrLoadModule("/src/reminders/adapter.ts")).upgradeReminderPlan } finally { await vite.close() }
+}
+/** Open the real reminder centre; a demo that still has the older plan is upgraded first, as a load would. */
 async function openReminderCentre(page) {
   const summary = page.getByTestId("rq-summary")
-  // isVisible() does not wait: first wait until either the migration card or the real summary has rendered.
-  await page.getByTestId("reminder-plan-status").or(summary).first().waitFor({ state: "visible", timeout: 10_000 })
-  const enable = page.getByRole("button", { name: "Enable updated reminders", exact: true })
-  const pressed = await enable.isVisible()
-  if (pressed) await enable.click()
+  await page.getByTestId("reminder-centre").waitFor({ state: "attached", timeout: 10_000 })
+  const demo = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo") ?? "null"))
+  const pressed = !!demo && demo.reminderRuntime?.version !== 2
+  if (pressed) {
+    const upgrade = await loadUpgrade()
+    await page.evaluate(next => localStorage.setItem("platypus.v1.demo", JSON.stringify(next)), upgrade(demo))
+    await page.reload()
+  }
   // The home row must measure the real reminder centre; if it never appears, this throws and the check fails loudly.
   await summary.waitFor({ state: "visible", timeout: 10_000 })
   await page.locator('[data-testid="reminder-centre"][aria-busy="false"]').waitFor({ timeout: 10_000 })
@@ -100,7 +110,7 @@ for (const [path, [vLimit, aLimit]] of Object.entries(LIMITS)) {
   const r = await measure(page)
   const isOver = r.visible > vLimit || r.all > aLimit
   if (isOver) over++
-  console.log(`${isOver ? "OVER" : "ok  "} ${path.padEnd(10)} visible ${String(r.visible).padStart(4)}/${String(vLimit).padStart(4)} · all ${String(r.all).padStart(4)}/${String(aLimit).padStart(4)} · ${screens(r)}${enabled ? " · after Enable updated reminders" : ""}`)
+  console.log(`${isOver ? "OVER" : "ok  "} ${path.padEnd(10)} visible ${String(r.visible).padStart(4)}/${String(vLimit).padStart(4)} · all ${String(r.all).padStart(4)}/${String(aLimit).padStart(4)} · ${screens(r)}${enabled ? " · after the reminder plan upgrade" : ""}`)
   await shot(page, path === "/" ? "today" : path.slice(1))
   if (path === "/settings") await reportSettingsTabs(page)
   await context.close()

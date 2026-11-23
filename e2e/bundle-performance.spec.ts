@@ -16,7 +16,7 @@ test("Today ships a small entry and requests no PDF or Word implementation", asy
     if (/\.(?:js|mjs)(?:\?|$)/.test(request.url())) scripts.push(request.url())
   })
   await page.goto("/#/")
-  await expect(page.getByTestId("reminder-centre")).toBeVisible()
+  await expect(page.getByTestId("reminder-centre")).toBeAttached()   // S2: an older plan shows no card until saves upgrade on load
   await page.waitForLoadState("networkidle")
   expect(scripts.filter(url => DEFERRED.test(url))).toEqual([])
   const entryUrl = await page.locator('script[type="module"][src]').getAttribute("src")

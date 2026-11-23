@@ -1,10 +1,11 @@
+import { enableUpdatedReminders } from "./reminderHelpers"
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { closeRail, noOverflow } from "./helpers"
 import type { DemoState } from "../src/data/types"
 
 // Concept F (Juanxi 2026-11-19) on the shipped seed club (Sat Oct 31, "I review, Platypus sends"):
-// one email per person, problems apart under Fix first, the email itself in the right rail. Nothing is sent.
+// one email per person, problems apart under Fix first, the email itself opens in place (S2). Nothing is sent.
 const read = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!) as DemoState)
 const serious = async (page: Page) => (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze())
   .violations.filter(v => v.impact === "serious" || v.impact === "critical").map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).slice(0, 3).join(" ; ")}`)
@@ -13,7 +14,7 @@ test.beforeEach(async ({ page, context }) => {
   await page.route("**/api/**", route => route.fulfill({ status: 503, json: { message: "Offline reminder check" } }))
   await context.route(url => !["localhost", "127.0.0.1"].includes(url.hostname) && url.hostname !== "mail.google.com", route => route.abort())
   await page.goto("/#/")
-  await expect(page.getByTestId("reminder-centre")).toBeVisible()
+  await expect(page.getByTestId("reminder-centre")).toBeAttached()
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
     s.org.settings.reminderMode = "review_then_auto"
@@ -21,19 +22,20 @@ test.beforeEach(async ({ page, context }) => {
   })
   await page.reload()
   await closeRail(page)
-  // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
-  await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
+  await enableUpdatedReminders(page)   // S2: already on the current reminder plan; this only checks it (no "Enable updated reminders" card)
   await expect(page.getByTestId("rq-summary")).toBeVisible()
 })
 
-test("the seed fits in a short page: 3 emails for 5 tasks, grouped by person, problems apart", async ({ page, isMobile }) => {
-  await expect(page.getByTestId("rq-summary")).toContainText("Review 3 emails · 5 tasks · 0 sent today")
-  await expect(page.getByTestId("send-all-digests")).toHaveText("Send all 3 emails")
+test("the seed fits in a short page: 3 people for 5 tasks, grouped by person, problems apart", async ({ page, isMobile }) => {
+  await expect(page.getByTestId("rq-summary")).toHaveText("3 people to remindSend all")
+  await expect(page.getByTestId("send-all-digests")).toHaveText("Send all")
+  for (const gone of ["reminder-mode-chip", "rq-held", "rq-next", "reminder-plan-status"]) await expect(page.getByTestId(gone)).toHaveCount(0)
   const people = page.getByTestId("rq-person")
   await expect(people).toHaveCount(3)
   expect(await people.evaluateAll(list => list.map(p => (p as HTMLElement).dataset.recipient))).toEqual(["maya", "jordan", "priya"])
   await expect(page.locator('[data-recipient="jordan"]').getByTestId("rq-person-task")).toHaveCount(3)
   await expect(page.getByTestId("rq-person-task")).toHaveCount(5)
+  await expect(page.getByTestId("rq-person-send")).toHaveCount(3)
   await expect(page.getByTestId("rq-fix").getByTestId("rq-row")).toHaveCount(8)
   // Every task line is one line.
   for (const line of await page.getByTestId("rq-person-task").all()) expect((await line.boundingBox())!.height).toBeLessThan(44)
@@ -45,28 +47,37 @@ test("the seed fits in a short page: 3 emails for 5 tasks, grouped by person, pr
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
 })
 
-test("a person opens their real email in the rail; Send & next records it and moves on; Send all records the rest", async ({ page }) => {
-  await page.locator('[data-recipient="maya"] .dg-person-head').click()
-  const panel = page.getByTestId("digest-panel")
-  await expect(panel).toContainText("Email 1 of 3 · to Maya")
-  await expect(panel.getByTestId("digest-body").getByRole("link", { name: "Open task" })).toHaveCount(1)
-  await expect(panel.getByText(/Maya’s open tasks \(\d+\)/)).toBeVisible()
-  await expect(page.locator('[data-testid="rq-person"][data-recipient="maya"]')).toHaveAttribute("data-state", "reviewing")
+test("a row expands to its real email in place; a row's Send records it once; Send all records the rest", async ({ page }) => {
+  const maya = page.locator('[data-testid="rq-person"][data-recipient="maya"]')
+  const toggle = maya.getByRole("button", { name: "Email to Maya Chen" })
+  await expect(toggle).toHaveAttribute("aria-expanded", "false")
+  await toggle.click()
+  await expect(toggle).toHaveAttribute("aria-expanded", "true")
+  await expect(maya.getByTestId("digest-body").getByRole("link", { name: "Open task" })).toHaveCount(1)
+  await expect(maya.getByTestId("digest-mail")).toContainText("To: maya.chen@example.org")
+  await expect(page.getByTestId("digest-panel")).toHaveCount(0)
   expect(await serious(page)).toEqual([])
-  await panel.getByTestId("digest-send-next").click()
-  await expect(panel).toContainText("Email 2 of 3 · to Jordan")
-  await expect(panel.getByTestId("digest-body").getByRole("link", { name: "Open task" })).toHaveCount(3)
+  expect(await noOverflow(page)).toBeLessThanOrEqual(0)
+  await maya.getByRole("button", { name: "Send to Maya" }).click()
+  await expect(maya).toHaveAttribute("data-state", "sent")
+  await expect(maya.getByText("Sent", { exact: true })).toBeVisible()
+  await expect(toggle).toBeFocused()
   expect((await read(page)).reminderRuntime!.digests).toHaveLength(1)
-  await panel.getByTestId("digest-send-all").click()
-  await expect(panel).toContainText("2 emails recorded. Demo: nothing is sent.")
+  const jordan = page.locator('[data-testid="rq-person"][data-recipient="jordan"]')
+  await jordan.getByRole("button", { name: "Email to Jordan Patel" }).click()
+  await expect(jordan.getByTestId("digest-body").getByRole("link", { name: "Open task" })).toHaveCount(3)
+  await page.getByTestId("send-all-digests").click()
+  await expect(page.getByTestId("reminder-centre")).toContainText("Sent to 2 people.")
   const saved = await read(page)
   expect(saved.reminderRuntime!.digests).toHaveLength(3)
   expect(saved.reminderRuntime!.deliveries).toHaveLength(5)
-  await panel.getByRole("button", { name: "Close email" }).click()
-  await closeRail(page)
-  await expect(page.getByTestId("rq-summary")).toContainText("Nothing to send today. · 3 sent today")
+  await expect(page.getByTestId("rq-summary")).toContainText("Nothing to send today.")
+  await expect(page.getByTestId("rq-next")).toHaveText(/^Next check: (Mon|Tue|Wed|Thu|Fri|Sat|Sun), Nov \d+ · \d+ planned this week$/)
+  await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
   await expect(page.getByTestId("rq-person")).toHaveCount(3)
   for (const p of await page.getByTestId("rq-person").all()) await expect(p).toHaveAttribute("data-state", "sent")
-  await expect(page.getByTestId("rq-history")).toContainText("3 sent this week")
+  await expect(page.getByTestId("rq-history")).toHaveText("History")
+  await page.getByTestId("open-history").click()
+  await expect(page.getByTestId("rq-sent").getByTestId("rq-row")).toHaveCount(3)
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
 })
