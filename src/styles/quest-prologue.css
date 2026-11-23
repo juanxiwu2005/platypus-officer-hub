@@ -1,0 +1,13 @@
+/* P5-08A prologue stills and captions. Scoped to the sample story; reuses quest-* shell classes without redefining them. */
+.sample-story-frame { margin: 0; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface-2); overflow: hidden; }
+.sample-story-frame .sample-story-still { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: 50% 30%; }
+.sample-story-frame.is-crew .sample-story-still { aspect-ratio: 16 / 6; object-fit: cover; object-position: 50% 30%; }
+.sample-story-frame.is-running .sample-story-still { animation: sample-story-push var(--dur-quest-shot) linear both; }
+.sample-story-caption { display: flex; align-items: center; justify-content: space-between; gap: var(--s5); padding: var(--s5) var(--s6); border-top: 1px solid var(--line); background: var(--surface); }
+.sample-story-caption p { margin: 0; font-size: var(--fs-base); color: var(--ink); }
+.sample-story-counter { flex-shrink: 0; font-size: var(--fs-xs); font-weight: 750; color: var(--muted); }
+.sample-story-frame + .quest-actions { margin-top: var(--s5); }
+@keyframes sample-story-push { from { transform: scale(1); } to { transform: scale(1.04); } }
+@media (prefers-reduced-motion: reduce) {
+  .sample-story-frame.is-running .sample-story-still { animation: none; }
+}
