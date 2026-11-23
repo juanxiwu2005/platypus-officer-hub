@@ -153,6 +153,8 @@ export function sanitizeChecklist(raw: unknown, roleIds: readonly string[], toda
 // Whole tokens only: "day 10" or "@newcomer" are not tokens. The leading space is kept in group 1 so removal keeps word gaps.
 const WHO_TOKEN = /(^|\s)@(new|buddy|president|outgoing|predecessor)(?=\s|$)/gi
 const WHEN_TOKEN = /(^|\s)(day\s+(?:1|3|30)|week\s+(?:1|2)|month\s+1)(?=\s|$)/gi
+/** The run of tokens that ends a line ("… @buddy day 3"); a time is read only from here. */
+const TRAILING_TOKENS = /(?:\s+(?:@(?:new|buddy|president|outgoing|predecessor)|day\s+(?:1|3|30)|week\s+(?:1|2)|month\s+1))+\s*$/i
 const WHO_OF_TOKEN: Record<string, ChecklistWho> = { new: "new", buddy: "buddy", president: "president", outgoing: "outgoing", predecessor: "outgoing" }
 const WHEN_OF_TOKEN: Record<string, ChecklistWhen> = { "day 1": "day1", "day 3": "day3", "day 30": "month1", "week 1": "week1", "week 2": "week2", "month 1": "month1" }
 
@@ -167,14 +169,20 @@ const whoTokenIn = (text: string) => single(text, WHO_TOKEN, t => WHO_OF_TOKEN[t
 /**
  * "Meet your buddy @buddy day 3" → title "Meet your buddy", who buddy, when Day 3. Recognized tokens are case-insensitive
  * whole words: @new @buddy @president @outgoing @predecessor, and day 1, day 3, week 1, week 2, month 1, day 30 (= Month 1).
+ * A time counts only at the end of the line, after the title, so titles such as "Week 2 check-in" or "Day 30 review" stay whole;
+ * an @ token counts anywhere because nobody writes "@buddy" by accident.
  * Tokens that disagree (day 1 … week 2) set nothing and stay in the title. When removing the tokens would leave no title,
  * the original text stays the title and nothing is set.
  */
 export function parseShorthand(text: string): PastedItem {
   const original = collapse(text)
-  const when = whenTokenIn(original), who = whoTokenIn(original)
+  const tail = TRAILING_TOKENS.exec(original)?.[0] ?? ""
+  const head = original.slice(0, original.length - tail.length)
+  // A time in the title part as well ("Call day 1 or week 2") is ambiguous: set nothing rather than guess.
+  const headHasTime = [...head.matchAll(WHEN_TOKEN)].length > 0
+  const when = headHasTime ? undefined : whenTokenIn(tail), who = whoTokenIn(original)
   let title = original
-  if (when) title = title.replace(WHEN_TOKEN, "$1")
+  if (when) title = head + tail.replace(WHEN_TOKEN, "$1")
   if (who) title = title.replace(WHO_TOKEN, "$1")
   title = collapse(title).replace(/^[\s,;:\-–—]+|[\s,;:\-–—]+$/g, "")
   if (!title) return { title: original }

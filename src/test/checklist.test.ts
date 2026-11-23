@@ -145,6 +145,11 @@ describe("parseShorthand", () => {
     expect(parseShorthand("Review goals day 30 @president")).toEqual({ title: "Review goals", who: "president", when: "month1" })
     expect(parseShorthand("Get drive access month 1 @new")).toEqual({ title: "Get drive access", who: "new", when: "month1" })
     expect(parseShorthand("Join the chat day 1")).toEqual({ title: "Join the chat", when: "day1" })
+    // A time at the start or in the middle is part of the title.
+    expect(parseShorthand("Week 2 check-in")).toEqual({ title: "Week 2 check-in" })
+    expect(parseShorthand("Day 30 review")).toEqual({ title: "Day 30 review" })
+    expect(parseShorthand("Day 30 review week 1")).toEqual({ title: "Day 30 review week 1" })
+    expect(parseShorthand("Plan the week 2 social @president")).toEqual({ title: "Plan the week 2 social", who: "president" })
     expect(parseShorthand("Sync calendar week 1")).toEqual({ title: "Sync calendar", when: "week1" })
   })
 
