@@ -37,7 +37,7 @@ export default function VenueEditor({ layout, onChange, onCheck, onExplain }: Ve
       <div className="sample-venue-panel">
         <div className="sample-venue-checks" role="group" aria-label="Room checks">
           {checks.map(check => <button key={check.id} type="button" className={`sample-venue-check${check.passed ? " is-clear" : " is-blocked"}`} onClick={() => onExplain(check.id)} aria-label={`${check.label}${check.checklist ? " (checklist check)" : ""}: ${check.passed ? "clear" : "needs work"}`}>
-            <span>{check.label}</span><span>{check.passed ? "Clear" : "Needs work"}</span>
+            <span>{check.label}{check.checklist ? " (checklist check)" : ""}:</span> <span>{check.passed ? "Clear" : "Needs work"}</span>
           </button>)}
         </div>
         <div className="sample-venue-field">
