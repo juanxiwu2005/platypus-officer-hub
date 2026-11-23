@@ -28,18 +28,22 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-07K-check-labels.md": "allow",
+          "docs/quest-build/cards/P5-09AT-regression.md": "allow",
+          "src/quest/sample/SourceDialog.tsx": "allow",
+          "src/quest/ruleLibrary.ts": "allow",
           "src/quest/sample/venue.ts": "allow",
-          "src/quest/sample/VenueEditor.test.tsx": "allow",
-          "src/quest/sample/VenueEditor.tsx": "allow"
+          "src/data/policyCatalog.ts": "allow",
+          "src/engine/questSchedule.ts": "allow",
+          "src/lib/dates.ts": "allow",
+          "src/quest/sample/SourceDialog.test.tsx": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/VenueEditor.tsx": "allow"
+          "src/quest/sample/SourceDialog.test.tsx": "allow"
         },
         "bash": {
           "*": "deny",
-          "npx vitest run src/quest/sample/VenueEditor.test.tsx": "allow",
+          "npx vitest run src/quest/sample/SourceDialog.test.tsx": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
@@ -55,10 +59,14 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-07K-check-labels.md": "allow",
+          "docs/quest-build/cards/P5-09AT-regression.md": "allow",
+          "src/quest/sample/SourceDialog.tsx": "allow",
+          "src/quest/ruleLibrary.ts": "allow",
           "src/quest/sample/venue.ts": "allow",
-          "src/quest/sample/VenueEditor.test.tsx": "allow",
-          "src/quest/sample/VenueEditor.tsx": "allow"
+          "src/data/policyCatalog.ts": "allow",
+          "src/engine/questSchedule.ts": "allow",
+          "src/lib/dates.ts": "allow",
+          "src/quest/sample/SourceDialog.test.tsx": "allow"
         },
         "edit": {
           "*": "deny"

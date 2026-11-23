@@ -3,16 +3,20 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-07K-check-labels.md",
+  "card": "docs/quest-build/cards/P5-09AT-regression.md",
   "readFiles": [
+    "src/quest/sample/SourceDialog.tsx",
+    "src/quest/ruleLibrary.ts",
     "src/quest/sample/venue.ts",
-    "src/quest/sample/VenueEditor.test.tsx"
+    "src/data/policyCatalog.ts",
+    "src/engine/questSchedule.ts",
+    "src/lib/dates.ts"
   ],
   "writeFiles": [
-    "src/quest/sample/VenueEditor.tsx"
+    "src/quest/sample/SourceDialog.test.tsx"
   ],
   "agentCommands": [
-    "npx vitest run src/quest/sample/VenueEditor.test.tsx",
+    "npx vitest run src/quest/sample/SourceDialog.test.tsx",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
@@ -20,7 +24,7 @@
       "npx",
       "vitest",
       "run",
-      "src/quest/sample/VenueEditor.test.tsx"
+      "src/quest/sample/SourceDialog.test.tsx"
     ],
     [
       "npx",
