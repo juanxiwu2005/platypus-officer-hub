@@ -5,7 +5,6 @@
 .ob-gt-head h1 { font-size: var(--fs-xl); }
 .ob-gt-head .ob-lead { font-size: var(--fs-md); }
 .ob-gt-error { margin: 0; padding: var(--s5); border-radius: var(--r-md); background: var(--late-soft); color: var(--late); font-size: var(--fs-md); }
-.ob-gt-hint { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
 .ob-gt-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
 .ob-gt-nav .btn { min-height: 44px; justify-content: center; }
 .ob-gt-skip { display: grid; gap: var(--s2); margin-inline-start: auto; justify-items: end; text-align: end; }
