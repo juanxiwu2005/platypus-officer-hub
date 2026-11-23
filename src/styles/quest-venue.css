@@ -1,0 +1,28 @@
+/* P5 sample venue editor: model and inspector layout. Loaded only with this stage. */
+.sample-venue { display: grid; gap: var(--s5); }
+.sample-venue-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s3) var(--s6); }
+.sample-venue-heading h2 { margin: 0; font-size: var(--fs-lg); }
+.sample-venue-note { margin: 0; color: var(--muted); font-size: var(--fs-sm); }
+.sample-venue-status { margin: 0 0 0 auto; color: var(--accent-ink); font-size: var(--fs-sm); font-weight: 750; }
+.sample-venue-grid { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--s6); align-items: start; }
+.sample-venue-panel { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s5); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); }
+.sample-venue-checks { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s2); }
+.sample-venue-check { display: flex; justify-content: space-between; align-items: center; gap: var(--s3); min-height: 44px; padding: var(--s3) var(--s4); border: 1px solid var(--edge); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-sm); text-align: left; }
+.sample-venue-check.is-clear { background: var(--accent-soft); color: var(--accent-ink); }
+.sample-venue-check.is-blocked { background: var(--warn-soft); color: var(--warn); }
+.sample-venue-field { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); font-size: var(--fs-sm); color: var(--muted); }
+.sample-venue-field input, .sample-venue-field select { min-height: 44px; flex: 1; min-width: 0; border: 1px solid var(--edge); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font: inherit; padding: var(--s3) var(--s4); }
+.sample-venue-field input[type="number"] { flex: 0 0 6em; }
+.sample-venue-controls { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.sample-venue-controls button { min-height: 44px; border: 1px solid var(--edge); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-sm); padding: var(--s3) var(--s4); }
+.sample-venue-tool-note { margin: 0; color: var(--accent-ink); font-size: var(--fs-sm); }
+.sample-venue-yours > summary { min-height: 44px; display: flex; align-items: center; color: var(--muted); font-size: var(--fs-sm); cursor: pointer; }
+.sample-venue-yours[open] > summary { margin-bottom: var(--s4); }
+.sample-venue-yours .sample-venue-field { display: grid; grid-template-columns: auto minmax(0, 1fr); margin: var(--s2) 0; }
+.sample-venue-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s3); }
+.sample-venue-actions button:not(.quest-primary) { min-height: 44px; border: 1px solid var(--edge); border-radius: var(--r-md); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-sm); padding: var(--s3) var(--s6); }
+.sample-venue button:focus-visible, .sample-venue select:focus-visible, .sample-venue input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 960px) {
+  .sample-venue-grid { grid-template-columns: minmax(0, 1fr); }
+  .sample-venue-status { margin-left: 0; }
+}
