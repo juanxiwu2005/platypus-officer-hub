@@ -16,7 +16,7 @@ import { useStore } from "../../data/store"
 const c = onboardingCopy.member.done
 
 /**
- * Member screen 5: the one place the preview is saved. On arrival the choices made on the earlier screens are checked with the same rules as
+ * Member screen 4 of 4 (ob-6): the one place the preview is saved. On arrival the choices made on the earlier screens are checked with the same rules as
  * Settings (validateProfile) and saved once with saveProfile; if they do not pass, nothing is saved and the screen says why.
  * Open my tasks ends the walkthrough and goes to Tasks. It never changes who is viewing: the person walking through is the president.
  */

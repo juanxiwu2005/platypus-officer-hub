@@ -6,7 +6,7 @@ import type { Preview } from "./usePreview"
 const c = onboardingCopy.member.invitation
 
 /** The amber Demo strip for the member preview: who is being previewed, and a small picker to change it. Nothing here verifies an identity. */
-export function MemberStrip({ preview, note = false }: { preview: Preview; note?: boolean }) {
+export function MemberStrip({ preview }: { preview: Preview }) {
   const { state, person, picking, setPicking, choose } = preview
   const select = useRef<HTMLSelectElement>(null)
   const change = useRef<HTMLButtonElement>(null)
@@ -25,7 +25,6 @@ export function MemberStrip({ preview, note = false }: { preview: Preview; note?
           {state.people.map(p => <option key={p.id} value={p.id}>{p.name} · {state.roles.find(r => r.id === p.roleId)?.displayName}</option>)}
         </select>
         : <button ref={change} type="button" className="ob-m-link" onClick={() => setPicking(true)}>{c.change}</button>}
-      {note && <span className="ob-m-note">{c.demoNote}</span>}
     </DemoStrip>
   </div>
 }

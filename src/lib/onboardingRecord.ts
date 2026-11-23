@@ -5,7 +5,7 @@ import { isReminderMode, REMINDER_MODES, reminderModeTestId } from "../data/remi
 export type OnboardingEvent = "enter" | "leave" | "back" | "skip" | "complete" | "exit"
 
 export interface OnboardingStepRecord { step: string; event: OnboardingEvent; at: number }
-/** What the president chose on the Confirm screen. Either one ends setup; the attempt may still go on to the officer preview. */
+/** What the president chose on the Confirm screen (on Team since ob-6). Either one ends setup; the attempt may still go on to the officer preview. */
 export type SetupChoice = "start-workspace" | "keep-demo"
 export interface OnboardingAttempt {
   id: string
@@ -107,11 +107,15 @@ export function markSetup(attemptId: string, choice: SetupChoice): void {
   save(record)
 }
 
+/** The screen that holds the first event: its own screen up to ob-5; since ob-6 (S6, 2026-11-23) the first screen, together with the club name. */
+export const firstEventStep = (flowVersion: string | undefined) => /^ob-[1-5]$/.test(flowVersion ?? "ob-1") ? "founder.first-event" : "founder.name"
+
 /**
  * Whether the president planned a first event or pressed Skip for now, read from the step events only (nothing typed):
  * the last time the First event screen was left forward (before setup ended, when it did), was that a Skip? null when it never was.
+ * The screen follows the attempt's own flowVersion (firstEventStep), so files with older attempts export the same answer as before.
  */
-export function firstEventChoice(attempt: OnboardingAttempt | undefined, step = "founder.first-event"): "planned" | "skipped" | null {
+export function firstEventChoice(attempt: OnboardingAttempt | undefined, step = firstEventStep(attempt?.flowVersion)): "planned" | "skipped" | null {
   if (!attempt) return null
   const until = attempt.setupCompletedAt ?? Infinity
   const own = attempt.steps.filter(s => s.step === step && s.at <= until)

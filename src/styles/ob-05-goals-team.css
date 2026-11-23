@@ -1,6 +1,6 @@
-/* OB-05: the Goals and Team screens of the founder flow. Tokens only (docs/DESIGN_TOKENS.md). Adding, removing and changing rows is frequent, so nothing here moves
-   except the small switch thumb (transform, token time). */
-.ob-goals, .ob-team { width: 100%; box-sizing: border-box; }
+/* OB-05: the Team screen of the founder flow (its Goals screen was removed in ob-6, S6). Tokens only (docs/DESIGN_TOKENS.md). Adding, removing and changing rows is frequent, so nothing here moves
+   (no transitions). */
+.ob-team { width: 100%; max-width: 720px; box-sizing: border-box; }
 .ob-gt-head { display: grid; gap: var(--s3); }
 .ob-gt-head h1 { font-size: var(--fs-xl); }
 .ob-gt-head .ob-lead { font-size: var(--fs-md); }
@@ -10,35 +10,11 @@
 .ob-gt-nav .btn { min-height: 44px; justify-content: center; }
 .ob-gt-skip { display: grid; gap: var(--s2); margin-inline-start: auto; justify-items: end; text-align: end; }
 
-:is(.ob-goals, .ob-team) :is(input:not([type="checkbox"]), select, textarea) { box-sizing: border-box; width: 100%; min-width: 0; padding: var(--s4) var(--s5); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-md); }
-:is(.ob-goals, .ob-team) ::placeholder { color: var(--muted); opacity: 1; }
-:is(.ob-goals, .ob-team) textarea { resize: vertical; }
-
-/* Goals: a switch and editable name on the left; aligned target and editable unit on the right. */
-.ob-goal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s4); }
-.ob-goal { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s4); padding: var(--s4) var(--s5); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
-.ob-goal.is-on { border-color: var(--accent); background: var(--accent-soft); }
-.ob-goal-name { display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center; gap: var(--s4); min-height: 44px; }
-.ob-goal-name > label { display: flex; min-height: 44px; align-items: center; }
-.ob-goal-name input[type="text"] { font-weight: 600; }
-.ob-switch { appearance: none; flex: none; position: relative; width: 44px; height: 26px; margin: 0; border-radius: var(--r-pill); border: 1px solid var(--edge); background: var(--surface-2); cursor: pointer; }
-.ob-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: var(--r-circle); background: var(--edge); transition: transform var(--dur-fast) var(--ease-out); }
-.ob-switch:checked { background: var(--accent); border-color: var(--accent); }
-.ob-switch:checked::after { background: var(--on-accent); transform: translateX(18px); }
-.ob-goal-set { display: grid; grid-template-columns: auto 8rem; align-items: center; gap: var(--s4); }
-.ob-stepper { display: flex; align-items: center; gap: var(--s2); }
-.ob-step-btn { min-width: 44px; min-height: 44px; padding: 0; justify-content: center; font-size: var(--fs-lg); }
-.ob-stepper input[type="number"] { width: 6.5rem; min-height: 44px; text-align: center; font-variant-numeric: tabular-nums; appearance: textfield; -moz-appearance: textfield; }
-.ob-stepper input[type="number"]::-webkit-outer-spin-button, .ob-stepper input[type="number"]::-webkit-inner-spin-button { appearance: none; margin: 0; }
-.ob-gt-unit input { min-height: 44px; color: var(--muted); }
-.ob-goal:not(.is-on) .ob-stepper { opacity: .6; }
-.ob-goal:not(.is-on) :is(.ob-goal-name input[type="text"], .ob-gt-unit) { opacity: .6; }
-.ob-mission { display: grid; gap: var(--s3); color: var(--accent-ink); }
-.ob-mission > span { display: flex; align-items: center; min-height: 44px; }
-.ob-mission textarea { color: var(--ink); }
+.ob-team :is(input:not([type="checkbox"]), select, textarea) { box-sizing: border-box; width: 100%; min-width: 0; padding: var(--s4) var(--s5); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-md); }
+.ob-team ::placeholder { color: var(--muted); opacity: 1; }
+.ob-team textarea { resize: vertical; }
 
 /* Team: a reporting tree in the form, plus an organization chart. Reports to is always visible; duties have their own explicit control. */
-.ob-team { max-width: 720px; }
 .ob-team-head, .ob-role { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 9rem 44px; column-gap: var(--s4); }
 .ob-team-head { margin-bottom: calc(-1 * var(--s3)); color: var(--muted); font-size: var(--fs-sm); }
 .ob-team-head span { padding-inline: var(--s5); }
@@ -72,9 +48,6 @@
   .ob-role-duties-toggle { grid-column: 1 / -1; grid-row: 3; }
   .ob-role-duties { grid-row: 4; }
   .ob-gt-skip { margin-inline-start: 0; justify-items: start; text-align: start; }
-  .ob-goal { grid-template-columns: minmax(0, 1fr); }
-  .ob-goal-set { grid-template-columns: minmax(0, 1fr); }
-  .ob-stepper { justify-content: space-between; }
 }
 
 /* The organization chart (components/setup/OrgChart.tsx; on Team, the member Done screen, Settings and the classic setup) can be wider than a
@@ -94,3 +67,7 @@
 .org-fade::before { left: 1px; border-radius: var(--r-md) 0 0 var(--r-md); background: linear-gradient(to left, transparent, var(--surface-2)); }
 .org-fade::after { right: 1px; border-radius: 0 var(--r-md) var(--r-md) 0; background: linear-gradient(to right, transparent, var(--surface-2)); }
 .org-fade.more-left::before, .org-fade.more-right::after { opacity: 1; }
+
+/* ob-6: "Import roles from your constitution" opens the reading inline, above the rows. */
+.ob-team-import { display: grid; gap: var(--s4); justify-items: start; }
+.ob-team-import > .ob-const { justify-self: stretch; }

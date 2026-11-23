@@ -17,6 +17,5 @@ export function Welcome() {
       <button type="button" className="btn btn-primary" onClick={start}>{copy.start}</button>
       <button type="button" className="btn btn-quiet" onClick={explore}>{copy.explore}</button>
     </div>
-    <p className="small muted">{copy.welcomePrivacy}</p>
   </section>
 }

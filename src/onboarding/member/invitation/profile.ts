@@ -18,5 +18,5 @@ export function previewPatch(person: Person, stored: MemberChoice | null, over: 
 }
 /** The first thing wrong with the profile, in words the visitor can act on, or null. */
 export function previewProblem(people: Person[], person: Person, patch: ProfilePatch): string | null {
-  return validateProfile(patch) ?? (people.some(p => p.id !== person.id && p.name.toLowerCase() === patch.name.trim().toLowerCase()) ? onboardingCopy.member.you.duplicate : null)
+  return validateProfile(patch) ?? (people.some(p => p.id !== person.id && p.name.toLowerCase() === patch.name.trim().toLowerCase()) ? onboardingCopy.member.invitation.duplicate : null)
 }
