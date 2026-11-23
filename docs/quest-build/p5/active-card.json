@@ -3,14 +3,13 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-09B-sample-shell.md",
+  "card": "docs/quest-build/cards/P5-10-sample-integration.md",
   "readFiles": [
     "src/quest/sample/model.ts",
     "src/quest/sample/transitions.ts",
     "src/quest/sample/storage.ts",
     "src/quest/sample/decisions.ts",
     "src/quest/sample/venue.ts",
-    "src/quest/sample/RoomView.tsx",
     "src/quest/sample/Timeline.tsx",
     "src/quest/sample/OfficerScenes.tsx",
     "src/quest/sample/CommsScenes.tsx",
@@ -18,23 +17,29 @@
     "src/quest/sample/IntroHQ.tsx",
     "src/quest/sample/story.ts",
     "src/quest/sample/SourceDialog.tsx",
-    "src/quest/foundation.ts",
-    "src/quest/ruleLibrary.ts",
-    "src/quest/Quest.tsx",
     "src/engine/questSchedule.ts",
-    "src/styles/quest-foundation.css",
+    "src/quest/foundation.ts",
     "src/lib/motion.ts",
+    "src/quest/Quest.test.tsx",
     "src/quest/sample/Prologue.tsx",
     "src/quest/sample/ClubHQ.tsx"
   ],
   "writeFiles": [
-    "src/quest/sample/Sample.tsx",
-    "src/styles/quest-sample.css"
+    "src/App.tsx",
+    "src/quest/sample/Sample.test.tsx",
+    "src/quest/sample/Sample.tsx"
   ],
   "agentCommands": [
+    "npx vitest run src/quest/sample/Sample.test.tsx",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
+    [
+      "npx",
+      "vitest",
+      "run",
+      "src/quest/sample/Sample.test.tsx"
+    ],
     [
       "npx",
       "tsc",

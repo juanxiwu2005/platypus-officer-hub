@@ -28,13 +28,12 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-09B-sample-shell.md": "allow",
+          "docs/quest-build/cards/P5-10-sample-integration.md": "allow",
           "src/quest/sample/model.ts": "allow",
           "src/quest/sample/transitions.ts": "allow",
           "src/quest/sample/storage.ts": "allow",
           "src/quest/sample/decisions.ts": "allow",
           "src/quest/sample/venue.ts": "allow",
-          "src/quest/sample/RoomView.tsx": "allow",
           "src/quest/sample/Timeline.tsx": "allow",
           "src/quest/sample/OfficerScenes.tsx": "allow",
           "src/quest/sample/CommsScenes.tsx": "allow",
@@ -42,24 +41,25 @@
           "src/quest/sample/IntroHQ.tsx": "allow",
           "src/quest/sample/story.ts": "allow",
           "src/quest/sample/SourceDialog.tsx": "allow",
-          "src/quest/foundation.ts": "allow",
-          "src/quest/ruleLibrary.ts": "allow",
-          "src/quest/Quest.tsx": "allow",
           "src/engine/questSchedule.ts": "allow",
-          "src/styles/quest-foundation.css": "allow",
+          "src/quest/foundation.ts": "allow",
           "src/lib/motion.ts": "allow",
+          "src/quest/Quest.test.tsx": "allow",
           "src/quest/sample/Prologue.tsx": "allow",
           "src/quest/sample/ClubHQ.tsx": "allow",
-          "src/quest/sample/Sample.tsx": "allow",
-          "src/styles/quest-sample.css": "allow"
+          "src/App.tsx": "allow",
+          "src/quest/sample/Sample.test.tsx": "allow",
+          "src/quest/sample/Sample.tsx": "allow"
         },
         "edit": {
           "*": "deny",
-          "src/quest/sample/Sample.tsx": "allow",
-          "src/styles/quest-sample.css": "allow"
+          "src/App.tsx": "allow",
+          "src/quest/sample/Sample.test.tsx": "allow",
+          "src/quest/sample/Sample.tsx": "allow"
         },
         "bash": {
           "*": "deny",
+          "npx vitest run src/quest/sample/Sample.test.tsx": "allow",
           "npx tsc --noEmit -p tsconfig.json": "allow"
         }
       }
@@ -75,13 +75,12 @@
         "read": {
           "*": "deny",
           "docs/quest-build/AGENT_BRIEF.md": "allow",
-          "docs/quest-build/cards/P5-09B-sample-shell.md": "allow",
+          "docs/quest-build/cards/P5-10-sample-integration.md": "allow",
           "src/quest/sample/model.ts": "allow",
           "src/quest/sample/transitions.ts": "allow",
           "src/quest/sample/storage.ts": "allow",
           "src/quest/sample/decisions.ts": "allow",
           "src/quest/sample/venue.ts": "allow",
-          "src/quest/sample/RoomView.tsx": "allow",
           "src/quest/sample/Timeline.tsx": "allow",
           "src/quest/sample/OfficerScenes.tsx": "allow",
           "src/quest/sample/CommsScenes.tsx": "allow",
@@ -89,16 +88,15 @@
           "src/quest/sample/IntroHQ.tsx": "allow",
           "src/quest/sample/story.ts": "allow",
           "src/quest/sample/SourceDialog.tsx": "allow",
-          "src/quest/foundation.ts": "allow",
-          "src/quest/ruleLibrary.ts": "allow",
-          "src/quest/Quest.tsx": "allow",
           "src/engine/questSchedule.ts": "allow",
-          "src/styles/quest-foundation.css": "allow",
+          "src/quest/foundation.ts": "allow",
           "src/lib/motion.ts": "allow",
+          "src/quest/Quest.test.tsx": "allow",
           "src/quest/sample/Prologue.tsx": "allow",
           "src/quest/sample/ClubHQ.tsx": "allow",
-          "src/quest/sample/Sample.tsx": "allow",
-          "src/styles/quest-sample.css": "allow"
+          "src/App.tsx": "allow",
+          "src/quest/sample/Sample.test.tsx": "allow",
+          "src/quest/sample/Sample.tsx": "allow"
         },
         "edit": {
           "*": "deny"
