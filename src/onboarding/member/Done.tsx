@@ -19,7 +19,8 @@ const c = onboardingCopy.member.done
  * Member screen 4 of 4 (ob-6): the one place the preview is saved. On arrival the choices made on the earlier screens are checked with the same rules as
  * Settings (validateProfile) and saved once with saveProfile; if they do not pass, nothing is saved and the screen says why.
  * Since ob-6 this is also where a shared invitation link (/join) ends, so a save the browser refuses is said too (as the classic Join page did):
- * the staged choices are kept and Try again saves them.
+ * the staged choices are kept and Try again saves them. An invitation link records nothing (gate/Redirect.tsx `outside`), so here endWalkthrough
+ * only completes an attempt when the member screens were reached from Invite inside a recorded walkthrough.
  * Open my tasks ends the walkthrough and goes to Tasks. It never changes who is viewing: the person walking through is the president.
  */
 export function Done() {
