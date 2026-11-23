@@ -81,19 +81,19 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
     <b>{opLabel(pending ? op : initial, commandContext(state))}</b>
     {op.op === "answer_question" ? <>
       <p>{op.answer}</p>
-      <details><summary>Sources checked</summary><p className="small muted">The cited records from the checked rule book; source pages were not re-fetched during this answer.</p>{op.citations.map(id=>{const r=RULES.find(r=>r.id===id)!;return <div key={id}><b>{id} · checked {r.checkedOn}</b>{r.sources.map(s=><p key={s.url}><a href={s.url} target="_blank" rel="noreferrer">{s.label}</a></p>)}</div>})}</details>
+      <details><summary>Sources checked</summary>{op.citations.map(id=>{const r=RULES.find(r=>r.id===id)!;return <div key={id}><b>{id} · checked {r.checkedOn}</b>{r.sources.map(s=><p key={s.url}><a href={s.url} target="_blank" rel="noreferrer">{s.label}</a></p>)}</div>})}</details>
       <div className="action-row">{op.citations.map(id => { const rule = RULES.find(r => r.id === id)!; return <a key={id} href={rule.sources[0].url} target="_blank" rel="noreferrer">{id} · checked {rule.checkedOn}</a> })}</div>
     </> : pending && <fieldset disabled={!canNudge} className="review-fields">
       <legend className="small muted">Check or edit before applying</legend>
       {op.op === "create_event" && <>
         <label>Event name<input value={op.name} maxLength={80} onChange={e => setOp({ ...op, name: e.target.value })} /></label>
         <WorkflowTemplatePicker state={state} value={workflowChoice} onChange={setWorkflowChoice} />
-        <label>Event date · confirm your choice<input aria-label="Event date" type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
+        <label>Event date<input aria-label="Event date" type="date" value={date} onChange={e => setDate(e.target.value)} /></label>
         <label>Expected people<input type="number" min={1} max={5000} value={op.headcount} onChange={e => setOp({ ...op, headcount: Number(e.target.value) })} /></label>
         <label>Food<select aria-label="Food" value={op.food === "none" ? "no" : "yes"} onChange={e => setOp({ ...op, food: e.target.value === "yes" ? (initial.op === "create_event" && initial.food !== "none" ? initial.food : "tbd") : "none" })}><option value="no">No</option><option value="yes">Yes</option></select></label>
         <label className="check-label"><input type="checkbox" checked={op.speaker} onChange={e => setOp({ ...op, speaker: e.target.checked })} /> Guest speaker or performer</label>
         <label>Details<textarea rows={2} maxLength={500} value={op.details ?? ""} onChange={e => setOp({ ...op, details: e.target.value })} /></label>
-        <p className="small muted">The saved workflow supplies the steps. Dates are calculated from your event date.</p>
+        <p className="small muted">Steps come from the workflow; dates from the event date.</p>
       </>}
       {op.op === "add_node" && <>
         <label>Task title<input value={op.title} maxLength={100} onChange={e => setOp({ ...op, title: e.target.value })} /></label>

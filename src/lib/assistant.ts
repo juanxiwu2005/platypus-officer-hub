@@ -244,7 +244,7 @@ function fromWire(cards: WireCard[], text: string, s: DemoState, viewerId: strin
   return { cards: out, source, changeSet, autoSet }
 }
 
-const HELP = "I can rank your top tasks, add a task, plan an event, draft a reminder, or check an ASU rule. Try one of the suggestions below."
+const HELP = "I can rank your top tasks, add a task, plan an event, draft a reminder, or check an ASU rule."
 
 /**
  * The browser waits at most aiWaitMs() for an AI answer: the server's budget (26 s by default, /api/health) plus 4 s,
@@ -267,7 +267,7 @@ async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus |
       history: history.slice(-6).map(m => ({ role: m.role, text: m.text ?? m.cards?.map(c => c.kind === "text" ? c.text : c.kind).join(" ") ?? "" })),
     }, aiWaitMs(), opts.signal)
     const cards = sanitizeCards(r.cards, commandContext(s), knownDates(data))
-    const label = r.source === "ai" ? `AI draft${r.model ? ` · ${r.model}` : ""}` : "Checked command grammar"
+    const label = r.source === "ai" ? `AI draft${r.model ? ` · ${r.model}` : ""}` : "Platypus"
     return cards.length ? fromWire(cards, t, s, viewerId, label, focus ?? null) : null
   } catch (e) {
     if (opts.miss) opts.miss.why = wasStopped(e) ? "stopped" : aiMiss(e)
@@ -279,11 +279,11 @@ async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus |
 /** The event form from the person's own words, for when the AI could not answer a message that reads like planning. */
 function localPlanReply(t: string, s: DemoState, why: AiMiss | "off" | "stopped"): Reply {
   const { prefill, date } = planDefaults(t, s)
-  if (why === "stopped") return { cards: [textCard("You stopped the AI, so I filled in the event form from your words. If you meant a new event, check it and draft the plan."), { kind: "form", id: uid(), prefill, date }], source: STOPPED_FORM_SOURCE }
+  if (why === "stopped") return { cards: [textCard("You stopped the AI, so I filled in the event form from your words."), { kind: "form", id: uid(), prefill, date }], source: STOPPED_FORM_SOURCE }
   const lead = why === "off" ? "AI is off, so I filled in the event form from your words." : why === "timeout" ? "The AI didn't answer in time, so I filled in the event form from your words." : "The AI is unavailable right now, so I filled in the event form from your words."
   return {
-    cards: [textCard(`${lead} If you meant a new event, check it and draft the plan.`), { kind: "form", id: uid(), prefill, date }],
-    source: why === "off" ? "Local demo grammar · AI off" : why === "timeout" ? "Platypus · AI didn't answer in time, filled from your words" : "Platypus · AI unavailable, filled from your words",
+    cards: [textCard(lead), { kind: "form", id: uid(), prefill, date }],
+    source: why === "off" ? "Platypus · AI off" : why === "timeout" ? "Platypus · AI didn't answer in time, filled from your words" : "Platypus · AI unavailable, filled from your words",
   }
 }
 
@@ -305,21 +305,21 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   if (intent) {
     const refineMiss: { why?: AiMiss | "stopped" } = {}
     const refine = s.aiEnabled && !BARE_EVENT.test(t) && !BARE_TASK.test(t) ? aiReply(t, s, viewerId, focus, page, history, { purpose: "form", miss: refineMiss, signal }) : undefined
-    const source = !s.aiEnabled ? "Local demo grammar · AI off" : refine ? "Platypus · AI is reading your message" : "Platypus"
+    const source = !s.aiEnabled ? "Platypus · AI off" : refine ? "Platypus · AI is reading your message" : "Platypus"
     const extra = refine ? { refine, refineMiss } : {}
     if (intent === "task") {
       const card = { ...taskDefaults(t, s, focus), thinking: !!refine }
-      return { cards: [textCard(card.title ? "Here's the task. Check who owns it and when it's due." : "What's the task? Fill in the name and who owns it."), card], source, ...extra }
+      return { cards: [textCard(card.title ? "Check the owner and due date." : "What's the task, and who owns it?"), card], source, ...extra }
     }
     const { prefill, date } = planDefaults(t, s)
-    return { cards: [textCard("Happy to help. Fill in what's missing and I'll draft the plan from the club playbook."), { kind: "form", id: uid(), prefill, date, thinking: !!refine }], source, ...extra }
+    return { cards: [textCard("Fill in what's missing."), { kind: "form", id: uid(), prefill, date, thinking: !!refine }], source, ...extra }
   }
   // "Move the event to Jan 30 2027": a date the person typed, applied by a person, recomputed by the rule engine.
   const moved = EVENT_DATE_RE.test(t) ? humanEventDate(t, s.today) : ""
   if (moved) {
     const named = s.events.find(e => t.toLowerCase().includes(e.name.toLowerCase()))
     const ev = named ?? focusEvent ?? s.events.at(-1)
-    if (ev) return { cards: [{ kind: "eventdate", eventId: ev.id, date: moved }], source: "Your date · the rule engine redoes the plan" }
+    if (ev) return { cards: [{ kind: "eventdate", eventId: ev.id, date: moved }], source: "Your date" }
   }
   if (STEP_RE.test(t) && focusNode) {
     const p = computeSchedule(s).nodes[focusNode.id]
@@ -337,7 +337,7 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   if (OVERLOAD_RE.test(t)) {
     const rows = officers(s).map(p => ({ p, w: workload(s, p.id) })).sort((a, b) => b.w.load - a.w.load)
     const needingSupport = rows.filter(r => r.w.band === "Needs support")
-    return { cards: [textCard(needingSupport.length ? `${needingSupport.map(r => r.p.name.split(" ")[0]).join(", ")} ${needingSupport.length > 1 ? "could use" : "could use"} help with the next two weeks. Consider moving a non-critical step, rather than filling anyone's time.` : `No one is flagged as needing support in the next two weeks. ${rows[0].p.name.split(" ")[0]} has the most weighted, time-sensitive work.`)], source: "Workload signals" }
+    return { cards: [textCard(needingSupport.length ? `${needingSupport.map(r => r.p.name.split(" ")[0]).join(", ")} could use help in the next two weeks.` : `No one needs support in the next two weeks. ${rows[0].p.name.split(" ")[0]} has the most work.`)], source: "Workload" }
   }
   if (PARTNER_RE.test(t)) {
     const due = visibleContacts(s).filter(c => !c.lastContact || daysBetween(c.lastContact, s.today) >= c.cadenceDays)
@@ -348,11 +348,11 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
     if (f) {
       const e = s.events.find(x => x.id === f.eventId)
       const r = checkPreflight({ ...EMPTY_PACKAGE, amount: f.amount, attendees: e?.headcount ?? 0, ...f.application })
-      return { cards: [textCard(r.ready ? `${e?.name}: the checklist is complete. The office still reviews it.` : `${e?.name} still needs: ${r.issues.map(i => `${i.text} [${i.ruleId}]`).join(" ")}`)], source: "Pre-submission check" }
+      return { cards: [textCard(r.ready ? `${e?.name}: the checklist is complete. The office still reviews it.` : `${e?.name} still needs: ${r.issues.map(i => i.text).join(" ")}`)], source: "Pre-submission check" }
     }
   }
   if (WEEKONE_RE.test(t)) return { cards: [textCard(WEEK_ONE.map((w, i) => `${i + 1}. ${w.text}`).join("\n"))], source: "SEO onboarding + R16" }
-  if (DATES_RE.test(t)) return { cards: [textCard(`Dates come only from the rule engine: the ASU rule, a ${s.org.settings.clubBufferBusinessDays}-day club buffer, each officer's buffer and busy weeks, and ASU holidays. Open any step to see why it has its date.`)], source: "Rule engine" }
+  if (DATES_RE.test(t)) return { cards: [textCard(`Dates work back from the ASU deadline: ${s.org.settings.clubBufferBusinessDays} days early for the club, each officer's extra days and busy weeks, and ASU holidays.`)], source: "Rule engine" }
   if (REMIND_RE.test(t)) {
     const lower = t.toLowerCase()
     const person = s.people.find(p => lower.includes(p.name.split(" ")[0].toLowerCase()))
@@ -364,7 +364,7 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   const ops = parseCommand(t, commandContext(s))
   if (ops.length && ops.every(o => o.op === "answer_question") || RULE_Q_RE.test(t)) return ruleReply(t, s, signal)
   if (ops.length && !ops.some(o => o.op === "answer_question")) {
-    const source = s.aiEnabled ? "Checked command grammar" : "Local demo grammar · AI off"
+    const source = s.aiEnabled ? "Platypus" : "Platypus · AI off"
     return { ...splitChanges(t, ops, source), source }
   }
   if (s.aiEnabled) {
