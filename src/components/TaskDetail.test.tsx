@@ -164,6 +164,20 @@ describe("the universal task page and edit drawer", () => {
     expect(store.state.nodes[0].status).toBe("blocked")
     expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toContain("Room 204")
   })
+  it("keeps Undo mark done after Task Details is closed and reopened, until a reload or a newer change (S3)", async () => {
+    await show(fixture({ id: "undo-reopen" }))
+    fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room 204" } })
+    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
+    await screen.findByRole("button", { name: "Undo mark done" })
+    const finished = store.state
+    cleanup(); await show({ ...finished, nodes: finished.nodes.map(n => ({ ...n, ownerVersion: (n.ownerVersion ?? 0) + 1 })) })
+    expect(screen.queryByRole("button", { name: "Undo mark done" })).toBeNull()
+    cleanup(); await show(finished)
+    fireEvent.click(await screen.findByRole("button", { name: "Undo mark done" }))
+    expect(store.state.nodes[0].status).toBe("accepted")
+    const reopened = store.state; cleanup(); await show(reopened)
+    expect(screen.queryByRole("button", { name: "Undo mark done" })).toBeNull()
+  })
   it("updates a target directly with selected teammates, preserves failed input, and removes the approval step", async () => {
     await show()
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Keep my work" } })

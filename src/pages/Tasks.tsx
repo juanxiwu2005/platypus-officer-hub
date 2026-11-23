@@ -127,35 +127,46 @@ function NewTaskForm({ onClose, onCreated }: { onClose: () => void; onCreated: (
   </form>
 }
 
-/** monday-style table grouped by event. Owner and due are read-only here; a row opens Task Details, whose Edit changes them (S3). */
+/**
+ * monday-style table grouped by event. Owner and due are read-only here; a row opens Task Details, whose Edit changes them (S3).
+ * With the Board gone (S3), the finished tasks in the current scope sit in one "Done (N)" group at the bottom, folded by
+ * default, so a finished task (and its Undo mark done or reopen) can still be reached from this page.
+ */
 function TaskTable({ nodes, showOwner }: { nodes: Node[]; showOwner: boolean }) {
   const { state } = useStore()
   const sched = useSchedule()
   const rail = useRail()
   const [toggled, setToggled] = useState<Record<string, boolean>>({})
+  const [doneOpen, setDoneOpen] = useState(false)
   const open = nodes.filter(n => n.status !== "done").sort((a, b) => (a.latestStart ?? "9999").localeCompare(b.latestStart ?? "9999"))
+  const done = nodes.filter(n => n.status === "done").sort((a, b) => (b.completedOn ?? b.lastUpdate ?? "").localeCompare(a.completedOn ?? a.lastUpdate ?? "") || a.id.localeCompare(b.id))
   const groups = [...state.events.map(e => ({ id: e.id, name: e.name })), { id: "", name: "Club tasks" }].map(g => ({ ...g, rows: open.filter(n => (n.eventId ?? "") === g.id) })).filter(g => g.rows.length)
   // Groups whose work is all more than three weeks away start folded, like monday's collapsed groups.
   const folded = (g: (typeof groups)[number]) => toggled[g.id] ?? g.rows.every(n => n.latestStart && daysBetween(state.today, n.latestStart) > 21)
   const cols = showOwner ? 4 : 3
+  const row = (n: Node) => {
+    const late = n.status !== "done" && n.clubDeadline && n.clubDeadline < state.today
+    return [<tr key={n.id} data-testid="task-card">
+      <td><button type="button" className="row-btn task-title" onClick={() => rail.show({ kind: "task", id: n.id })}><TaskTypeIcon node={n} /><span>{n.title}</span></button></td>
+      {showOwner && <td><span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />{state.people.find(p => p.id === n.ownerId)?.name.split(" ")[0] ?? ""}</span></td>}
+      <td><NodePill node={n} small /></td>
+      <td className={late ? "late-text" : ""}><span className="small">{n.clubDeadline ? fmtShort(n.clubDeadline) : ""}</span></td>
+    </tr>,
+    <BtsTr key={`${n.id}-bts`} cols={cols}>
+      <Bts label="Rule engine">{sched.nodes[n.id]?.explain.club}</Bts>
+    </BtsTr>]
+  }
   return <section className="card tbl-wrap" data-testid="my-tasks">
     <table className="tbl">
       <thead><tr><th>Task</th>{showOwner && <th>Owner</th>}<th>Status</th><th>Due</th></tr></thead>
       <tbody>{groups.map(g => [
         <tr key={`g-${g.id}`} className="group"><td colSpan={cols}><button type="button" className="group-btn" aria-expanded={!folded(g)} onClick={() => setToggled({ ...toggled, [g.id]: folded(g) ? false : true })}><span className="caret" aria-hidden="true">{folded(g) ? "▸" : "▾"}</span>{g.name}<span className="count">{g.rows.length}</span></button></td></tr>,
-        ...(folded(g) ? [] : g.rows).map(n => {
-          const late = n.clubDeadline && n.clubDeadline < state.today
-          return [<tr key={n.id} data-testid="task-card">
-            <td><button type="button" className="row-btn task-title" onClick={() => rail.show({ kind: "task", id: n.id })}><TaskTypeIcon node={n} /><span>{n.title}</span></button></td>
-            {showOwner && <td><span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />{state.people.find(p => p.id === n.ownerId)?.name.split(" ")[0] ?? ""}</span></td>}
-            <td><NodePill node={n} small /></td>
-            <td className={late ? "late-text" : ""}><span className="small">{n.clubDeadline ? fmtShort(n.clubDeadline) : ""}</span></td>
-          </tr>,
-          <BtsTr key={`${n.id}-bts`} cols={cols}>
-            <Bts label="Rule engine">{sched.nodes[n.id]?.explain.club}</Bts>
-          </BtsTr>]
-        }),
+        ...(folded(g) ? [] : g.rows).map(row),
       ])}</tbody>
+      {done.length > 0 && <tbody data-testid="done-tasks">
+        <tr className="group"><td colSpan={cols}><button type="button" className="group-btn" data-testid="done-group" aria-expanded={doneOpen} onClick={() => setDoneOpen(!doneOpen)}><span className="caret" aria-hidden="true">{doneOpen ? "▾" : "▸"}</span>Done ({done.length})</button></td></tr>
+        {doneOpen && done.map(row)}
+      </tbody>}
     </table>
     {!open.length && <Empty>Nothing open.</Empty>}
   </section>
