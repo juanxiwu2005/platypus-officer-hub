@@ -4,6 +4,7 @@ import type { Forecast } from "../../engine/forecast"
 import type { Schedule } from "../../engine/schedule"
 import { fmtShort } from "../../lib/dates"
 import { nodeStop } from "../../lib/phases"
+import { isAtRisk } from "../../lib/nextUp"
 import { firstName, worstIssue } from "../../pages/helpers"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import { statusStyles } from "../ui"
@@ -47,8 +48,7 @@ export function TeamMetroChart({ state, sched, forecast, eventId, selectedId, on
           {lane.tasks.map(({ node, col }) => {
             const plan = sched.nodes[node.id]
             const issue = worstIssue(plan?.issues)
-            const late = node.status !== "done" && (plan?.club ?? "9999") < state.today
-            const status = nodeStop(node, state.today, issue?.severity === "error" || late || forecast.nodes[node.id]?.color === "red" || node.status === "blocked")
+            const status = nodeStop(node, state.today, isAtRisk(state, sched, forecast, node))
             const kind = workflowStepKind(node, event.workflowBranches) === "core" ? "baseline" : "situation"
             const owner = state.people.find(person => person.id === node.ownerId)?.name ?? "No owner"
             const tooltip = hovered === node.id || focused === node.id
@@ -62,7 +62,7 @@ export function TeamMetroChart({ state, sched, forecast, eventId, selectedId, on
           })}
         </div>)}
       </div>
-      <div className="m-legend small" aria-label="Legend"><span><i className="m-dot done" />Done</span><span><i className="m-dot now" />Working on it</span><span><i className="m-dot todo" />To do</span><span><i className="m-dot risk" />At risk</span></div>
+      <div className="m-legend small" aria-label="Legend"><span><i className="m-dot done" />Done</span><span><i className="m-dot now" />Started or due</span><span><i className="m-dot todo" />Not started</span><span><i className="m-dot risk" />At risk</span></div>
     </div>
     {!!graph.issues.length && <div className="team-metro-issues" role="status">{graph.issues.map(issue => <p className="small muted" key={issue}>{issue}</p>)}</div>}
     {!!graph.unassigned.length && <section className="team-metro-unassigned" aria-label="Tasks needing a team"><p className="small muted">No team yet</p>{graph.unassigned.map(node => <button type="button" className="btn small" key={node.id} onClick={() => onSelect(node.id)} data-task-id={node.id}>{node.title}</button>)}</section>}

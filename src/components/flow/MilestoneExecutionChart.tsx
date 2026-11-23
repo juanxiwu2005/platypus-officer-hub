@@ -5,7 +5,8 @@ import type { Schedule } from "../../engine/schedule"
 import { WORKFLOW_START } from "../../engine/workflowMilestones"
 import { fmtShort } from "../../lib/dates"
 import { nodeStop } from "../../lib/phases"
-import { firstName, worstIssue } from "../../pages/helpers"
+import { isAtRisk } from "../../lib/nextUp"
+import { firstName } from "../../pages/helpers"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import { statusStyles } from "../ui"
 import { useRail } from "../rail/RailContext"
@@ -69,9 +70,8 @@ export function MilestoneExecutionChart({ state, sched, forecast, eventId, selec
   const renderTask = (key: string, x: number, y: number, shared = false) => {
     const node = projection?.nodeByStep.get(key)
     if (!node) return null
-    const plan = sched.nodes[node.id], issue = worstIssue(plan?.issues)
-    const late = node.status !== "done" && (plan?.club ?? "9999") < state.today
-    const status = nodeStop(node, state.today, issue?.severity === "error" || late || forecast.nodes[node.id]?.color === "red" || node.status === "blocked")
+    const plan = sched.nodes[node.id]
+    const status = nodeStop(node, state.today, isAtRisk(state, sched, forecast, node))
     const kind = workflowStepKind(node, event?.workflowBranches) === "core" ? "baseline" : "situation"
     const owner = state.people.find(person => person.id === node.ownerId)?.name ?? "No owner"
     return <button key={key} type="button" className={`m-dot mxe-task ${kind} ${status}${shared ? " is-shared" : ""}`} data-testid={`flow-node-${node.stepKey ?? node.id}`} data-task-id={node.id} data-step-id={key} aria-pressed={!stationId && selectedId === node.id} aria-label={`${node.title}. ${styles[node.status].label}. Owner ${owner}. Due ${plan ? fmtShort(plan.club) : "pending"}.`} title={`${node.title} · ${owner}${plan ? ` · Due ${fmtShort(plan.club)}` : ""}`} style={{ left: x, top: y }} onClick={() => selectTask(node)}>
