@@ -3,30 +3,21 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-05T-regression.md",
+  "card": "docs/quest-build/cards/P5-06-comms-scenes.md",
   "readFiles": [
-    "src/quest/sample/OfficerScenes.tsx",
     "src/quest/sample/model.ts",
     "src/quest/sample/decisions.ts",
     "src/lib/dragSort.ts",
-    "src/quest/Quest.tsx",
-    "src/styles/quest-foundation.css",
-    "src/engine/questSchedule.ts"
+    "src/styles/quest-foundation.css"
   ],
   "writeFiles": [
-    "src/quest/sample/OfficerScenes.test.tsx"
+    "src/quest/sample/CommsScenes.tsx",
+    "src/styles/quest-comms.css"
   ],
   "agentCommands": [
-    "npx vitest run src/quest/sample/OfficerScenes.test.tsx",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
-    [
-      "npx",
-      "vitest",
-      "run",
-      "src/quest/sample/OfficerScenes.test.tsx"
-    ],
     [
       "npx",
       "tsc",
