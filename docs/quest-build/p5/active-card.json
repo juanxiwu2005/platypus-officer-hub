@@ -3,34 +3,22 @@
   "branch": "feat/onboarding-quest",
   "base": "main",
   "brief": "docs/quest-build/AGENT_BRIEF.md",
-  "card": "docs/quest-build/cards/P5-10-sample-integration.md",
+  "card": "docs/quest-build/cards/P5-05K-booking-keyboard.md",
   "readFiles": [
     "src/quest/sample/model.ts",
-    "src/quest/sample/transitions.ts",
-    "src/quest/sample/storage.ts",
     "src/quest/sample/decisions.ts",
-    "src/quest/sample/venue.ts",
-    "src/quest/sample/Timeline.tsx",
-    "src/quest/sample/OfficerScenes.tsx",
-    "src/quest/sample/CommsScenes.tsx",
-    "src/quest/sample/VenueEditor.tsx",
-    "src/quest/sample/IntroHQ.tsx",
-    "src/quest/sample/story.ts",
-    "src/quest/sample/SourceDialog.tsx",
+    "src/lib/dragSort.ts",
     "src/engine/questSchedule.ts",
-    "src/quest/foundation.ts",
-    "src/lib/motion.ts",
-    "src/quest/Quest.test.tsx",
-    "src/quest/sample/Prologue.tsx",
-    "src/quest/sample/ClubHQ.tsx"
+    "src/styles/quest-officers.css",
+    "src/quest/sample/HandOff.tsx"
   ],
   "writeFiles": [
-    "src/App.tsx",
-    "src/quest/sample/Sample.test.tsx",
-    "src/quest/sample/Sample.tsx"
+    "src/quest/sample/OfficerScenes.tsx",
+    "src/quest/sample/OfficerScenes.test.tsx",
+    "src/quest/sample/HandOff.test.tsx"
   ],
   "agentCommands": [
-    "npx vitest run src/quest/sample/Sample.test.tsx",
+    "npx vitest run src/quest/sample/OfficerScenes.test.tsx src/quest/sample/HandOff.test.tsx",
     "npx tsc --noEmit -p tsconfig.json"
   ],
   "checks": [
@@ -38,7 +26,8 @@
       "npx",
       "vitest",
       "run",
-      "src/quest/sample/Sample.test.tsx"
+      "src/quest/sample/OfficerScenes.test.tsx",
+      "src/quest/sample/HandOff.test.tsx"
     ],
     [
       "npx",
