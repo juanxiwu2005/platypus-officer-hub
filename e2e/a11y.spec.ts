@@ -171,16 +171,18 @@ for (const [name, path, trigger] of DETAIL_TRIGGERS) {
   })
 }
 
-test("keyboard: board customization opens from Settings and keeps its controls accessible", async ({ page }) => {
-  await page.goto("/#/settings")
-  const opener = page.getByRole("navigation", { name: "Settings sections" }).getByRole("button", { name: "Tasks", exact: true })
+// S3 (2026-11-23): the six statuses are fixed, so Settings has no Tasks section. An old #/settings?tab=tasks link opens the first section.
+test("keyboard: Settings sections open from the keyboard, and an old Tasks-section link opens Club", async ({ page }) => {
+  await page.goto("/#/settings?tab=tasks")
+  const nav = page.getByRole("navigation", { name: "Settings sections" })
+  await expect(nav.getByRole("button")).toHaveText(["Club", "Roles & teams", "Workflow", "Links & files", "My preferences", "Admin"])
+  await expect(nav.getByRole("button", { name: "Club", exact: true })).toHaveAttribute("aria-current", "page")
+  await expect(page.getByTestId("board-settings")).toHaveCount(0)
+  const opener = nav.getByRole("button", { name: "Links & files", exact: true })
   await opener.focus()
   await page.keyboard.press("Enter")
-  const settings = page.getByTestId("board-settings")
-  await expect(settings).toBeVisible()
+  await expect(opener).toHaveAttribute("aria-current", "page")
   await expect(opener).toBeFocused()
-  for (let i = 0; i < 12 && !(await settings.evaluate(el => el.contains(document.activeElement))); i++) await page.keyboard.press("Tab")
-  expect(await settings.evaluate(el => el.contains(document.activeElement))).toBe(true)
   expect(await scan(page)).toEqual([])
 })
 

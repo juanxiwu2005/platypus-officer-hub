@@ -25,8 +25,8 @@ import { addNotices, claimTask, closeSilence, replyToTask, reviewExtension, type
 import { usableGrant } from "../lib/officerLinks"
 import type { OfficerGrant } from "./types"
 import { startWorkspace, resetWorkflow, saveClubSettings, saveProfile, saveWorkflow, type ClubDraft, type ProfilePatch } from "./settings"
-import type { BoardSettings, NodeStatus, OrgSettings, ReminderMode } from "./types"
-import { addBoardTask, canMoveTask, moveTask, saveBoard } from "./board"
+import type { NodeStatus, OrgSettings, ReminderMode } from "./types"
+import { addBoardTask, canMoveTask, moveTask } from "./board"
 import { addContact, addOrganization, deleteContact, deleteOrganization, logInteraction, updateContact, updateInteraction, updateOrganization, type ContactInput, type ContactPatch, type InteractionInput, type OrgPatch } from "./crm"
 import { syncBudgetFlow } from "../engine/eventBudget"
 import { attemptLastAt, firstEventChoice, loadOnboardingRecord, rearm, reminderModeChoice, type OnboardingAttempt, type OnboardingRecord } from "../lib/onboardingRecord"
@@ -133,7 +133,6 @@ export type Action =
   | { type: "reset" }
   | { type: "moveTask"; nodeId: string; status: NodeStatus; beforeId?: string | null }
   | { type: "addTask"; title: string; status: NodeStatus }
-  | { type: "saveBoard"; board: BoardSettings }
   | ({ type: "addContact" } & ContactInput)
   | { type: "updateContact"; id: string; patch: ContactPatch }
   | { type: "deleteContact"; id: string }
@@ -458,7 +457,6 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       return ensureWorkflowPresetTeams(seedDemo(undefined, "v2"))
     case "moveTask": return moveTask(state, action.nodeId, action.status, action.beforeId ?? null)
     case "addTask": return addBoardTask(state, action.title, action.status)
-    case "saveBoard": return saveBoard(state, action.board)
     case "addContact": return addContact(state, action)
     case "updateContact": return updateContact(state, action.id, action.patch)
     case "deleteContact": return deleteContact(state, action.id)
@@ -872,7 +870,6 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "setViewer": out = { viewerId: s.viewerId }; break
     case "setAi": out = { aiEnabled: s.aiEnabled }; break
     case "advanceClock": out = { today: s.today }; break
-    case "saveBoard": out = { board: s.org.board }; break
     case "removeEventStep": out = fields(node(a.nodeId), ["title", "dependsOn", "status", "estDays", "ownerId"]); break
     case "newWorkflowTemplate": case "saveWorkflowTemplateDraft": case "publishWorkflowTemplate": case "duplicateWorkflowTemplate": case "setDefaultWorkflowTemplate": case "discardWorkflowTemplateDraft": case "restoreWorkflowPreset": out = { templateIds: s.org.workflowTemplates?.map(template => template.id), defaultWorkflowTemplateId: s.org.defaultWorkflowTemplateId }; break
     case "saveWorkflowTeams": out = { workflowTeams: s.org.workflowTeams, workflowRoleTeams: s.org.workflowRoleTeams }; break

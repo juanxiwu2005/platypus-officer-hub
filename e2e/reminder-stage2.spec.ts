@@ -160,7 +160,7 @@ test("a waiting follow-up goes to Sam and its task entry only responds to the he
   await page.goto(saved.message!.taskUrl)
   const task = page.getByTestId("single-task-page")
   await expect(task).toBeVisible()
-  for (const name of ["Done", "Working on it", "Stuck", "Waiting on"]) await expect(task.getByRole("button", { name, exact: true })).toHaveCount(0)
+  for (const name of ["Done", "Working on it", "Stuck", "Waiting", "Waiting on"]) await expect(task.getByRole("button", { name, exact: true })).toHaveCount(0)
   await task.getByRole("button", { name: "Acknowledge" }).click()
   await expect(task.getByRole("button", { name: "Acknowledge" })).toBeDisabled()
   await page.reload()

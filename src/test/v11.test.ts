@@ -42,14 +42,15 @@ describe("task board (v1.1 decision 3)", () => {
     expect(t.ownerId).toBe("alex")
     expect(t.clubDeadline).toBeTruthy()
   })
-  it("saves custom status names, colours and tags only for leads", () => {
+  it("keeps an old save's board settings untouched; its tags still limit which tags a task can carry (S3)", () => {
     const board = { labels: { accepted: "Ready" }, colors: { accepted: "#c2418d" }, tags: [{ id: "food", label: "Food", color: "#0f8a8a" }], fields: ["owner" as const] }
-    expect(reducer(as("maya"), { type: "saveBoard", board })).toEqual(as("maya"))
-    const s = reducer(base, { type: "saveBoard", board: { ...board, colors: { accepted: "red" } } })
-    expect(s.org.board?.labels?.accepted).toBe("Ready")
-    expect(s.org.board?.colors?.accepted).toBeUndefined()
+    const s = { ...base, org: { ...base.org, board } }
     const tagged = reducer(s, { type: "updateNode", id: "t-sdc", patch: { tags: ["food", "unknown"] } })
     expect(tagged.nodes.find(n => n.id === "t-sdc")!.tags).toEqual(["food"])
+    expect(tagged.org.board).toEqual(board)
+    const moved = reducer(s, { type: "moveTask", nodeId: "t-news", status: "accepted" })
+    expect(moved.notifications.some(n => n.recipientId === "sam" && /moved .* to To do\./.test(n.text))).toBe(true)
+    expect(moved.notifications.some(n => /Ready/.test(n.text))).toBe(false)
   })
 })
 

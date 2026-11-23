@@ -646,12 +646,6 @@ div.hover { display: block; }
 .tag-chip { font-size: var(--fs-xs); font-weight: 600; color: var(--tag); background: color-mix(in srgb, var(--tag) 14%, transparent); border-radius: var(--r-xs); padding: 2px 6px; }
 .tag-toggle { border: 0; cursor: pointer; }
 .tag-toggle[aria-pressed="false"] { opacity: .45; }
-.swatches { display: flex; gap: 4px; flex-wrap: wrap; }
-.swatch { width: 20px; height: 20px; border-radius: var(--r-sm); border: 2px solid transparent; cursor: pointer; padding: 0; background: var(--sw); position: relative; }
-.swatch::after { content: ""; position: absolute; inset: -4px; }
-.swatch[aria-pressed="true"] { border-color: var(--ink); }
-.status-edit { display: grid; grid-template-columns: 118px minmax(0, 1fr); gap: 8px; align-items: center; }
-.status-edit input { padding: 6px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); min-width: 0; }
 .funding-tbl { table-layout: auto; }
 .event-budget { contain: paint; }
 .event-budget .toolbar { margin-bottom: var(--s3); }

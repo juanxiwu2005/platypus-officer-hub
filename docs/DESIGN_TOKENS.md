@@ -117,7 +117,7 @@ Yellow and the main line intentionally retain their original dark-theme values: 
 
 ### 5.2 The 6 status colors (in `statusDefaults.ts`, not styles.css)
 
-These are the **defaults** users can rename and recolor in Settings → Board. Each status color carries white text, with no dark variant (it is user data and does not change with the theme).
+These six names and colors are **fixed (S3, 2026-11-23)**; they can no longer be renamed or recolored. Renamed statuses in an old save stay in its data but are not shown. Each status color carries white text, with no dark variant (it does not change with the theme).
 
 | Status (UI label) | Default color | White text on it | As text on `--bg` | As text on `--surface` |
 | --- | --- | --- | --- | --- |

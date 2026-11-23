@@ -19,7 +19,6 @@ export type Detail =
   | { kind: "org"; id: string }
   | { kind: "handoff"; roleId: string }
   | { kind: "workflow" }
-  | { kind: "board" }
 
 export type RailTab = "ask" | "details"
 

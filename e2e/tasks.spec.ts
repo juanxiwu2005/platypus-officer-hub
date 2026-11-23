@@ -205,31 +205,13 @@ test("table: a row opens Task Details to change status, a task can be added, and
   await table.getByTestId("task-card").filter({ hasText: "Send the October newsletter" }).getByRole("button", { name: "Send the October newsletter" }).click()
   const detail = page.getByTestId("task-detail")
   // Someone else's task is read-only: the status is a label, with no status menu, form or submit button.
-  await expect(detail.locator(".task-status-label")).toHaveText("Waiting on")
+  await expect(detail.locator(".task-status-label")).toHaveText("Waiting")
   await expect(detail.getByRole("combobox", { name: "Task status" })).toHaveCount(0)
   await expect(detail.getByRole("textbox")).toHaveCount(0)
   await expect(detail.getByRole("button", { name: /Submit|mark done|Edit/i })).toHaveCount(0)
   expect(await savedTask(page, "t-news")).toEqual(beforeOther)
   await page.reload()
   expect(await savedTask(page, "t-news")).toEqual(beforeOther)
-})
-
-test("board customization renames a status everywhere without changing its meaning", async ({ page }) => {
-  await page.goto("/#/settings")
-  await closeRail(page)
-  await page.getByRole("navigation", { name: "Settings sections" }).getByRole("button", { name: "Tasks", exact: true }).click()
-  const panel = page.getByTestId("board-settings")
-  await panel.getByLabel("Name for To do").fill("Ready")
-  await panel.getByLabel("Name for To do").blur()
-  await page.goto("/#/tasks")
-  const row = page.getByRole("row").filter({ hasText: "Check the officer list in Sun Devil Central" })
-  await expect(row).toContainText("Ready")
-  await row.getByRole("button", { name: "Check the officer list in Sun Devil Central" }).click()
-  await expect(page.getByTestId("task-detail").getByRole("combobox", { name: "Task status", exact: true }).locator("option:checked")).toHaveText("Ready")
-  await page.reload()
-  await closeRail(page)
-  await expect(row).toContainText("Ready")
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "t-sdc").status)).toBe("accepted")
 })
 
 test("+ New task is on the page head for an officer as well as the president, and a new task never starts finished", async ({ page }) => {

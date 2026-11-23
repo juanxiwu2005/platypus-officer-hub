@@ -1,5 +1,5 @@
 import { defaultTaskDue } from "../engine/taskDates"
-import type { BoardSettings, DemoState, Node, NodeStatus } from "./types"
+import type { DemoState, Node, NodeStatus } from "./types"
 import { canLead } from "./changeReview"
 import { addNotices, claimTask, closeSilence, replyToTask } from "./taskWorkflow"
 import { applySchedule } from "../engine/schedule"
@@ -10,7 +10,8 @@ import { isBudgetControlledNode } from "../engine/eventBudget"
  * Task board actions (v1.1, decision 3): officers drag their own tasks; the president or VP can drag anyone's,
  * and the owner gets a private note. The claim handshake still holds: only the owner can claim a task.
  */
-const label = (s: DemoState, st: NodeStatus) => s.org.board?.labels?.[st]?.trim() || STATUS_DEFAULTS[st].label
+// The six status names are fixed (S3, 2026-11-23). A renamed status in an old save stays in the data but is not shown.
+const label = (_s: DemoState, st: NodeStatus) => STATUS_DEFAULTS[st].label
 
 export function canMoveTask(s: DemoState, n: Node, to: NodeStatus): string | null {
   const lead = canLead(s), owner = n.ownerId === s.viewerId
@@ -102,19 +103,4 @@ export function addBoardTask(s: DemoState, title: string, status: NodeStatus): D
   const id = `task-${s.nodes.length}-${Date.now().toString(36)}`
   const node: Node = { id, title: t, eventId: null, stepKey: null, phase: null, fn, ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: "light", estDays: 1, anchor: { kind: "fixed", official: null, club: defaultTaskDue(s) }, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: st, acceptedOn: ownerId ? s.today : null, waitingOn: null, draftLink: null, why: "", source: "Added on the task board", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }
   return applySchedule(reorder({ ...s, nodes: [...s.nodes, node] }, id, st, null))
-}
-
-const HEX = /^#[0-9a-f]{6}$/i
-export function saveBoard(s: DemoState, b: BoardSettings): DemoState {
-  if (!canLead(s)) return s
-  const statuses = Object.keys(STATUS_DEFAULTS) as NodeStatus[]
-  const labels: BoardSettings["labels"] = {}, colors: BoardSettings["colors"] = {}
-  for (const st of statuses) {
-    const l = b.labels?.[st]?.trim().slice(0, 24); if (l) labels[st] = l
-    const c = b.colors?.[st]; if (c && HEX.test(c)) colors[st] = c
-  }
-  const tags = (b.tags ?? []).slice(0, 12).filter(t => t && typeof t.label === "string" && t.label.trim() && HEX.test(t.color)).map(t => ({ id: String(t.id).slice(0, 40), label: t.label.trim().slice(0, 20), color: t.color }))
-  const fields = (b.fields ?? ["owner", "due", "event", "tags"]).filter(f => ["owner", "due", "event", "tags"].includes(f))
-  const keep = new Set(tags.map(t => t.id))
-  return { ...s, org: { ...s.org, board: { labels, colors, tags, fields } }, nodes: s.nodes.map(n => n.tags?.some(t => !keep.has(t)) ? { ...n, tags: n.tags.filter(t => keep.has(t)) } : n) }
 }

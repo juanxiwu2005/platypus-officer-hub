@@ -40,10 +40,10 @@ describe("assigning a person when adding a task (PLAN 8.2)", () => {
     expect(newTaskNotice(base, null)).toBe("Posted in Not claimed. Anyone can claim it.")
     expect(made(create(as("maya"), null))).toMatchObject({ ownerId: "maya", status: "accepted" })
   })
-  it("the notice uses the board's own names for the columns", () => {
+  it("the notice uses the six fixed status names, even when an old save renamed them (S3)", () => {
     const renamed = { ...base, viewerId: "maya", org: { ...base.org, board: { labels: { unclaimed: "Up for grabs", accepted: "Ready" } } } }
-    expect(newTaskNotice(renamed, "maya")).toBe("Added to your Ready.")
-    expect(newTaskNotice(renamed, "jordan")).toBe("Sent to Jordan. It stays in Up for grabs until Jordan accepts.")
+    expect(newTaskNotice(renamed, "maya")).toBe("Added to your To do.")
+    expect(newTaskNotice(renamed, "jordan")).toBe("Sent to Jordan. It stays in Not claimed until Jordan accepts.")
   })
   it("Undo takes the task and its notice away", () => {
     const next = create(as("maya"), "sam")
