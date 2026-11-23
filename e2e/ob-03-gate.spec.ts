@@ -12,8 +12,9 @@ test("the switch is off by default: the first visit goes straight to Today", asy
 for (const url of ["/?walkthrough=1#/", "/#/?walkthrough=1"]) test(`a first visit opens the welcome page (${url})`, async ({ page }) => {
   await page.goto(url)
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Welcome to Platypus")
-  // S6 copy pass: one short line; the fictional/browser note is said once, by the Demo strip in the app, not here.
+  // S6 copy pass: one short line. The S5-S7 review put a short fictional-data line back, since the president path has no Demo strip.
   await expect(page.getByText("Plan your first event in 5 minutes.")).toBeVisible()
+  await expect(page.getByTestId("welcome-demo")).toHaveText("Demo: use fictional names only.")
   await expect(page.getByText("Everything here is fictional and stays in this browser.")).toHaveCount(0)
   await expect(page.getByRole("navigation", { name: /main|primary/i })).toHaveCount(0)   // the focus shell has no navigation
   const scan = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()

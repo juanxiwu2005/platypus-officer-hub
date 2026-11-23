@@ -185,7 +185,9 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
 
     <article className="step-card">
       <header><span className="step-n">1</span><b>Outgoing interview</b></header>
-      <textarea aria-label="Outgoing interview" placeholder="One point per line (fictional)" maxLength={12000} rows={4} value={interview} disabled={!self || r.completed} onChange={e => setInterview(e.target.value)} />
+      {/* The interview is sent to the AI to draft the handbook (netlify/functions/handbook-draft.mts), so the fictional-data warning stays visible. */}
+      <p className="small muted" id={`interview-note-${r.roleId}`} data-testid="interview-fictional">Fictional only — never paste real transcripts or participant details.</p>
+      <textarea aria-label="Outgoing interview" aria-describedby={`interview-note-${r.roleId}`} placeholder="One point per line" maxLength={12000} rows={4} value={interview} disabled={!self || r.completed} onChange={e => setInterview(e.target.value)} />
       <button className="btn small" disabled={!self || r.completed} onClick={() => act({ kind: "interview", roleId: r.roleId, lines: interview.split("\n") })}>Save</button>
       <QuestionsList record={r} />
     </article>
