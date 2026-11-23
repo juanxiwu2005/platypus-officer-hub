@@ -1,6 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
 import { readFileSync } from "node:fs"
-import { fillMission } from "./ob-helpers"
 import { onboardingCopy as c } from "../src/onboarding/copy"
 import { closeRail } from "./helpers"
 import { toRows } from "../scripts/export-to-csv.mjs"
@@ -12,7 +11,6 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/**", r => r.fulfill({ status: 404, json: { message: "no server in this test" } }))
 })
 
-const next = (page: Page) => page.getByRole("button", { name: c.next, exact: true }).click()
 const h1 = (page: Page, name: string) => expect(page.getByRole("heading", { level: 1, name })).toBeVisible()
 const OLD = 49
 
@@ -44,15 +42,10 @@ test("an earlier day is cleared, the link opened twice keeps both sessions; Star
   await page.goto("/#/start")
   await h1(page, c.founder.name.title)
   await page.getByLabel(c.founder.name.field).fill("Fictional Heron Club")
-  await next(page)
-  // The shared eight-step founder flow (docs/feedback-fix/SETUP_ENTRY_UNIFICATION_HANDOFF.md): Constitution, then Goals with its mission.
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await fillMission(page)
-  await page.getByRole("button", { name: c.skip }).click()            // goals
-  await page.getByRole("button", { name: c.skip }).click()            // team
-  await page.getByTestId("first-event").getByRole("button", { name: c.skip }).click()
-  await h1(page, c.founder.confirm.title)
-  await page.getByRole("button", { name: c.founder.confirm.start }).click()
+  // The three-screen founder flow (ob-6): Skip for now on screen 1 skips the first event; Team's Start workspace finishes setup.
+  await page.getByRole("button", { name: c.skip, exact: true }).click()
+  await h1(page, c.founder.team.title)
+  await page.getByRole("button", { name: c.founder.team.start }).click()
   await h1(page, c.founder.invite.title)
   await page.getByRole("button", { name: c.founder.invite.preview }).click()
   await expect(page).toHaveURL(/#\/welcome\/member\/invitation$/)
