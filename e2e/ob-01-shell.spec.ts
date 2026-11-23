@@ -9,7 +9,7 @@ const scan = async (page: import("@playwright/test").Page) => (await new AxeBuil
 test("the founder flow shows a progress chain that follows the route", async ({ page }) => {
   await page.goto("/#/welcome/founder/name")
   const chain = page.getByRole("list", { name: "Walkthrough progress" })
-  await expect(chain.getByRole("listitem")).toHaveCount(8)
+  await expect(chain.getByRole("listitem")).toHaveCount(7)
   await expect(chain.locator("[aria-current=step]")).toHaveText(/Name/)
   await page.goto("/#/welcome/founder/team")
   await expect(chain.locator("[aria-current=step]")).toHaveText(/Team/)
@@ -29,7 +29,7 @@ test("the welcome page has no progress chain or app frame", async ({ page }) => 
 test("the classic link uses the founder shell, and classic join has one main landmark", async ({ page }) => {
   await page.goto("/#/welcome/classic")
   await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
-  await expect(page.getByRole("list", { name: "Walkthrough progress" }).getByRole("listitem")).toHaveCount(8)
+  await expect(page.getByRole("list", { name: "Walkthrough progress" }).getByRole("listitem")).toHaveCount(7)
   expect(await scan(page)).toEqual([])
   await page.goto("/#/welcome/classic-join?invite=nope")
   await expect(page.locator("main")).toHaveCount(1)

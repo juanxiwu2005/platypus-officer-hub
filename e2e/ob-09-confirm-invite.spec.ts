@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
-import { fillMission, onboardingRecord, passReminders } from "./ob-helpers"
+import { fillMission, onboardingRecord } from "./ob-helpers"
 
 // OB-09: Confirm (screen 6) and Invite (screen 7), then the hand-over to the member preview. Run on desktop and phone.
 // The server is not there (404), so the first event is read by the local grammar. Nothing real is sent anywhere.
@@ -53,7 +53,6 @@ const toConfirm = async (page: Page, club = "Maple Club") => {
   await page.getByRole("button", { name: "Plan it" }).click()
   await expect(page.getByRole("region", { name: "First steps and dates" })).toBeVisible()
   await cont(page)
-  await passReminders(page, "review_then_auto")
   await expect(page.getByRole("heading", { level: 1, name: "Ready to start?" })).toBeVisible()
 }
 const toInvite = async (page: Page, club?: string) => { await toConfirm(page, club); await page.getByRole("button", { name: "Start workspace" }).click(); await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/) }
@@ -63,7 +62,7 @@ test("Name to Invite: the summary is right, Start creates the club, a double cli
   const line = page.getByTestId("confirm-summary")
   await expect(line).toHaveText(/^This creates Maple Club with \d+ officers and .+ on \w{3}, \w{3} \d+\.$/)
   await expect(line).toContainText("Welcome Mixer")
-  await expect(page.getByTestId("confirm-reminders")).toHaveText("Reminders: I review, Platypus sends.")
+  await expect(page.getByTestId("confirm-reminders")).toHaveCount(0)    // ob-5: the walkthrough no longer asks about reminders
   await expect(page.getByTestId("replace-warning")).toHaveCount(0)      // the first time, nothing is replaced
   await page.getByRole("button", { name: "Start workspace" }).dblclick()
   await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/)
@@ -92,9 +91,7 @@ test("the replace warning shows only after a club was already set up", async ({ 
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: "Plan it" }).click()
   await cont(page)
-  await passReminders(page)
   await expect(page.getByTestId("replace-warning")).toHaveText("This replaces the current demo workspace.")
-  await expect(page.getByTestId("confirm-reminders")).toHaveCount(0)    // Reminders was skipped: nothing to name
   // Keep current demo changes nothing and ends the attempt as exited.
   const before = await demoRaw(page)
   await page.getByRole("button", { name: "Keep current demo" }).click()
@@ -115,11 +112,8 @@ test("Start refuses a draft without a ready event, and Back goes to the first ev
   expect((await demo(page)).org.setupCompletedOn, "nothing was created").toBeNull()
 })
 
-test("Back on Confirm returns through Reminders (answer still ticked) to the first event with the plan still there", async ({ page }) => {
+test("Back on Confirm returns to the first event with the plan still there", async ({ page }) => {
   await toConfirm(page)
-  await page.getByRole("button", { name: "Back" }).click()
-  await expect(page).toHaveURL(/#\/welcome\/founder\/reminders$/)
-  await expect(page.getByRole("radio", { name: "I review, Platypus sends" })).toBeChecked()
   await page.getByRole("button", { name: "Back" }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/first-event$/)
   await expect(page.getByRole("region", { name: "First steps and dates" })).toBeVisible()
@@ -199,7 +193,8 @@ test("See what your officers will see: the same attempt continues into the membe
   const attempt = record.attempts.at(-1)!
   expect(attempt.outcome).toBe("completed")
   const steps = attempt.steps.map(s => s.step)
-  for (const id of ["founder.name", "founder.first-event", "founder.reminders", "founder.confirm", "founder.invite", "member.invitation", "member.you", "member.reminders", "member.busy-weeks", "member.about", "member.done"]) expect(steps, id).toContain(id)
+  expect(steps).not.toContain("founder.reminders")                    // ob-5: no Reminders screen
+  for (const id of ["founder.name", "founder.first-event", "founder.confirm", "founder.invite", "member.invitation", "member.you", "member.reminders", "member.busy-weeks", "member.about", "member.done"]) expect(steps, id).toContain(id)
 })
 
 test("Go to Reminders ends the walkthrough as completed", async ({ page }) => {

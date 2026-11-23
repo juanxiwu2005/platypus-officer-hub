@@ -1,4 +1,4 @@
-import { fillMission, passReminders } from "./ob-helpers"
+import { fillMission } from "./ob-helpers"
 import { expect, test, type Page } from "@playwright/test"
 import { closeRail } from "./helpers"
 
@@ -24,7 +24,6 @@ async function startWorkspace(page: Page) {
   await page.getByRole("button", { name: "Plan it" }).click()
   await expect(page.getByRole("region", { name: "First steps and dates" })).toBeVisible()
   await cont(page)
-  await passReminders(page)                                                  // Reminders (P3-H): skipped
   await page.getByRole("button", { name: "Start workspace" }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/)
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo") ?? "{}").org?.name)).toBe("Maple Club")

@@ -29,8 +29,8 @@ describe("walkthrough flows", () => {
     const required = ["founder.name", "founder.confirm", "founder.invite", "member.invitation", "member.you", "member.reminders", "member.done"]
     for (const id of required) expect(Object.values(FLOWS).flat().find(s => s.id === id)?.optional).toBe(false)
   })
-  it("lets the president skip the first event and the Reminders question, like Constitution, Goals and Team (Phase 3: the study watches plan vs skip)", () => {
-    const optional = ["founder.constitution", "founder.goals", "founder.team", "founder.first-event", "founder.reminders"]
+  it("lets the president skip the first event, like Constitution, Goals and Team (Phase 3: the study watches plan vs skip)", () => {
+    const optional = ["founder.constitution", "founder.goals", "founder.team", "founder.first-event"]
     for (const id of optional) expect(Object.values(FLOWS).flat().find(s => s.id === id)?.optional).toBe(true)
   })
 })

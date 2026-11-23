@@ -128,6 +128,9 @@ export const REMINDERS_ROUTE = "/welcome/founder/reminders"
  * forward with Skip for now ("skipped") or Continue; for Continue, the last option ticked on that screen before leaving it is read from the
  * interaction log (`ui.change` with the radio's data-testid, in the attempt's session). `stored` (org.settings.reminderMode, when this attempt
  * pressed Start workspace) is used only if the log no longer has that tick. null: the screen was never left forward (or the answer cannot be read).
+ * The screen exists only in ob-4 attempts. ob-5 (S2, 2026-11-22) removed it, so an ob-5 attempt has no founder.reminders step and this is
+ * always null for it, even though its club now stores the default reminderMode: that default was never the president's answer.
+ * This reader stays so files with older attempts still export their answer.
  */
 export function reminderModeChoice(attempt: OnboardingAttempt | undefined, log: readonly LogEntry[], stored?: unknown): ReminderModeChoice | null {
   if (!attempt) return null

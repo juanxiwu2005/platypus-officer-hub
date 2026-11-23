@@ -3,7 +3,7 @@ import { useLocation } from "react-router-dom"
 import { useStore } from "../data/store"
 import { stepAt } from "./engine/flows"
 import { BUFFER_CHOICES, clubDraft, type ClubDraft, type FirstEvent } from "../data/settings"
-import type { DemoState, ReminderMode, StepTemplate, WorkflowBranch } from "../data/types"
+import type { DemoState, StepTemplate, WorkflowBranch } from "../data/types"
 import { orgSteps } from "../engine/playbooks"
 import { withOwners } from "../engine/workflow"
 import type { ConstitutionDoc } from "../components/setup/ConstitutionStep"
@@ -32,7 +32,6 @@ export interface OnboardingDraft {
   date: string                    // the confirmed event date
   source: string                  // where the prepared event came from (shown to the president)
   confirmed: boolean
-  reminderMode: ReminderMode | null   // the Reminders screen's answer (P3-H); null until one is chosen, and after Skip for now
   inviteCode: string
   skipped: string[]               // optional steps the president skipped (shown as hollow dots, never nagged)
 }
@@ -71,7 +70,7 @@ export function freshDraft(state: DemoState): OnboardingDraft {
     club, doc: null, reading: { status: "idle" }, applied: false, structureTouched: false, missionTouched: false,
     steps: withOwners(orgSteps(state), club.roles), workflowBranches: state.org.eventWorkflow?.branches ? structuredClone(state.org.eventWorkflow.branches) : undefined, workflowTouched: false,
     buffer: (BUFFER_CHOICES as readonly number[]).includes(state.org.settings.clubBufferBusinessDays) ? state.org.settings.clubBufferBusinessDays : 3,
-    sentence: "", event: null, date: "", source: "", confirmed: false, reminderMode: null,
+    sentence: "", event: null, date: "", source: "", confirmed: false,
     inviteCode: crypto.randomUUID(), skipped: [],
   }
 }
@@ -89,7 +88,8 @@ export function OnboardingDraftProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<OnboardingDraft>(() => freshDraft(state))
   // Only a flow screen waits for the saved copy. The welcome page and the doors that begin an attempt (start, test) show at once: they start fresh anyway.
   const { pathname } = useLocation()
-  const [ready, setReady] = useState(() => !stepAt(pathname) && !["/welcome/setup", "/welcome/classic"].includes(pathname))
+  // The old Reminders address (removed in ob-5) only forwards to Confirm, so it waits for the saved copy like Confirm itself.
+  const [ready, setReady] = useState(() => !stepAt(pathname) && !["/welcome/setup", "/welcome/classic", "/welcome/founder/reminders"].includes(pathname))
   const revision = useRef(0)
   const wasReset = useRef(false)
   const latest = useRef(draft)

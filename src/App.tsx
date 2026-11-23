@@ -9,7 +9,6 @@ import { Constitution } from "./onboarding/founder/Constitution"
 import { Goals } from "./onboarding/founder/Goals"
 import { Team as OnboardingTeam } from "./onboarding/founder/Team"
 import { FirstEvent } from "./onboarding/founder/FirstEvent"
-import { ReminderMode } from "./onboarding/founder/ReminderMode"
 import { Confirm } from "./onboarding/founder/Confirm"
 import { Invite } from "./onboarding/founder/Invite"
 import { Invitation } from "./onboarding/member/Invitation"
@@ -46,7 +45,8 @@ export default function App() {
     <Routes>
       <Route path="welcome" element={<OnboardingDraftProvider><OnboardingShell /></OnboardingDraftProvider>}>
         <Route index element={<Welcome />} /><Route path="start" element={<StartWalkthrough />} /><Route path="test/president" element={<TestWalkthrough to="/welcome/founder/name" />} /><Route path="test/invite" element={<TestWalkthrough to="/welcome/member/invitation" />} /><Route path="setup" element={screen(<SetupEntry />, "Preparing organization setup…", true)} /><Route path="classic" element={<Navigate to="/welcome/setup" replace />} /><Route path="classic-join" element={screen(<Join />, "Preparing your invitation…", true)} />
-        <Route path="founder/name" element={<Name />} /><Route path="founder/constitution" element={<Constitution />} /><Route path="founder/goals" element={<Goals />} /><Route path="founder/team" element={<OnboardingTeam />} /><Route path="founder/first-event" element={<FirstEvent />} /><Route path="founder/reminders" element={<ReminderMode />} /><Route path="founder/confirm" element={<Confirm />} /><Route path="founder/invite" element={<Invite />} />
+        {/* ob-5 (S2, 2026-11-22): the founder Reminders screen is gone. An old /welcome/founder/reminders link goes on to Confirm, the screen that followed it. */}
+        <Route path="founder/name" element={<Name />} /><Route path="founder/constitution" element={<Constitution />} /><Route path="founder/goals" element={<Goals />} /><Route path="founder/team" element={<OnboardingTeam />} /><Route path="founder/first-event" element={<FirstEvent />} /><Route path="founder/reminders" element={<Navigate to="/welcome/founder/confirm" replace />} /><Route path="founder/confirm" element={<Confirm />} /><Route path="founder/invite" element={<Invite />} />
         <Route path="member/invitation" element={<Invitation />} /><Route path="member/you" element={<You />} /><Route path="member/reminders" element={<Reminders />} /><Route path="member/busy-weeks" element={<BusyWeeks />} /><Route path="member/about" element={<About />} /><Route path="member/done" element={<Done />} />
         <Route path="*" element={<ComingSoon />} />
       </Route>

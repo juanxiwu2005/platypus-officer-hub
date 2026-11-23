@@ -1,5 +1,4 @@
 import type { ClubDraft } from "../../../data/settings"
-import type { ReminderMode } from "../../../data/types"
 import { fmtLong } from "../../../lib/dates"
 import { onboardingCopy } from "../../copy"
 
@@ -16,5 +15,3 @@ export function summaryLine(club: ClubDraft, eventName: string | null, date: str
   return c.summary.replace("{club}", club.name.trim()).replace("{officers}", officers).replace("{event}", eventName.trim()).replace("{date}", fmtLong(date))
 }
 
-/** The Reminders answer in a few words under the summary, e.g. "Reminders: I review, Platypus sends." Shown only when one was chosen. */
-export const reminderLine = (mode: ReminderMode): string => c.reminders.replace("{mode}", onboardingCopy.founder.reminders.options[mode].title)
