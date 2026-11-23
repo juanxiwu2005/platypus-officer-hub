@@ -41,7 +41,7 @@ for (const entry of ["/#/setup", "/#/welcome/classic", "/#/welcome/setup"]) {
   test(`${entry} uses the Start founder screens and keeps setup outside the study record`, async ({ page }) => {
     await page.goto(entry)
     await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
-    await expect(page.getByRole("list", { name: "Walkthrough progress" }).getByRole("listitem")).toHaveCount(8)
+    await expect(page.getByRole("list", { name: "Walkthrough progress" }).getByRole("listitem")).toHaveCount(7)
     await page.getByLabel("Club name").fill("Fictional same guide")
     await continueSetup(page)
     await page.getByRole("button", { name: "Skip — use standard roles", exact: true }).click()

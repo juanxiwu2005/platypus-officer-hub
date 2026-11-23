@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test"
 import { continueSetup, finishSetup, setupToTeam } from "./setupHelpers"
-import { passReminders } from "./ob-helpers"
 import { closeRail, openDemoMenu, resetDemo, viewAs } from "./helpers"
 
 test.beforeEach(async ({ page }) => {
@@ -15,7 +14,7 @@ test("the shared setup creates the workspace only after confirmation", async ({ 
   await continueSetup(page)
   await page.getByRole("button", { name: "Spring dinner", exact: true }).click()
   await page.getByRole("button", { name: "Plan it", exact: true }).click()
-  await continueSetup(page); await passReminders(page)
+  await continueSetup(page)
   expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(before)
   await finishSetup(page)
   await page.goto("/#/team")

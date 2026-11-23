@@ -26,7 +26,7 @@ export function fromLegacySetup(base: OnboardingDraft, v: LegacySetup): Onboardi
     ...base, club: v.draft, steps: v.steps, buffer: v.buffer, sentence: v.sentence, doc: v.doc,
     reading: { status: "idle" }, applied: true, structureTouched: true, missionTouched: true, workflowTouched: true,
     // The old page never saved a prepared event. Review it again rather than inventing one.
-    event: null, date: "", source: "", confirmed: false, reminderMode: null, skipped: [],
+    event: null, date: "", source: "", confirmed: false, skipped: [],
   }
 }
 

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { WELCOME_ON, fillMission, onboardingRecord, passReminders } from "./ob-helpers"
+import { WELCOME_ON, fillMission, onboardingRecord } from "./ob-helpers"
 import { onboardingCopy as c } from "../src/onboarding/copy"
 import { openDemoMenu } from "./helpers"
 
@@ -22,7 +22,6 @@ test("a first visit runs welcome → founder flow → invite → officer preview
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
   await next(page).click()
-  await passReminders(page, "review_then_self")
   await page.getByRole("button", { name: c.founder.confirm.start }).click()
   await expect(page.getByRole("heading", { level: 1, name: c.founder.invite.title })).toBeVisible()
   await page.getByRole("button", { name: c.founder.invite.preview }).click()
@@ -36,9 +35,10 @@ test("a first visit runs welcome → founder flow → invite → officer preview
 
   const rec = await onboardingRecord(page)
   expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0]).toMatchObject({ entry: "start", outcome: "completed", flowVersion: "ob-4" })
+  expect(rec.attempts[0]).toMatchObject({ entry: "start", outcome: "completed", flowVersion: "ob-5" })
   const steps = rec.attempts[0].steps.map(s => `${s.step}:${s.event}`)
-  for (const expected of ["founder.name:enter", "founder.constitution:skip", "founder.goals:skip", "founder.team:skip", "founder.first-event:enter", "founder.reminders:enter", "founder.reminders:leave", "founder.confirm:enter", "member.invitation:enter", "member.done:enter"]) expect(steps).toContain(expected)
+  for (const expected of ["founder.name:enter", "founder.constitution:skip", "founder.goals:skip", "founder.team:skip", "founder.first-event:enter", "founder.first-event:leave", "founder.confirm:enter", "member.invitation:enter", "member.done:enter"]) expect(steps).toContain(expected)
+  expect(steps.some(x => x.startsWith("founder.reminders"))).toBe(false)                // ob-5: no Reminders screen
   expect(JSON.stringify(rec)).not.toContain("Moonlight")                                // behaviour only, never what was typed
   const stored = await page.evaluate(() => localStorage.getItem("platypus.v1.demo") ?? "")
   expect(stored).toContain("Moonlight Typing Society")                                  // …while the club itself was really created

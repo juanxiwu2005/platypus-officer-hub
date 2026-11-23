@@ -22,7 +22,7 @@ test.beforeEach(async ({ page }) => {
 
 
 import { continueSetup, finishSetup, openSetup, setupRole } from "./setupHelpers"
-import { fillMission, passReminders } from "./ob-helpers"
+import { fillMission } from "./ob-helpers"
 
 test("constitution roles and duties flow through the shared setup into saved roles and member invitations", async ({ page }) => {
   const sent: Record<string, unknown>[] = []
@@ -46,7 +46,7 @@ test("constitution roles and duties flow through the shared setup into saved rol
   await page.getByRole("button", { name: "Spring dinner", exact: true }).click()
   await page.getByRole("button", { name: "Plan it", exact: true }).click()
   await page.getByRole("button", { name: "5 days", exact: true }).click()
-  await continueSetup(page); await passReminders(page); await finishSetup(page)
+  await continueSetup(page); await finishSetup(page)
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
   expect(saved.org.settings.clubBufferBusinessDays).toBe(5)
   expect(saved.org.mission).toBe(REPLY.mission)

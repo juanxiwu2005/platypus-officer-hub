@@ -24,7 +24,7 @@ test.beforeEach(async ({ page }) => {
 test("restores main's separate name, constitution, goals and team screens", async ({ page }) => {
   await page.goto("/#/welcome/test/president")
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Name your club")
-  await expect(page.getByRole("list", { name: "Walkthrough progress" }).getByRole("listitem")).toHaveCount(8)
+  await expect(page.getByRole("list", { name: "Walkthrough progress" }).getByRole("listitem")).toHaveCount(7)
   await page.getByLabel("Club name", { exact: true }).fill("Fictional main walkthrough")
   await page.getByRole("button", { name: "Continue", exact: true }).click()
   await expect(page).toHaveURL(/founder\/constitution$/)

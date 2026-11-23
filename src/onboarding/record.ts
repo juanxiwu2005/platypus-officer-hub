@@ -3,8 +3,9 @@ import { beginSession } from "../lib/studySession"
 
 /** The walkthrough's current attempt lives in sessionStorage, so a reload keeps recording into the same attempt. */
 const ACTIVE = "platypus.v1.onboarding.active"
+// ob-5 (S2, 2026-11-22): the founder Reminders screen is removed; new clubs start with "I review, Platypus sends" (review_then_auto).
 // ob-4 (P3-H, 2026-11-08): a new optional founder screen, Reminders, between First event and Confirm. ob-3: First event can be skipped (ob-2: it was required).
-export const FLOW_VERSION = "ob-4"
+export const FLOW_VERSION = "ob-5"
 const read = () => { try { return window.sessionStorage.getItem(ACTIVE) } catch { return null } }
 const write = (id: string | null) => { try { id ? window.sessionStorage.setItem(ACTIVE, id) : window.sessionStorage.removeItem(ACTIVE) } catch { /* recording is optional */ } }
 

@@ -1,5 +1,5 @@
 import { expect, type Page } from "@playwright/test"
-import { fillMission, passReminders } from "./ob-helpers"
+import { fillMission } from "./ob-helpers"
 import { onboardingCopy as c } from "../src/onboarding/copy"
 
 export const continueSetup = (page: Page) => page.getByRole("button", { name: c.next, exact: true }).click()
@@ -23,7 +23,6 @@ export async function setupToConfirm(page: Page, name?: string, event = true) {
     await page.getByRole("button", { name: c.founder.firstEvent.cta, exact: true }).click()
     await continueSetup(page)
   } else await page.getByRole("button", { name: c.skip, exact: true }).click()
-  await passReminders(page)
   await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
 }
 export async function finishSetup(page: Page) {

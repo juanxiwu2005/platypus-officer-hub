@@ -8,17 +8,17 @@ import { onboardingCopy } from "../copy"
 import { useOnboardingDraft } from "../draft"
 import { useFlow } from "../engine/useFlow"
 import { recordSetup } from "../record"
-import { reminderLine, summaryLine } from "./confirm/summary"
+import { summaryLine } from "./confirm/summary"
 
 const c = onboardingCopy.founder.confirm
 const FIRST_EVENT = "founder.first-event"
-const REMINDERS = "founder.reminders"
 
 /**
- * Screen 6 of the founder flow (required): one sentence says what will be created, then Start workspace creates it through the shared completeSetup action. The warning about replacing the demo only shows when a club was already set up. A ref stops a double click (or React's
+ * Screen 6 of 7 in the founder flow (required): one sentence says what will be created, then Start workspace creates it through the shared completeSetup action. The warning about replacing the demo only shows when a club was already set up. A ref stops a double click (or React's
  * development double-run) from creating it twice. Keep current demo leaves every piece of data as it is.
  * When the president pressed Skip for now on First event, the club starts with no new event (completeSetup gets a null event and an empty date).
  * Arriving here without planning and without skipping (an address typed by hand) still asks for the first event.
+ * Since ob-5 (S2) the walkthrough no longer asks how reminders go out: completeSetup gets no reminder choice and the club starts with the default.
  */
 export function Confirm() {
   const { state, tryDispatch } = useStore()
@@ -32,8 +32,6 @@ export function Confirm() {
   const ready = planned || noEvent
   // What Start passes on: the planned event and its date, or (after Skip for now) no event and no date.
   const event = noEvent ? null : draft.event, date = noEvent ? "" : draft.date
-  // The Reminders answer (P3-H), or none after Skip for now. It is only stored for the study; nothing is ever sent.
-  const reminderMode = draft.skipped.includes(REMINDERS) ? null : draft.reminderMode
   const replaces = state.org.setupCompletedOn !== null
   if (!flow) return null
 
@@ -43,7 +41,7 @@ export function Confirm() {
     const error = validateClub(draft.club)
     if (error) { setProblem(error); return }
     started.current = true
-    if (!tryDispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps, workflowBranches: draft.workflowBranches, reminderMode })) { started.current = false; setProblem("Your club could not be saved. Export your current data and retry before leaving this page."); return }
+    if (!tryDispatch({ type: "completeSetup", draft: { ...draft.club, people: fillEmails(draft.club.people) }, event, date, inviteCode: draft.inviteCode, clubBufferBusinessDays: draft.buffer, workflow: draft.steps, workflowBranches: draft.workflowBranches })) { started.current = false; setProblem("Your club could not be saved. Export your current data and retry before leaving this page."); return }
     recordSetup("start-workspace")
     clear()
     navigate("/welcome/founder/invite")
@@ -55,7 +53,6 @@ export function Confirm() {
       ? <p className="ob-lead" data-testid="confirm-summary">{summaryLine(draft.club, planned && event ? event.name : null, date)}</p>
       : <p className="ob-lead">{c.missing}</p>}
     {noEvent && <p className="small muted" data-testid="confirm-no-event">{c.noEvent}</p>}
-    {ready && reminderMode && <p className="small muted" data-testid="confirm-reminders">{reminderLine(reminderMode)}</p>}
     {ready && replaces && <p className="ob-c9-warn" data-testid="replace-warning">{c.replaceWarning}</p>}
     {problem && <p role="alert" className="ob-c9-error">{problem}</p>}
     <div className="ob-actions">

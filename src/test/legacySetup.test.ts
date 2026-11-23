@@ -13,7 +13,7 @@ describe("legacy setup continuation", () => {
     expect(next.club).toEqual(old.draft)
     expect(next.doc).toEqual(old.doc)
     expect(next.steps).toEqual(old.steps)
-    expect(next).toMatchObject({ applied: true, structureTouched: true, workflowTouched: true, missionTouched: true, buffer: 5, sentence: "Plan dinner", event: null, reminderMode: null })
+    expect(next).toMatchObject({ applied: true, structureTouched: true, workflowTouched: true, missionTouched: true, buffer: 5, sentence: "Plan dinner", event: null })
   })
   it.each([[0, "name"], [1, "goals"], [2, "team"], [3, "first-event"], [4, "first-event"], [5, "first-event"]])("maps legacy step %s to the shared %s screen", (step, screen) => {
     expect(legacySetupPath(Number(step))).toBe(`/welcome/founder/${screen}`)
