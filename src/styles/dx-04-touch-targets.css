@@ -13,10 +13,11 @@
   }
 
   /* Dense places (table rows, cards, small buttons): at least 32px. */
-  :is(.tbl, .board-card, .mini-card, .crm-card, .task-card, .menu, .m-menu) :is(.btn, .chip, select) {
+  :is(.tbl, .mini-card, .crm-card, .task-card, .menu, .m-menu) :is(.btn, .chip, select) {
     min-height: 32px;
   }
   :is(.owner-chip button, .step-chip button, .focus-chip button) { min-width: 32px; min-height: 32px; }
+  .tbl .group-btn { min-height: 32px; }   /* S3: the task table is the Tasks page's only view, so its group headers are tapped on a phone */
   :is(.check-label, .checks label, .who-picks label) { min-height: 32px; }
 
   /* Small marks keep their size; the area you can hit around them grows to about 32px. */

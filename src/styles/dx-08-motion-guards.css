@@ -9,4 +9,3 @@
 /* Same job, same look, one set of times. */
 .switch input { transition: background-color var(--dur-fast) var(--ease-out); }
 .switch input::after { transition: transform var(--dur-fast) var(--ease-out); }
-.board-col { transition: border-color var(--dur-fast) var(--ease-out); }

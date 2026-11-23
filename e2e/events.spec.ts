@@ -73,11 +73,14 @@ test("a pointer hovers a step; touch opens its details with the same Due", async
 test("moving an upstream due date later reschedules its dependants and flags the rule break in red", async ({ page }) => {
   await page.getByLabel("Event date", { exact: true }).fill("2026-11-19")
   await page.goto("/#/tasks")
-  await page.getByRole("button", { name: "Table", exact: true }).click()
   await page.getByLabel("Task scope").selectOption("team")
   // FB-6: a link between calibrated steps means finish order, so Purchase Request moves to Budget Approval's new date. Thu Nov 5 is
-  // after the R09 deadline (Wed Nov 4), so the rule break is red. FB-4: the label is "Due for …" and the one date shown is Due.
-  await page.getByLabel("Due for Budget Approval", { exact: true }).fill("2026-11-05")
+  // after the R09 deadline (Wed Nov 4), so the rule break is red. S3: the table is read-only; Task Details' Edit changes Due.
+  await page.getByTestId("my-tasks").getByRole("button", { name: /Budget Approval$/ }).click()
+  await page.getByTestId("task-detail").getByRole("button", { name: "Edit", exact: true }).click()
+  await page.getByRole("dialog", { name: "Edit task" }).getByTestId("due-input").fill("2026-11-05")
+  await page.getByRole("dialog", { name: "Edit task" }).getByRole("button", { name: "Save changes", exact: true }).click()
+  await expect(page.getByRole("dialog", { name: "Edit task" })).toHaveCount(0)
   await page.goto("/#/events?event=e-night")
   await page.getByTestId("flow-node-purchaseRequest").click()
   const panel = page.getByTestId("task-detail")

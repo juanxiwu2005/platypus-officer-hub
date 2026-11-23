@@ -25,7 +25,6 @@ for (const [path, h1] of PAGES) {
 test("view-as switches whose tasks are shown, and reset restores the demo", async ({ page }) => {
   await page.goto("/#/tasks")
   await viewAs(page, "maya")
-  await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.getByTestId("my-tasks")).toContainText("Reconcile September receipts")
   await page.reload()
   await expect(page.getByTestId("view-as")).toHaveValue("maya")

@@ -163,62 +163,46 @@ test("tampered and reset task entries cannot update any task", async ({ page, is
   await expect(page.getByTestId("task-detail")).toHaveCount(0)
 })
 
-test("table, board and timeline use the same tasks and remain usable on a phone", async ({ page }) => {
+test("the table is the only task view and remains usable on a phone", async ({ page }) => {
   await page.goto("/#/tasks")
   await viewAs(page, "jordan")
   await closeRail(page)
-  await page.getByRole("button", { name: "Table", exact: true }).click()
+  // S3: Board and Timeline are gone; there is no view switch, and My tasks is the default scope.
+  await expect(page.getByRole("group", { name: "Task view" })).toHaveCount(0)
+  for (const name of ["Board", "Timeline", "Table"]) await expect(page.getByRole("button", { name, exact: true })).toHaveCount(0)
+  await expect(page.getByTestId("task-board")).toHaveCount(0)
+  await expect(page.getByLabel("Task scope")).toHaveValue("mine")
   await expect(page.getByRole("table")).toContainText("Confirm the workshop checklist")
-  const tableTasks = (await page.getByTestId("task-card").getByRole("button").allTextContents()).map(t => t.trim()).sort()
-  await page.getByRole("button", { name: "Board", exact: true }).click()
-  await expect(page.getByTestId("task-board")).toContainText("Confirm the workshop checklist")
-  await expect(page.getByTestId("task-board").getByRole("heading")).toHaveCount(6)
-  const openColumns = page.getByRole("region", { name: /^(Not claimed|To do|Working on it|Waiting|Stuck)$/ })
-  expect((await openColumns.getByTestId("board-card").getByRole("button").allTextContents()).map(t => t.trim()).sort()).toEqual(tableTasks)
-  await page.getByRole("button", { name: "Timeline", exact: true }).click()
-  await expect(page.getByTestId("task-gantt")).toContainText("Confirm the workshop checklist")
-  expect((await page.getByTestId("task-gantt").getByRole("button").allTextContents()).map(t => t.trim()).filter(Boolean).sort()).toEqual(tableTasks)
+  // Owner and due are read-only in the table: Task Details' Edit changes them.
+  await page.getByLabel("Task scope").selectOption("team")
+  await expect(page.getByRole("table").getByRole("combobox")).toHaveCount(0)
+  await expect(page.getByRole("table").locator("input")).toHaveCount(0)
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
 })
 
-test("board: drag a card to another column, add a task, and an officer cannot move someone else's task", async ({ page }, info) => {
+test("table: a row opens Task Details to change status, a task can be added, and an officer cannot change someone else's task", async ({ page }) => {
   await page.goto("/#/tasks")
   await closeRail(page)
-  await page.getByRole("button", { name: "Board", exact: true }).click()
-  const board = page.getByTestId("task-board")
-  const card = board.getByTestId("board-card").filter({ hasText: "Check the officer list in Sun Devil Central" })
-  const targetStatus = info.project.name === "desktop" ? "in_progress" : "blocked"
-  const targetLabel = info.project.name === "desktop" ? "Working on it" : "Stuck"
-  if (info.project.name === "desktop") {
-    // Native drag and drop, with the destination taken from the actual column bounds.
-    const destination = board.getByRole("region", { name: targetLabel, exact: true })
-    await destination.scrollIntoViewIfNeeded()
-    await card.dragTo(destination, { targetPosition: { x: 40, y: 60 } })
-  } else {
-    // The same board card opens the status actions on touch devices.
-    await card.getByRole("button", { name: "Check the officer list in Sun Devil Central" }).tap()
-    await page.getByTestId("task-detail").getByRole("combobox", { name: "Task status", exact: true }).selectOption("blocked")
-    await closeRail(page)
-  }
-  await expect(board.getByRole("region", { name: targetLabel, exact: true })).toContainText("Check the officer list")
-  expect(await savedTask(page, "t-sdc")).toMatchObject({ status: targetStatus, ownerId: "alex" })
+  const table = page.getByTestId("my-tasks")
+  const row = table.getByTestId("task-card").filter({ hasText: "Check the officer list in Sun Devil Central" })
+  await row.getByRole("button", { name: "Check the officer list in Sun Devil Central" }).click()
+  await page.getByTestId("task-detail").getByRole("combobox", { name: "Task status", exact: true }).selectOption("in_progress")
+  await closeRail(page)
+  await expect(row).toContainText("Working on it")
+  expect(await savedTask(page, "t-sdc")).toMatchObject({ status: "in_progress", ownerId: "alex" })
   await page.reload()
   await closeRail(page)
-  await expect(board.getByRole("region", { name: targetLabel, exact: true })).toContainText("Check the officer list")
-  expect(await savedTask(page, "t-sdc")).toMatchObject({ status: targetStatus })
-  await board.getByRole("region", { name: "To do" }).getByRole("button", { name: "+ Add task" }).click()
-  await board.getByLabel("New task name").fill("Order name tags")
-  await board.getByRole("button", { name: "Add", exact: true }).click()
-  await expect(board.getByRole("region", { name: "To do" })).toContainText("Order name tags")
+  await expect(row).toContainText("Working on it")
+  expect(await savedTask(page, "t-sdc")).toMatchObject({ status: "in_progress" })
+  await page.getByTestId("new-task").click()
+  await page.getByTestId("new-task-form").getByLabel("New task name").fill("Order name tags")
+  await page.getByTestId("new-task-form").getByRole("button", { name: "Add", exact: true }).click()
+  await expect(table).toContainText("Order name tags")
   await viewAs(page, "maya")
+  await closeRail(page)
   await page.getByLabel("Task scope").selectOption("team")
-  const other = board.getByTestId("board-card").filter({ hasText: "Send the October newsletter" })
   const beforeOther = await savedTask(page, "t-news")
-  if (info.project.name === "desktop") {
-    await other.dragTo(board.getByRole("region", { name: "Working on it", exact: true }), { targetPosition: { x: 40, y: 60 } })
-    await expect(page.getByRole("status")).toContainText("your own tasks")
-  }
-  await other.getByRole("button", { name: "Send the October newsletter" }).click()
+  await table.getByTestId("task-card").filter({ hasText: "Send the October newsletter" }).getByRole("button", { name: "Send the October newsletter" }).click()
   const detail = page.getByTestId("task-detail")
   // Someone else's task is read-only: the status is a label, with no status menu, form or submit button.
   await expect(detail.locator(".task-status-label")).toHaveText("Waiting on")
@@ -238,54 +222,38 @@ test("board customization renames a status everywhere without changing its meani
   await panel.getByLabel("Name for To do").fill("Ready")
   await panel.getByLabel("Name for To do").blur()
   await page.goto("/#/tasks")
-  await expect(page.getByTestId("task-board").getByRole("heading", { name: "Ready" })).toBeVisible()
-  await page.getByRole("button", { name: "Table", exact: true }).click()
   const row = page.getByRole("row").filter({ hasText: "Check the officer list in Sun Devil Central" })
   await expect(row).toContainText("Ready")
   await row.getByRole("button", { name: "Check the officer list in Sun Devil Central" }).click()
   await expect(page.getByTestId("task-detail").getByRole("combobox", { name: "Task status", exact: true }).locator("option:checked")).toHaveText("Ready")
   await page.reload()
-  await expect(page.getByTestId("task-board").getByRole("heading", { name: "Ready" })).toBeVisible()
+  await closeRail(page)
+  await expect(row).toContainText("Ready")
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.find((n: { id: string }) => n.id === "t-sdc").status)).toBe("accepted")
 })
 
-test("+ New task is on the page head in every view, for an officer as well as the president", async ({ page }) => {
+test("+ New task is on the page head for an officer as well as the president, and a new task never starts finished", async ({ page }) => {
   await page.goto("/#/tasks")
   await viewAs(page, "maya")
   await closeRail(page)
-  // Every view keeps a create entry, including the table.
-  for (const view of ["Table", "Timeline", "Board"]) {
-    await page.getByRole("button", { name: view, exact: true }).click()
-    await expect(page.getByTestId("new-task")).toBeVisible()
-  }
-  await page.getByRole("button", { name: "Table", exact: true }).click()
+  await expect(page.getByTestId("new-task")).toBeVisible()
   await page.getByTestId("new-task").click()
   await page.getByTestId("new-task-form").getByLabel("New task name").fill("Order name tags")
   await page.getByTestId("new-task-form").getByRole("button", { name: "Add", exact: true }).click()
   await expect(page.getByRole("table")).toContainText("Order name tags")
   const added = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.at(-1))
-  expect([added.status, added.ownerId]).toEqual(["accepted", "maya"])
+  // Audit §6.4b: a new task used to be able to start as Done; the form has no status, so it starts in To do.
+  expect([added.status, added.ownerId, added.completedOn ?? null]).toEqual(["accepted", "maya", null])
   await expect(page.getByTestId("new-task")).toBeVisible()
 })
 
-test("a new task never starts finished, and the board says where the card went", async ({ page }) => {
+// Moved from the removed DX-21 board-header spec: the table's status pill stays a solid colour block with white text.
+test("the status pill in the table is a solid colour block", async ({ page }) => {
   await page.goto("/#/tasks")
-  await viewAs(page, "maya")
   await closeRail(page)
-  await page.getByRole("button", { name: "Board", exact: true }).click()
-  const board = page.getByTestId("task-board")
-  // Audit §6.4b: this used to create status=done with today's completion date, round the reopen rule.
-  await board.getByRole("region", { name: "Done" }).getByRole("button", { name: "+ Add task" }).click()
-  await board.getByLabel("New task name").fill("Pretend this is finished")
-  await board.getByRole("button", { name: "Add", exact: true }).click()
-  await expect(page.locator(".board-notice")).toContainText("cannot start as Done")
-  await expect(board.getByRole("region", { name: "To do" })).toContainText("Pretend this is finished")
-  const made = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.at(-1))
-  expect([made.status, made.completedOn ?? null]).toEqual(["accepted", null])
-  // Audit §6.4a: an officer adding in Not claimed got a card in To do with no word about it.
-  await board.getByRole("region", { name: "Not claimed" }).getByRole("button", { name: "+ Add task" }).click()
-  await board.getByLabel("New task name").fill("Book the room")
-  await board.getByRole("button", { name: "Add", exact: true }).click()
-  await expect(page.locator(".board-notice")).toContainText("is yours, so it is in To do")
-  await expect(board.getByRole("region", { name: "To do" })).toContainText("Book the room")
+  const pill = page.getByTestId("my-tasks").locator(".pill").first()
+  await expect(pill).toBeVisible()
+  const cs = await pill.evaluate(el => { const c = getComputedStyle(el); return { bg: c.backgroundColor, color: c.color } })
+  expect(cs.bg).not.toBe("rgba(0, 0, 0, 0)")
+  expect((cs.color.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)).toEqual([255, 255, 255])
 })

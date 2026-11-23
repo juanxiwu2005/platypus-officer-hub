@@ -1,6 +1,6 @@
 /* DX-03 press feedback and hover transitions (docs/design-upgrade/work-packages/DX-03-press-feedback.md).
    Pressing anything with a background shrinks it slightly at once; text-style buttons dim instead. Hover colours ease
-   in on devices that really hover. Not here: .ask-fab (DX-09), .board-card (DX-16/24), .hover-card (S3: zero delay). */
+   in on devices that really hover. Not here: .ask-fab (DX-09), .hover-card (S3: zero delay). */
 
 /* Things with a background: press = a small shrink, back on release. */
 :is(.btn, .chip, .icon-btn, .demo-pill, .seg button, .crm-seg button, .rail-tabs [role="tab"], .settings-nav button, .event-nav button, .board-add-btn, .relay, .owner-chip button) {

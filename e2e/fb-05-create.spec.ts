@@ -134,10 +134,11 @@ test.describe("+ New task: assign a person, one Due (PLAN 8.2, 8.3)", () => {
     const task = await savedTask(page, "Print the sign-in sheet")
     expect(task).toMatchObject({ ownerId: "sam", status: "unclaimed", clubDeadline: addDays(s.today, s.org.settings.taskDueDays ?? 5) })
     expect((await demo(page)).notifications.some(n => n.nodeId === task.id && n.recipientId === "sam")).toBe(true)
-    // Sam sees it in their own Not claimed column and accepts it.
+    // Sam sees it as Not claimed in their own task list and accepts it.
     await viewAs(page, "sam")
     await closeRail(page)
-    const mine = page.getByTestId("task-board").getByRole("region", { name: "Not claimed", exact: true })
+    const mine = page.getByTestId("my-tasks").getByTestId("task-card").filter({ hasText: "Print the sign-in sheet" })
+    await expect(mine).toContainText("Not claimed")
     await mine.getByRole("button", { name: "Print the sign-in sheet" }).click()
     await page.getByTestId("task-detail").getByRole("button", { name: "I've got it", exact: true }).click()
     expect(await savedTask(page, task.id)).toMatchObject({ ownerId: "sam", status: "accepted" })
@@ -160,7 +161,7 @@ test.describe("+ New task: assign a person, one Due (PLAN 8.2, 8.3)", () => {
     await form.getByRole("button", { name: "Add", exact: true }).click()
     await expect(page.locator(".board-notice")).toContainText("Added to your To do.")
     expect(await savedTask(page, "Reconcile the receipts")).toMatchObject({ ownerId: "maya", status: "accepted", clubDeadline: due })
-    await expect(page.getByTestId("task-board").getByRole("region", { name: "To do", exact: true })).toContainText("Reconcile the receipts")
+    await expect(page.getByTestId("my-tasks").getByTestId("task-card").filter({ hasText: "Reconcile the receipts" })).toContainText("To do")
   })
 
   test("Anyone (open) has no owner; Undo takes it back; an empty name is refused", async ({ page }) => {
@@ -179,17 +180,13 @@ test.describe("+ New task: assign a person, one Due (PLAN 8.2, 8.3)", () => {
     await expect.poll(() => savedTask(page, "Book a bigger room")).toBeUndefined()
   })
 
-  test("Escape closes the form and gives focus back; the column's quick add stays name-only", async ({ page }) => {
+  test("Escape closes the form and gives focus back", async ({ page }) => {
     await page.goto("/#/tasks")
     await closeRail(page)
     await page.getByTestId("new-task").click()
     await page.getByTestId("new-task-form").getByLabel("New task name").press("Escape")
     await expect(page.getByTestId("new-task-form")).toHaveCount(0)
     await expect(page.getByTestId("new-task")).toBeFocused()
-    const column = page.getByRole("region", { name: "To do", exact: true })
-    await column.getByRole("button", { name: "+ Add task", exact: true }).click()
-    const quick = column.locator("form.board-add")
-    await expect(quick.locator("input, select")).toHaveCount(1)
   })
 
   test("an incoming officer viewed as cannot create tasks or events", async ({ page }) => {

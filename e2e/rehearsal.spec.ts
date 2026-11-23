@@ -82,7 +82,7 @@ test("keyboard only: claim a task, change its status and finish it without a mou
   const id = await createUnclaimedTask(page, "Prepare the keyboard rehearsal")
   await viewAs(page, "jordan")
   await closeRail(page)
-  const card = page.getByTestId("task-board").getByRole("button", { name: "Prepare the keyboard rehearsal" })
+  const card = page.getByTestId("my-tasks").getByRole("button", { name: "Prepare the keyboard rehearsal" })
   await card.focus()
   await page.keyboard.press("Enter")
   const detail = page.getByTestId("task-detail")
@@ -105,8 +105,9 @@ test("keyboard only: claim a task, change its status and finish it without a mou
   await expect(status).toHaveValue("done")
   expect(await savedTask(page, id)).toMatchObject({ status: "done", ownerId: "jordan" })
   await page.reload()
-  // The task was opened from the board rather than a historic deep link.
+  // The task was opened from the task table rather than a historic deep link; the table lists open work, so it has left it.
   expect(await savedTask(page, id)).toMatchObject({ status: "done", ownerId: "jordan" })
   await closeRail(page)
-  await expect(page.getByRole("region", { name: "Done", exact: true })).toContainText("Prepare the keyboard rehearsal")
+  await expect(page.getByTestId("my-tasks")).toBeVisible()
+  await expect(page.getByTestId("my-tasks").getByRole("button", { name: "Prepare the keyboard rehearsal" })).toHaveCount(0)
 })

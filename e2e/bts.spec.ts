@@ -76,7 +76,6 @@ test("when on: dates show where they come from on Reminders, Events and Tasks", 
   await expect(list.locator(".bts").filter({ hasText: "ASU needs this by" }).first()).toBeVisible()
   await expect(list.locator(".bts").filter({ hasText: "Reminder goes out" }).first()).toBeVisible()
   await page.goto("/#/tasks")
-  await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.getByTestId("my-tasks").locator(".bts").first()).toBeVisible()
   // Turning it off again leaves the pages as they were.
   await openDemoMenu(page)
@@ -123,7 +122,6 @@ for (const path of ["/", "/events", "/tasks"]) test(`no accessibility violations
   await page.goto(`/#${path}`)
   await page.waitForTimeout(400)
   await closeRail(page)
-  if (path === "/tasks") await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.locator(".bts").first()).toBeVisible()
   const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()
   expect(res.violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).slice(0, 3).join(" ; ")}`)).toEqual([])

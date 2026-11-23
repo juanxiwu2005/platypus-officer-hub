@@ -59,8 +59,8 @@ test.describe("with motion", () => {
     await expect(badge).toBeVisible()
     expect(await badge.evaluate(el => el.classList.contains("is-pop"))).toBe(false)     // first draw: quiet
     const before = await badge.innerText()
-    // The president's own To do card (the sample club's Not claimed cards come first and need claiming before Done, P3-A).
-    await page.getByRole("region", { name: "To do", exact: true }).getByTestId("board-card").first().getByRole("button").first().click()
+    // The president's own To do row (the sample club's Not claimed tasks need claiming before Done, P3-A).
+    await page.getByTestId("my-tasks").getByTestId("task-card").filter({ has: page.locator(".pill[data-status=accepted]") }).first().getByRole("button").first().click()
     // The universal Task Details complete a task by submitting its result (docs/feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md).
     await page.getByTestId("task-detail").getByRole("textbox", { name: "Details", exact: true }).fill("Finished.")
     await page.getByTestId("task-detail").getByRole("button", { name: "Submit & mark done", exact: true }).click()

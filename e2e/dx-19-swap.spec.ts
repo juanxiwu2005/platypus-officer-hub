@@ -13,7 +13,6 @@ async function fresh(page: Page) {
 const ROWS = "main table button.row-btn.task-title"
 async function openTaskTable(page: Page) {
   await page.goto("/#/tasks")
-  await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.locator(ROWS).nth(1)).toBeVisible()
 }
 
@@ -41,7 +40,7 @@ test.describe("with motion", () => {
     await fresh(page)
     await page.goto("/#/tasks")
     await page.waitForTimeout(500)
-    await page.getByRole("button", { name: "Table" }).click()
+    await page.getByLabel("Task scope").selectOption("team")
     expect(await page.locator("main").evaluate(el => el.className)).toBe("")
   })
   test("a different task in Details fades in; the same one does not replay", async ({ page }) => {
