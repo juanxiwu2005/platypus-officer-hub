@@ -1,4 +1,6 @@
-# Current handoff: Preview 14 release to `main`
+# Current handoff: Quest P5 sample awaiting owner play
+
+> **November23,2026 (America/Phoenix) - Codex - P5 implementation ready for local owner play.** Baseline feat/onboarding-quest@dfef2a2; Draft PR19, main read-only. Prologue/HQ and complete Mission2/5 sample, native3D/floor venue editing, sourced checks, creative controls, isolated persistence/history/export implemented. GLM5.3 coding and explicit DeepSeek reviews; native geometry uses HANDOFF strong-planner exception. Full offline checks passed; actual compiled desktop and390px touch/no-WebGL journeys passed via genuine controls, with zero axe findings and max111 visible words. Source-dialog internal-trigger focus repaired and verified. Exact-head CI/delivery receipts are retained in the local handoff; no success is inferred before they complete. Owner acceptance and3-5-officer gate remain pending, as does a real manual tab-background check (unit event/timer coverage passed). No P6/recruitment/merge or production data/API/dependency changes. Main/P0/defaults/33-rule library preserved. Thesis backup sync remains pending.
 
 > **November 23, 2026 (America/Phoenix) - Codex - P5 resumed for local playable handoff.** The owner requested finishing this portion and opening an interactive local preview. Preserve the paused keyboard edits, finish GLM5.3/DeepSeek review, verify the compiled sample, and save deliverables. Main remains read-only.
 

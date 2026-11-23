@@ -28,4 +28,17 @@ Pure decision/geometry/history/storage boundary tests; source quote verification
 
 The live MetroChart component depends on DemoState/useStore and exposes business editing actions. This isolated practice uses a semantic, read-only seven-chapter rail instead of importing live workflow mutations. Only the sample Date and Venue chapters light up. A real business-chart adapter is deferred to the full-game integration decision.
 
-Owner-approved Quest-only motion tokens are 10 seconds per manually skippable prologue still and 5 seconds for optional guest arrival. Reduced motion uses manual stills/immediate arrivals. The strong native geometry/rendering proposal remains pending independent DeepSeek review before final delivery.
+Owner-approved Quest-only motion tokens are 10 seconds per manually skippable prologue still and 5 seconds for optional guest arrival. Reduced motion uses manual stills/immediate arrivals. The native geometry/rendering modules have independent DeepSeek approvals (P5-G1/G2). Final implementation is ready for local owner play; the owner and3-5-officer phase exit gate remain pending.
+
+
+## Implementation handoff (November23,2026)
+
+Implementation is ready for local owner play, not adopted into production. GLM5.3 implemented the normal scoped cards; DeepSeek independently approved each final diff. Native geometry/3D followed HANDOFF's strong-planner exception and separate DeepSeek approvals. Full raw/rejected/interrupted evidence is preserved.
+
+Completed: approved-style prologue/HQ, full Mission2 account-holder/timeline/advisor journey, Mission5 documents/poster/print/licensing preparation, native3D Venue Builder and equivalent floor/keyboard controls, six separately sourced room checks, unscored creative choices, real guest arrivals, source quotations, local history/reload and immutable plan download. Final repair restores native-dialog focus to the internal venue check button after its scene becomes visible.
+
+Validation: all local unit tests passed (see final-unit.txt for exact count), full lint/build/frontend and server types, existing main-page word gates using installed Chrome override, actual compiled fresh desktop and390px touch journeys through18 genuine attempts each, real native WebGL pointer/camera/Escape/floor operations, actual --disable-webgl touch fallback, zero axe findings, no page overflow, at most111 visible words including tested source groups. Other browser keys and study log unchanged, no product API/external request or page error during journeys. Unknown/empty save and simulated sample-only quota checks preserved originals and continued safely in memory. Downloaded plan comes from actual completed controls; successful gameplay was never injected.
+
+Human owner acceptance and HANDOFF's3-5-officer play gate remain pending; no recruitment/P6/merge is authorized. Real background-tab automation remained inconclusive (document.hidden never became true), while hidden-event/timer behavior passes unit tests. Include manual hide/return in owner/officer play. Hosted preview remains invited-account protected. Main/P0/global default/33-rule library/engine/dependencies/live data remain unchanged; legacy queue remains paused. Broader thesis backup sync remains pending.
+
+Source/docs TRIAL_LOG records work up to the final verification commit. Final exact-head CI and delivery observations are appended only to the local delivered log/receipts so they do not invalidate the checked commit. Exact source and CI hashes are in DELIVERY.json and FINAL_CI.json.
