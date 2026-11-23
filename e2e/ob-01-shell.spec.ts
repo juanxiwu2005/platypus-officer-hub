@@ -87,8 +87,10 @@ test("the progress chain looks like what it says: done and current dots are fill
   await page.getByRole("button", { name: c.skip, exact: true }).click()           // the first event skipped
   await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
   const mark = (state: string) => page.locator(`.ob-dot.is-${state} .ob-dot-mark`).first().evaluate(e => { const s = getComputedStyle(e); return { bg: s.backgroundColor, border: s.borderStyle } })
+  await expect(page.locator(".ob-dot.is-now")).toContainText("Team")
+  await expect.poll(async () => (await mark("now")).bg, { message: "the current dot is filled" }).not.toBe("rgba(0, 0, 0, 0)")   // under load the style can land a frame late
   const now = await mark("now"), skipped = await mark("skipped"), todo = await mark("todo")
-  expect(now.bg).not.toBe("rgba(0, 0, 0, 0)"); expect(now.border).toBe("solid")
+  expect(now.border).toBe("solid")
   expect(skipped.bg).toBe("rgba(0, 0, 0, 0)"); expect(skipped.border).toBe("dashed")
   expect(todo.border).toBe("solid"); expect(todo.bg).not.toBe(now.bg)
   // Back, then Plan it and Continue: the first screen is done (filled) again.
