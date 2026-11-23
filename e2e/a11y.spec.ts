@@ -181,7 +181,7 @@ test("keyboard: Settings sections open from the keyboard, and old Tasks and Link
   await expect(page.getByTestId("board-settings")).toHaveCount(0)
   await page.goto("/#/settings?tab=links")
   await expect(nav.getByRole("button", { name: "Club", exact: true })).toHaveAttribute("aria-current", "page")
-  await expect(page.getByLabel("Planning notes", { exact: true })).toBeVisible()
+  await expect(page.getByRole("textbox", { name: "Planning notes", exact: true })).toBeVisible()
   const opener = nav.getByRole("button", { name: "My preferences", exact: true })
   await opener.focus()
   await page.keyboard.press("Enter")
