@@ -40,10 +40,10 @@ test("Start workspace keeps the sample events, tasks, risks and handoff in the n
   await page.goto("/#/tasks")
   await closeRail(page)
   await page.getByLabel("Task scope").selectOption("team")
-  await expect.poll(() => page.getByTestId("board-card").count()).toBeGreaterThanOrEqual(10)
-  for (const column of ["Not claimed", "To do", "Working on it", "Waiting", "Stuck", "Done"]) {
-    await expect(page.getByRole("region", { name: column, exact: true }).getByTestId("board-card").first(), column).toBeVisible()
-  }
+  // S3: the Tasks page is a table of open work; the sample club still has tasks in every status.
+  await expect.poll(() => page.getByTestId("my-tasks").getByTestId("task-card").count()).toBeGreaterThanOrEqual(5)
+  const statuses = await page.evaluate(() => [...new Set(JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.map((n: { status: string }) => n.status))])
+  for (const status of ["unclaimed", "accepted", "in_progress", "waiting", "blocked", "done"]) expect(statuses, status).toContain(status)
 
   await page.goto("/#/")
   await closeRail(page)

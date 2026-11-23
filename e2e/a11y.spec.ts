@@ -23,7 +23,6 @@ test("no accessibility violations in the Ask panel, a task's details and the boa
   await expect(page.getByTestId("task-detail")).toBeVisible()
   expect(await scan(page)).toEqual([])
   await closeRail(page)
-  await page.getByRole("button", { name: "Board", exact: true }).click()
   expect(await scan(page)).toEqual([])
 })
 test("no accessibility violations on any setup step, with a constitution read", async ({ page }) => {
@@ -149,7 +148,7 @@ test("keyboard: Tab follows reading order, top bar then side navigation then the
 type Pg = import("@playwright/test").Page
 const DETAIL_TRIGGERS: [string, string, (p: Pg) => import("@playwright/test").Locator][] = [
   ["flow step", "/events", p => p.getByTestId("flow-node-purchaseRequest")],
-  ["task", "/tasks", p => p.locator("main .board-title").first()],
+  ["task", "/tasks", p => p.locator("main button.task-title").first()],
   ["funding", "/events?event=e-night&view=budget", p => p.getByRole("button", { name: "Funding application", exact: true })],
   ["handoff", "/handoff", p => p.locator("main button.relay").first()],
   // The Settings workflow editor draws its own canvas: the Event Plan step is `workflow-task-plan` there (WORKFLOW_SETTINGS_REDESIGN).
@@ -265,10 +264,10 @@ test("right rail on a tablet width: a click on the page closes the panel", async
   await expect(page.getByTestId("rail")).toHaveCount(0)
 })
 
-test("keyboard: a board card changes status through Details without dragging", async ({ page }) => {
+test("keyboard: a table row changes status through Details", async ({ page }) => {
   await page.goto("/#/tasks")
-  await page.getByRole("button", { name: "Board", exact: true }).click()
-  const card = page.getByRole("region", { name: "To do", exact: true }).locator(".board-title").first()
+  await closeRail(page)
+  const card = page.getByTestId("my-tasks").getByTestId("task-card").filter({ has: page.locator(".pill[data-status=accepted]") }).first().locator("button.task-title")
   const title = await card.locator("span").last().innerText()
   await card.focus()
   await page.keyboard.press("Enter")
@@ -285,7 +284,9 @@ test("keyboard: a board card changes status through Details without dragging", a
   await page.keyboard.press("Enter")
   await expect(details.getByRole("combobox", { name: "Task status", exact: true })).toHaveValue("done")
   await page.keyboard.press("Escape")
-  await expect(page.getByRole("region", { name: "Done", exact: true }).locator(".board-title").filter({ hasText: title })).toBeVisible()
+  // The table lists open work, so the finished task leaves it.
+  await expect(page.getByTestId("my-tasks")).toBeVisible()
+  await expect(page.getByTestId("my-tasks").locator("button.task-title").filter({ hasText: title })).toHaveCount(0)
 })
 
 test("flow actions dialog: focus enters, Tab stays inside, Escape restores its step", async ({ page }) => {
