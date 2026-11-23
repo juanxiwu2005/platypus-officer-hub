@@ -56,13 +56,13 @@ export function MilestoneExecutionChart({ state, sched, forecast, eventId, selec
     const day = graph.eventDays.find(item => item.id === station.id)
     const description = day?.details ?? (station.id === WORKFLOW_START ? graph.start.details : graph.done.details)
     const date = projection.dates[station.id]
-    rail.setWorkflowDetail(<section className="form-stack" data-testid="execution-milestone-details" aria-label="Activity station details">
+    rail.setWorkflowDetail(<section className="form-stack" data-testid="execution-milestone-details" aria-label="Event day details">
       <header className="action-row"><h3>{station.title}</h3><button type="button" className="btn small" onClick={() => { setStationId(null); rail.closeDetail() }}>Close</button></header>
       <p className="small muted">{day ? "Event day · fixed date" : "Workflow boundary"}</p>
       <p>{event.name}</p>
       {date && <p>Event date <strong><time dateTime={date}>{fmtShort(date)}</time></strong></p>}
       {description && <p>{description}</p>}
-      <p className="small muted">From {event.workflowRun?.templateName} · v{event.workflowRun?.templateVersion}. {day ? "This date is fixed by the activity date and the saved day offset. It is not moved by incomplete tasks." : "This station marks the workflow boundary."}</p>
+      <p className="small muted">From {event.workflowRun?.templateName} · v{event.workflowRun?.templateVersion}. {day ? "Late tasks do not move this date." : "Start or end of the workflow."}</p>
     </section>)
     return () => rail.setWorkflowDetail(null)
   }, [station, event, graph, projection, rail.setWorkflowDetail])

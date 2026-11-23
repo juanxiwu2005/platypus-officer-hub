@@ -67,12 +67,12 @@ function ReminderCentre({ q }: { q: Centre }) {
     : q.mode === "auto_email" && dc.sentToday > 0 ? <span className="dg-state sent" data-testid="rq-auto-status">Sent automatically</span>
     : null
   return <div className="rq dg" data-testid="reminder-centre" data-mode={q.mode ?? "none"} aria-busy={busy || automaticReminders.busy}>
-    <BtsRow><Bts label="Rule engine">Checks use the rule engine's latest start and Task due; a final check is 3 days overdue. One email per person per day.</Bts></BtsRow>
+    <BtsRow><Bts label="Rule engine">Checks use each task's Start by and Due dates; a final check is 3 days overdue. One email per person per day.</Bts></BtsRow>
     {q.runtimeState === "invalid" && <section className="card rc-plan" data-testid="reminder-plan-status" aria-label="Reminder plan">
       <h2>Reminder plan needs review</h2>
       <p>The saved reminder plan is unavailable. It has been kept for recovery; no reminders will run.</p>
     </section>}
-    {automaticReminders.busy && <p role="status" className="rq-note">Preparing automatic demo reminders…</p>}
+    {automaticReminders.busy && <p role="status" className="rq-note">Preparing automatic reminders…</p>}
     {automaticReminders.error && <div className="rc-save-error" role="alert"><p>{automaticReminders.error}</p><button type="button" className="btn small" disabled={automaticReminders.busy} onClick={automaticReminders.retry}>Retry automatic reminders</button></div>}
     {feedback && <p role="status" className="rq-note">{feedback}</p>}
     {persistenceFailed && <p role="alert" className="rq-note">Can't save in this browser.</p>}
@@ -193,7 +193,7 @@ function YourReminders({ q }: { q: Centre }) {
   const received = q.sent.filter(x => x.recipientId === state.viewerId)
   return <section className="card rq-section" aria-labelledby="rq-yours-h" data-testid="your-reminders">
     <header><h2 id="rq-yours-h">Your reminders</h2></header>
-    <BtsRow><Bts label="Rule engine">Planned checks use the stored task dates. Recorded reminders follow the saved recipient; this demo sends no email.</Bts></BtsRow>
+    <BtsRow><Bts label="Rule engine">Planned checks use the stored task dates. Recorded reminders follow the saved recipient.</Bts></BtsRow>
     {q.runtimeState === "invalid" && <p className="rq-note">The saved reminder plan needs review. No reminders will run.</p>}
     {automaticReminders.error && <p role="alert" className="rq-note">Automatic reminders could not be saved. Please let your president or VP know.</p>}
     <h3 className="rq-sub">Coming up</h3>

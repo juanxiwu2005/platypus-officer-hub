@@ -132,7 +132,7 @@ function DetailView() {
       body = node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} /> : <Empty>This task no longer exists.</Empty>
       break
     }
-    case "workflow": body = rail.workflowDetail ?? <Empty>Select a workflow step.</Empty>; break
+    case "workflow": body = rail.workflowDetail ?? <Empty>No step open.</Empty>; break
     case "nudge": return <div ref={box} className="detail-scroll" {...region}><NudgeComposer key={d.id} nodeId={d.id} onClose={close} /></div>
     case "task": {
       const node = state.nodes.find(n => n.id === d.id)

@@ -158,7 +158,7 @@ export default function Events() {
         {evIssues.length > 0 && <ul className="issues" data-testid="event-issues">{evIssues.map(i => <li key={i.code} className={`issue ${SEVERITY_TONE[i.severity]}`}>{i.text}</li>)}</ul>}
         <BtsRow>
           <Bts label="Data">The event date is the one date a person sets. Every step date below is computed from it.</Bts>
-          <Bts label="Rule engine">Each step has an ASU deadline (where a rule sets one), a club deadline and a latest start day, worked out backwards from the event date. Warnings come from the same schedule.</Bts>
+          <Bts label="Rule engine">Each step has an ASU deadline (where a rule sets one), a club deadline and a Start by day, worked out backwards from the event date. Warnings come from the same schedule.</Bts>
           <Bts label="Computed">Days left = event date minus today (calendar days). At risk = unfinished steps with a schedule error, a red forecast, Stuck status, or a passed club deadline.</Bts>
         </BtsRow>
       </section>
@@ -171,7 +171,7 @@ export default function Events() {
         {lead && view === "flow" && !hasTeamExecutionTracks(ev, nodes) && <button type="button" className="btn small" aria-pressed={editingFlow} onClick={() => setEditingFlow(editing => !editing)} data-testid="flow-edit-toggle">{editingFlow ? "Done editing" : "Edit flow"}</button>}
       </div>
 
-      {view === "flow" && <BtsRow><Bts label="Computed">{hasTeamExecutionTracks(ev, nodes) ? "Dots follow task dependencies within the saved team tracks. Dates come from the rule engine; select a task for its current progress." : "Each dot's place comes from its dates. Colour: done when finished; at risk with a schedule error, a red forecast, Stuck status or a passed club deadline; started or due when work began or its start day has come; otherwise not started."}</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
+      {view === "flow" && <BtsRow><Bts label="Computed">{hasTeamExecutionTracks(ev, nodes) ? "Dots follow task dependencies within the saved team tracks. Dates come from the rule engine." : "Each dot's place comes from its dates. Colour: done when finished; at risk with a schedule error, a red forecast, Stuck status or a passed club deadline; started or due when work began or its start day has come; otherwise not started."}</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
       {view === "flow" && <div className="metro-fade" ref={chart}><MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={openNode} canEdit={lead && !hasTeamExecutionTracks(ev, nodes)} editing={editingFlow} onEditingChange={setEditingFlow} /></div>}
       {view === "flow" && !editingFlow && <NextUp eventId={ev.id} sched={sched} forecast={forecast} onOpen={openNode} />}
         {view === "budget" && <EventBudget event={ev} />}
