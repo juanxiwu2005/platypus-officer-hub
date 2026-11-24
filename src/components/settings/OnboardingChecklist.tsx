@@ -1,27 +1,32 @@
-import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type ClipboardEvent, type KeyboardEvent, type TextareaHTMLAttributes } from "react"
+import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type ButtonHTMLAttributes, type ClipboardEvent, type CSSProperties, type KeyboardEvent, type TextareaHTMLAttributes } from "react"
 import { useStore } from "../../data/store"
-import type { ChecklistItem, ChecklistModule, ChecklistWhen, ChecklistWho, OnboardingChecklist as Checklist, Role } from "../../data/types"
+import type { ChecklistItem, ChecklistModule, ChecklistWhen, OnboardingChecklist as Checklist, Role } from "../../data/types"
 import { starterChecklist } from "../../data/checklistStarter"
 import {
-  CHECKLIST_WHEN, CHECKLIST_WHO, MAX_ITEM_TITLE, MAX_MODULE_TITLE, WHEN_LABEL, WHO_LABEL, cellState, checklistIdMaker,
-  countEveryone, countForRole, sanitizeChecklist, toggleCell, toggleEveryone, type CellState,
+  CHECKLIST_WHEN, MAX_ITEM_TITLE, MAX_MODULE_TITLE, WHEN_LABEL, allRolesGet, checklistIdMaker, countEveryone, countForRole, getsItem,
+  sanitizeChecklist, toggleCell, toggleEveryone,
 } from "../../lib/checklist"
 import { parsePastedList, parseShorthand } from "../../lib/checklistParse"
 import { Info } from "../ui"
 import { useRail } from "../rail/RailContext"
 import {
-  LIMIT_REASON, addPastedCounted, applyLine, canAddModule, canMoveModule, focusAfterRemoveItem, focusAfterRemoveModule, insertItems, limitIn, limitNote,
-  locate, mapItem, moveItem, moveItemTarget, moveModule, newItem, newModule, pasteIntoItem, patchModule, removeItem, removeModule, roomIn, type Dir,
+  LIMIT_REASON, addPastedCounted, applyLine, canAddModule, focusAfterRemoveItem, focusAfterRemoveModule, insertItems, itemPlace, itemStep, limitIn, limitNote,
+  locate, mapItem, moduleFullFor, moveItemTo, moveModuleTo, newItem, newModule, pasteIntoItem, patchModule, removeItem, removeModule, roomIn, type Dir,
 } from "./onboarding/edit"
+import { columnRoles, roleColumnGroups, type RoleColumnGroup } from "./onboarding/columns"
+import { useRowDrag, type DragKind, type RowDrop } from "./onboarding/useRowDrag"
 import "../../styles/ck-01-onboarding-matrix.css"
 
 /**
- * Settings → Onboarding (option C, docs/feedback-fix/CHECKLIST_MATRIX_CONTRACT.md Section 6): the whole-club onboarding checklist as
- * a matrix, one row per item and one column per current role. The draft on screen is the source of truth while editing; each
- * discrete action saves at once, typing saves after 500 ms (and at once when a title field loses focus or the page is hidden or
- * left). The store sanitizes every save. Undo walks back the last 30 saved versions made here.
+ * Settings → Onboarding (option C, docs/feedback-fix/CHECKLIST_MATRIX_CONTRACT.md Sections 6 and 8): the whole-club onboarding
+ * checklist as a matrix, one row per item and one column per current role, grouped under the teams of Settings → Roles & teams.
+ * The draft on screen is the source of truth while editing; each discrete action saves at once, typing saves after 500 ms (and
+ * at once when a title field loses focus or the page is hidden or left). The store sanitizes every save. Undo walks back the
+ * last 30 saved versions made here.
  * When the saved checklist changes from outside (Reset demo, an import), the editor takes it as it is: typing still waiting is
  * dropped and the Undo history, which belongs to the old checklist, is cleared.
+ * Rows move with their handle: drag it (mouse, touch, pen), or press Space / Enter on it, move with the arrow keys and drop with
+ * Space / Enter (Escape cancels). Either way one drop is one save and one Undo step.
  * No dates and no AI here: "when" stays a relative label.
  */
 
@@ -32,13 +37,16 @@ const titleId = (id: string) => `ck-t-${id}`
 const moduleNameId = (id: string) => `ck-m-${id}`
 const hintId = (id: string) => `ck-h-${id}`
 const cancelId = (id: string) => `ck-x-${id}`
-/** Move up / Move down / Delete of an item or module (item and module ids never collide). */
-const actionId = (id: string, act: "up" | "down" | "del") => `ck-${act}-${id}`
-const moveId = (id: string, dir: Dir) => actionId(id, dir < 0 ? "up" : "down")
+/** The drag handle of an item or module (item and module ids never collide). */
+const handleId = (id: string) => `ck-g-${id}`
+const deleteId = (id: string) => `ck-del-${id}`
 /** The empty state's first button: focus goes there when the last module is deleted. */
 const START_ID = "ck-start"
+const DRAG_HELP_ID = "ck-drag-help"
+/** Module colours cycle through this many soft tones (`ck-mod-N`, ck-01-onboarding-matrix.css). */
+const MODULE_TONES = 6
 
-/** The first option of an item's When / Who list: follow the module. The closed chip shows only the value, dashed. */
+/** The first option of an item's When list: follow the module. The closed chip shows only the value, dashed. */
 const followOption = (label: string) => `${label} (module)`
 
 /** An item's title inside a control's name, cut to about 40 characters. */
@@ -47,13 +55,7 @@ function shortTitle(title: string) {
   if (!t) return "untitled item"
   return t.length > 40 ? `${t.slice(0, 39).trimEnd()}…` : t
 }
-/** A role cell's name: "Treasurer: gets Join the officer group chat". */
-const CELL_NAME: Record<CellState, (role: string, item: string) => string> = {
-  inherited: (role, item) => `${role}: gets ${item}`,
-  included: (role, item) => `${role}: gets ${item}`,
-  hidden: (role, item) => `${role}: hidden for ${item}`,
-  off: (role, item) => `${role}: does not get ${item}`,
-}
+const moduleName = (m: ChecklistModule) => m.title.trim() || "untitled module"
 
 /**
  * The saved checklist as the editor can show it: sanitized with the current roles, so a damaged save (a module without its
@@ -61,12 +63,27 @@ const CELL_NAME: Record<CellState, (role: string, item: string) => string> = {
  */
 const readSaved = (raw: unknown, roleIds: readonly string[], today: string) => raw == null ? null : sanitizeChecklist(raw, roleIds, today)
 
+/** A row picked up from the keyboard: it moves on screen with the arrow keys; `original` comes back on Escape. */
+interface Lift { kind: DragKind; id: string; original: Checklist }
+
+/** "Position 2 of 5 in Learn the club." / "Position 2 of 5." */
+function placeText(c: Checklist, kind: DragKind, id: string) {
+  if (kind === "module") return `Position ${c.modules.findIndex(m => m.id === id) + 1} of ${c.modules.length}.`
+  const p = itemPlace(c, id)
+  return p ? `Position ${p.position} of ${p.of} in ${moduleName(p.module)}.` : ""
+}
+const fullText = (m: ChecklistModule) => `No room in ${moduleName(m)}: ${LIMIT_REASON.module}.`
+
 export default function OnboardingChecklist() {
   const { state, tryDispatch, getState, saveProblem, persistenceFailed } = useStore()
   const raw = state.org.onboardingChecklist ?? null
   const roles = state.roles
   const roleKey = roles.map(r => r.id).join("\n")
-  const saved = useMemo(() => readSaved(raw, roleKey ? roleKey.split("\n") : [], state.today), [raw, roleKey, state.today])
+  const roleIds = useMemo(() => roleKey ? roleKey.split("\n") : [], [roleKey])
+  const saved = useMemo(() => readSaved(raw, roleIds, state.today), [raw, roleIds, state.today])
+  // Teams are read live from Settings → Roles & teams: renaming a team or moving a role regroups the columns at once.
+  const groups = useMemo(() => roleColumnGroups(roles, state.org.workflowTeams, state.org.workflowRoleTeams), [roles, state.org.workflowTeams, state.org.workflowRoleTeams])
+  const cols = useMemo(() => columnRoles(roles, groups), [roles, groups])
   const [draft, setDraftState] = useState<Checklist | null>(saved)
   const draftRef = useRef(draft)
   /** The stored value (by identity) this draft builds on. A save goes ahead only while the store still holds it. */
@@ -80,15 +97,38 @@ export default function OnboardingChecklist() {
   const [, rerender] = useReducer((n: number) => n + 1, 0)
   const [pasteOpen, setPasteOpen] = useState(false)
   const [confirmModule, setConfirmModule] = useState<string | null>(null)
-  /** A short visible note (what a limit cut) and what the live region says (notes, Undo). Typing saves are never announced. */
+  /** A short visible note (what a limit cut) and what the live region says (notes, Undo, moves). Typing saves are never announced. */
   const [note, setNote] = useState<string | null>(null)
   const [spoken, setSpoken] = useState("")
+  const [lift, setLiftState] = useState<Lift | null>(null)
+  const liftRef = useRef(lift)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const ghostRef = useRef<HTMLDivElement>(null)
   // Like Workflow and Roles & teams: the matrix needs the width, so the Ask panel steps aside (Ask stays one click away).
   const rail = useRail()
   useEffect(() => { if (rail.tab === "ask") rail.setOpen(false) }, [])
+  const hasRows = !!draft?.modules.length
+  // Frozen header (contract Section 8 item 8): the frame is the matrix's vertical scroll box, so its sticky header stays in view.
+  // Its height is what the screen has left once the top bar and everything below the frame (legend, card and page padding) fit:
+  // then even at the very end of the page the frame's top, and so its header, sits just under the top bar, never behind it.
+  useLayoutEffect(() => {
+    const wrap = wrapRef.current
+    if (!wrap || typeof ResizeObserver === "undefined") return
+    const fit = () => {
+      const bar = document.querySelector(".topbar")?.getBoundingClientRect().height ?? 0
+      const below = Math.max(0, document.documentElement.scrollHeight - (wrap.getBoundingClientRect().bottom + window.scrollY))
+      wrap.style.setProperty("--ck-frame-h", `${Math.max(240, Math.floor(window.innerHeight - bar - below - 8))}px`)
+    }
+    fit()
+    const watch = new ResizeObserver(fit)
+    watch.observe(document.body)
+    window.addEventListener("resize", fit)
+    return () => { watch.disconnect(); window.removeEventListener("resize", fit) }
+  }, [hasRows])
 
   const setDraft = (next: Checklist | null) => { draftRef.current = next; setDraftState(next) }
   const setUndo = (next: (Checklist | null)[]) => { undoRef.current = next; setUndoStack(next) }
+  const setLift = (next: Lift | null) => { liftRef.current = next; setLiftState(next) }
   const say = (text: string | null, visible = true) => { setNote(visible ? text : null); setSpoken(text ?? "") }
   /** Focus an element after the next render (and make sure there is one). */
   const focusLater = (id: string) => { focusNext.current = id; rerender() }
@@ -111,8 +151,17 @@ export default function OnboardingChecklist() {
     clearTimeout(timer.current); timer.current = null; setPending(false)
     save(draftRef.current)
   }
+  /** A row picked up from the keyboard goes back where it was (Escape, a click elsewhere, focus leaving its handle). */
+  const cancelLift = (announce = true) => {
+    const l = liftRef.current
+    if (!l) return
+    setLift(null)
+    setDraft(l.original)
+    if (announce) say("Move cancelled.", false)
+  }
   /** A discrete change: saved at once (after any typing still waiting). */
   const act = (fn: (c: Checklist) => Checklist, focus?: string) => {
+    cancelLift(false)
     flush()
     say(null)
     const current = draftRef.current
@@ -133,6 +182,7 @@ export default function OnboardingChecklist() {
   }
   const start = (next: Checklist, focus?: string) => { flush(); say(null); if (focus) focusNext.current = focus; setDraft(next); save(next) }
   const undo = () => {
+    cancelLift(false)
     flush()
     const stack = undoRef.current
     if (!stack.length) return
@@ -148,20 +198,28 @@ export default function OnboardingChecklist() {
   // Leaving a title field saves it too (onBlur below). A click or a changed control anywhere on the page also saves it first:
   // these listeners run in the capture phase, before React's handlers, so a View as switch to an officer who cannot edit the
   // checklist saves the typing while the viewer can still save it, even when the switch never moved focus.
+  // A row picked up from the keyboard is put back when the pointer goes down anywhere or focus moves off its handle.
   const flushRef = useRef(flush)
   flushRef.current = flush
+  const cancelLiftRef = useRef(cancelLift)
+  cancelLiftRef.current = cancelLift
   useEffect(() => {
     const leave = () => flushRef.current()
     const hidden = () => { if (document.visibilityState === "hidden") flushRef.current() }
     // A click into a text field changes nothing by itself (leaving the old field already saved it), so typing keeps one Undo step.
     const clicked = (e: Event) => { if (!(e.target instanceof HTMLTextAreaElement)) flushRef.current() }
+    const pressed = () => cancelLiftRef.current()
+    const focused = (e: FocusEvent) => { const l = liftRef.current; if (l && (e.target as Element | null)?.id !== handleId(l.id)) cancelLiftRef.current() }
     window.addEventListener("pagehide", leave)
     document.addEventListener("visibilitychange", hidden)
     document.addEventListener("click", clicked, true)
     document.addEventListener("change", leave, true)
+    document.addEventListener("pointerdown", pressed, true)
+    document.addEventListener("focusin", focused)
     return () => {
       window.removeEventListener("pagehide", leave); document.removeEventListener("visibilitychange", hidden)
       document.removeEventListener("click", clicked, true); document.removeEventListener("change", leave, true)
+      document.removeEventListener("pointerdown", pressed, true); document.removeEventListener("focusin", focused)
       flushRef.current()
     }
   }, [])
@@ -170,6 +228,7 @@ export default function OnboardingChecklist() {
     if (raw === base.current) return
     if (timer.current) { clearTimeout(timer.current); timer.current = null }
     base.current = raw
+    setLift(null)
     setPending(false); setDraft(saved); setUndo([]); setConfirmModule(null); setFailed(false); say(null)
   }, [raw])
   useEffect(() => {
@@ -183,20 +242,20 @@ export default function OnboardingChecklist() {
   /** Says that a single new item did not fit `m`. */
   const noRoom = (c: Checklist, m: ChecklistModule) => say(limitNote({ requested: 1, added: 0, limit: limitIn(c, m) }))
 
-  const addItemToLast = () => {
-    const c = draftRef.current
-    const m = c?.modules[c.modules.length - 1]
-    if (!c || !m) return
-    if (!roomIn(c, m)) { noRoom(c, m); return }
-    const id = makeId()()
-    act(x => insertItems(x, m.id, m.items.length, [newItem(id)]), titleId(id))
-  }
   const addModule = () => {
     const c = draftRef.current
     const id = makeId()()
     if (!c) { start({ version: 1, modules: [newModule(id, "New module")], updatedOn: "" }, moduleNameId(id)); return }
     if (!canAddModule(c)) return
     act(x => ({ ...x, modules: [...x.modules, newModule(id, "New module")] }), moduleNameId(id))
+  }
+  /** "+ Add item" on a module row (at its end) or Enter in its name (at its start). */
+  const addItemTo = (moduleId: string, at: "start" | "end") => {
+    const c = draftRef.current, m = c?.modules.find(x => x.id === moduleId)
+    if (!c || !m) return
+    if (!roomIn(c, m)) { noRoom(c, m); return }
+    const id = makeId()()
+    act(x => insertItems(x, moduleId, at === "start" ? 0 : m.items.length, [newItem(id)]), titleId(id))
   }
   const addPastedList = (text: string) => {
     const c = draftRef.current
@@ -214,6 +273,73 @@ export default function OnboardingChecklist() {
     act(x => removeModule(x, id), near ? moduleNameId(near) : START_ID)
   }
 
+  /* ───────────── Moving rows: the pointer drag and the handle's keyboard mode ───────────── */
+
+  const rowName = (c: Checklist, kind: DragKind, id: string) => {
+    if (kind === "item") return shortTitle(c.modules.flatMap(m => m.items).find(i => i.id === id)?.title ?? "")
+    const m = c.modules.find(x => x.id === id)
+    return m ? `module ${moduleName(m)}` : "module"
+  }
+  const applyMove = (c: Checklist, kind: DragKind, id: string, to: { moduleId: string | null; index: number }) =>
+    kind === "module" ? moveModuleTo(c, id, to.index) : moveItemTo(c, id, to.moduleId!, to.index)
+
+  const { view: dragView, handleProps } = useRowDrag({
+    wrap: wrapRef, ghost: ghostRef,
+    isFull: (itemId, moduleId) => { const c = draftRef.current; return !!c && moduleFullFor(c, itemId, moduleId) },
+    onStart: () => { cancelLift(false); flush(); say(null); setConfirmModule(null) },
+    onDrop: (kind, id, drop: RowDrop) => {
+      const c = draftRef.current
+      if (!c) return
+      if (drop.full) { const m = c.modules.find(x => x.id === drop.moduleId); if (m) say(fullText(m)); focusLater(handleId(id)); return }
+      const next = applyMove(c, kind, id, drop)
+      if (next === c) { focusLater(handleId(id)); return }
+      act(() => next, handleId(id))
+      say(`Moved ${rowName(next, kind, id)}. ${placeText(next, kind, id)}`, false)
+    },
+    onCancel: (_kind, id) => { say("Move cancelled.", false); focusLater(handleId(id)) },
+  })
+
+  /** Space / Enter picks a row up or drops it, the arrow keys move it, Escape puts it back. */
+  const handleKey = (kind: DragKind, id: string, e: KeyboardEvent<HTMLButtonElement>) => {
+    const l = liftRef.current, mine = l?.id === id
+    const c = draftRef.current
+    if (!c) return
+    if (e.key === " " || e.key === "Enter") {
+      e.preventDefault()
+      if (!mine) {
+        cancelLift(false); flush(); setConfirmModule(null)
+        const current = draftRef.current!
+        setLift({ kind, id, original: current })
+        say(`Picked up ${rowName(current, kind, id)}. ${placeText(current, kind, id)} Arrow keys move it, Space drops it, Escape cancels.`, false)
+        return
+      }
+      setLift(null)
+      if (c !== l.original) save(c)
+      say(`Dropped ${rowName(c, kind, id)}. ${placeText(c, kind, id)}`, false)
+      return
+    }
+    if (!mine) return
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); cancelLift(); focusLater(handleId(id)); return }
+    if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return
+    e.preventDefault()
+    const dir: Dir = e.key === "ArrowUp" ? -1 : 1
+    if (kind === "module") {
+      const i = c.modules.findIndex(m => m.id === id), next = moveModuleTo(c, id, i + dir)
+      if (next === c) { say(dir < 0 ? "Already first." : "Already last.", false); return }
+      setDraft(next); focusLater(handleId(id)); say(placeText(next, kind, id), false)
+      return
+    }
+    const to = itemStep(c, id, dir)
+    if (!to) { say(dir < 0 ? "Already first." : "Already last.", false); return }
+    if (moduleFullFor(c, id, to.moduleId)) { say(fullText(c.modules.find(m => m.id === to.moduleId)!), false); return }
+    const next = moveItemTo(c, id, to.moduleId, to.index)
+    setDraft(next); focusLater(handleId(id)); say(placeText(next, kind, id), false)
+  }
+  const handle = (kind: DragKind, id: string, label: string) => ({
+    id: handleId(id), label, lifted: lift?.id === id,
+    props: { ...handleProps(kind, id, label), onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => handleKey(kind, id, e) },
+  })
+
   const hasModules = !!draft?.modules.length
   const untitled = draft ? draft.modules.reduce((n, m) => n + m.items.filter(i => !i.title.trim()).length, 0) : 0
   const saveFailed = failed || (persistenceFailed && undoStack.length > 0)
@@ -222,17 +348,18 @@ export default function OnboardingChecklist() {
     ? <span className="ck-status is-err" role="alert">Saving failed. Changes are only on screen.</span>
     : untitled ? <span className="ck-status is-warn">{plural(untitled, "item")} {untitled === 1 ? "needs" : "need"} a title</span>
     : raw ? <span className="ck-status">{pending ? "Saving…" : "Saved"}</span> : null
+  const drop = dragView?.drop ?? null
 
-  return <section className="card form-stack ck-root" data-testid="onboarding-settings" aria-labelledby="ck-heading">
+  return <section className={`card form-stack ck-root${dragView ? " is-dragging" : ""}`} data-testid="onboarding-settings" aria-labelledby="ck-heading">
     <h2 id="ck-heading">Onboarding checklist</h2>
     {hasModules && draft && <div className="ck-toolbar">
-      <button type="button" className="btn" onClick={addItemToLast} disabled={roomIn(draft, draft.modules[draft.modules.length - 1]) === 0}>+ Add item</button>
       <button type="button" className="btn" onClick={addModule} disabled={!canAddModule(draft)}>+ Add module</button>
       <button type="button" className="btn" aria-expanded={pasteOpen} onClick={() => setPasteOpen(o => !o)}>Paste a list</button>
       <div className="ck-toolbar-end"><span data-testid="onboarding-status">{status}</span>
         <button type="button" className="btn btn-quiet" onClick={undo} disabled={!undoStack.length}>Undo</button></div>
     </div>}
     <div className="sr-only" role="status" data-testid="onboarding-announce">{spoken}</div>
+    <span id={DRAG_HELP_ID} className="sr-only">Drag to move, or press Space, then the arrow keys.</span>
     {note && <p className="ck-note" data-testid="onboarding-note">{note}</p>}
     {pasteOpen && <PastePanel checklist={draft} onAdd={addPastedList} onCancel={() => setPasteOpen(false)} />}
     {!hasModules && <div className="ck-empty" data-testid="onboarding-empty">
@@ -246,52 +373,42 @@ export default function OnboardingChecklist() {
       </div>
     </div>}
     {hasModules && draft && <>
-      <div className="ck-wrap">
+      <div className="ck-wrap" ref={wrapRef} data-testid="onboarding-frame">
         <table className="tbl ck-table" data-testid="onboarding-matrix">
-          <thead><tr>
-            <th scope="col">Item</th><th scope="col">When</th><th scope="col">Who does it</th><th scope="col" className="ck-col">Everyone</th>
-            {roles.map(r => <th key={r.id} scope="col" className="ck-col">{r.displayName}</th>)}
-            <th scope="col"><span className="sr-only">Actions</span></th>
-          </tr></thead>
-          {draft.modules.map((m, mi) => <ModuleRows key={m.id} module={m} first={mi === 0} last={mi === draft.modules.length - 1} checklist={draft} roles={roles}
-            confirming={confirmModule === m.id}
+          <colgroup><col /><col /><col /></colgroup>
+          {groups.map(g => <colgroup key={g.teamId ?? "none"} span={g.roleIds.length} />)}
+          <colgroup><col /></colgroup>
+          <thead>
+            <tr className="ck-team-row">
+              <th scope="col" rowSpan={2} className="ck-corner">Item</th>
+              <th scope="col" rowSpan={2}>When</th>
+              <th scope="col" rowSpan={2} className="ck-col">Everyone</th>
+              {groups.map(g => <TeamHeader key={g.teamId ?? "none"} group={g} />)}
+              <th scope="col" rowSpan={2} className="ck-actions-head"><span className="sr-only">Actions</span></th>
+            </tr>
+            <tr className="ck-role-row">
+              {cols.map(r => <th key={r.id} scope="col" className="ck-col">{r.displayName}</th>)}
+            </tr>
+          </thead>
+          {draft.modules.map((m, mi) => <ModuleRows key={m.id} module={m} tone={mi % MODULE_TONES} roles={cols} roleIds={roleIds}
+            confirming={confirmModule === m.id} dragged={dragView?.kind === "module" && dragView.id === m.id} draggedItem={dragView?.kind === "item" ? dragView.id : null}
+            handle={handle} room={roomIn(draft, m) > 0}
             onModule={{
               rename: title => typeIn(c => patchModule(c, m.id, { title })),
               when: when => act(c => patchModule(c, m.id, { when })),
-              who: who => act(c => patchModule(c, m.id, { who })),
-              move: dir => {
-                const c = draftRef.current
-                if (!c) return
-                const next = moveModule(c, m.id, dir)
-                // The same button while the module can move on, else its name (a disabled button cannot hold focus).
-                act(() => next, canMoveModule(next, m.id, dir) ? moveId(m.id, dir) : moduleNameId(m.id))
-              },
               // × only asks: the module goes only from the prompt's Delete button, so a double press cannot delete it.
               remove: () => { if (!m.items.length) { deleteModule(m.id); return } setConfirmModule(m.id); focusLater(cancelId(m.id)) },
               confirmRemove: () => { setConfirmModule(null); deleteModule(m.id) },
-              cancelRemove: () => { setConfirmModule(null); focusLater(actionId(m.id, "del")) },
-              addFirst: () => {
-                const c = draftRef.current, current = c?.modules.find(x => x.id === m.id)
-                if (!c || !current) return
-                if (!roomIn(c, current)) { noRoom(c, current); return }
-                const id = makeId()()
-                act(x => insertItems(x, m.id, 0, [newItem(id)]), titleId(id))
-              },
+              cancelRemove: () => { setConfirmModule(null); focusLater(deleteId(m.id)) },
+              addFirst: () => addItemTo(m.id, "start"),
+              addLast: () => addItemTo(m.id, "end"),
               flush,
             }}
             onItem={{
               retitle: (id, title) => typeIn(c => mapItem(c, id, i => ({ ...i, title }))),
               when: (id, when) => act(c => mapItem(c, id, i => { const { when: _w, ...rest } = i; void _w; return when ? { ...rest, when } : rest })),
-              who: (id, who) => act(c => mapItem(c, id, i => { const { who: _w, ...rest } = i; void _w; return who ? { ...rest, who } : rest })),
               cell: (id, roleId) => act(c => mapItem(c, id, i => toggleCell(i, roleId))),
-              everyone: id => act(c => mapItem(c, id, toggleEveryone)),
-              move: (id, dir) => {
-                const c = draftRef.current
-                if (!c) return
-                const next = moveItem(c, id, dir)
-                // The moved row keeps focus on the same button (its row may now sit in another module), else on its title.
-                act(() => next, moveItemTarget(next, id, dir) ? moveId(id, dir) : titleId(id))
-              },
+              everyone: id => act(c => mapItem(c, id, i => toggleEveryone(i, roleIds))),
               remove: id => {
                 const c = draftRef.current
                 if (!c) return
@@ -326,46 +443,59 @@ export default function OnboardingChecklist() {
               flush,
             }} />)}
           <tfoot><tr data-testid="onboarding-totals">
-            <th scope="row">Items per role</th><td colSpan={2} />
-            <td className="ck-col" data-testid="count-everyone">{countEveryone(draft)}</td>
-            {roles.map(r => <td key={r.id} className="ck-col" data-testid={`count-${r.id}`}>{countForRole(draft, r.id)}</td>)}
+            <th scope="row">Items per role</th><td />
+            <td className="ck-col" data-testid="count-everyone">{countEveryone(draft, roleIds)}</td>
+            {cols.map(r => <td key={r.id} className="ck-col" data-testid={`count-${r.id}`}>{countForRole(draft, r.id)}</td>)}
             <td />
           </tr></tfoot>
         </table>
+        {drop && <div className={`ck-drop-line${drop.full ? " is-full" : ""}`} data-testid="onboarding-drop-line" aria-hidden="true"
+          style={{ "--ck-drop-y": `${drop.line}px`, "--ck-drop-w": `${drop.width}px` } as CSSProperties} />}
       </div>
+      {dragView && <div ref={ghostRef} className="ck-ghost" aria-hidden="true">{dragView.label}</div>}
       <div className="ck-legend-row">
         <ul className="ck-legend" aria-label="Legend">
-          <li><span className="ck-dot is-included" aria-hidden="true" />Included</li>
-          <li><span className="ck-dot is-inherited" aria-hidden="true" />From Everyone</li>
-          <li><span className="ck-dot is-off" aria-hidden="true" />Not included</li>
-          <li><span className="ck-dot is-hidden" aria-hidden="true" />Hidden for this role</li>
+          <li><span className="ck-dot is-on" aria-hidden="true" />Gets it</li>
+          <li><span className="ck-dot is-off" aria-hidden="true" />Does not get it</li>
           <li><span className="ck-chip-swatch" aria-hidden="true" />Follows the module</li>
         </ul>
-        <Info label="How the matrix works">Click a dot to give or hide an item for one role. Everyone turns the whole row on. A dashed chip follows its module.</Info>
+        <Info label="How the matrix works">Click a dot to give or take an item for one role. Everyone gives it to all roles, or to none when all have it. Drag the grip to move a row. A dashed chip follows its module.</Info>
       </div>
     </>}
   </section>
 }
 
+/** One team over its role columns, in the team's Roles & teams colour; "Not in a team" is plain and dashed. */
+function TeamHeader({ group: g }: { group: RoleColumnGroup }) {
+  return <th scope="colgroup" colSpan={g.roleIds.length} className={`ck-team ${g.tone === null ? "is-none wfx-tone-none" : `wfx-tone-${g.tone}`}`} data-testid="onboarding-team" data-team-id={g.teamId ?? ""} title={g.name}>
+    <span className="ck-team-name">{g.name}</span>
+  </th>
+}
+
+interface HandleInfo { id: string; label: string; lifted: boolean; props: ButtonHTMLAttributes<HTMLButtonElement> }
+type HandleFor = (kind: DragKind, id: string, label: string) => HandleInfo
+
+/** The grip at the start of a row: drag it, or use it from the keyboard (WCAG 2.5.7). */
+function Grip({ info }: { info: HandleInfo }) {
+  return <button type="button" id={info.id} className={`ck-grip${info.lifted ? " is-lifted" : ""}`} aria-label={info.label} aria-describedby={DRAG_HELP_ID} title="Drag to move" {...info.props} />
+}
+
 interface ModuleHandlers {
   rename: (title: string) => void
   when: (when: ChecklistWhen) => void
-  who: (who: ChecklistWho) => void
-  move: (dir: Dir) => void
   remove: () => void
   confirmRemove: () => void
   cancelRemove: () => void
   addFirst: () => void
+  addLast: () => void
   /** Saves typing still waiting (a title field lost focus). */
   flush: () => void
 }
 interface ItemHandlers {
   retitle: (id: string, title: string) => void
   when: (id: string, when: ChecklistWhen | null) => void
-  who: (id: string, who: ChecklistWho | null) => void
   cell: (id: string, roleId: string) => void
   everyone: (id: string) => void
-  move: (id: string, dir: Dir) => void
   remove: (id: string) => void
   enter: (id: string) => void
   backspace: (id: string) => void
@@ -373,29 +503,35 @@ interface ItemHandlers {
   flush: () => void
 }
 
-function ModuleRows({ module: m, first, last, checklist, roles, confirming, onModule, onItem }: {
-  module: ChecklistModule; first: boolean; last: boolean; checklist: Checklist; roles: Role[]; confirming: boolean; onModule: ModuleHandlers; onItem: ItemHandlers
+function ModuleRows({ module: m, tone, roles, roleIds, confirming, dragged, draggedItem, handle, room, onModule, onItem }: {
+  module: ChecklistModule; tone: number; roles: Role[]; roleIds: readonly string[]; confirming: boolean; dragged: boolean; draggedItem: string | null
+  handle: HandleFor; room: boolean; onModule: ModuleHandlers; onItem: ItemHandlers
 }) {
   const nameKey = (e: KeyboardEvent<HTMLTextAreaElement>) => { if (e.key === "Enter") { e.preventDefault(); onModule.addFirst() } }
   // Escape anywhere in the row closes the delete prompt and gives focus back to ×.
   const rowKey = (e: KeyboardEvent<HTMLTableRowElement>) => { if (confirming && e.key === "Escape") { e.preventDefault(); e.stopPropagation(); onModule.cancelRemove() } }
-  return <tbody>
+  const name = moduleName(m)
+  return <tbody className={`ck-mod-${tone}${dragged ? " is-dragged" : ""}`} data-module-id={m.id} data-testid="onboarding-module-group">
     <tr className="ck-module" data-testid="onboarding-module" onKeyDown={rowKey}>
-      <th scope="row"><GrowField id={moduleNameId(m.id)} className="ck-name" aria-label="Module name" value={m.title} maxLength={MAX_MODULE_TITLE} onText={onModule.rename} onKeyDown={nameKey} onBlur={onModule.flush} /></th>
+      <th scope="row"><div className="ck-lead">
+        <Grip info={handle("module", m.id, `Move module ${name}`)} />
+        <GrowField id={moduleNameId(m.id)} className="ck-name" aria-label="Module name" value={m.title} maxLength={MAX_MODULE_TITLE} onText={onModule.rename} onKeyDown={nameKey} onBlur={onModule.flush} />
+      </div></th>
       <td><ChipSelect kind="is-module" label="Module when" shown={WHEN_LABEL[m.when]} value={m.when} options={CHECKLIST_WHEN.map(w => [w, WHEN_LABEL[w]] as const)} onPick={v => onModule.when(v as ChecklistWhen)} /></td>
-      <td><ChipSelect kind="is-module" label="Module who does it" shown={WHO_LABEL[m.who]} value={m.who} options={CHECKLIST_WHO.map(w => [w, WHO_LABEL[w]] as const)} onPick={v => onModule.who(v as ChecklistWho)} /></td>
-      <td colSpan={roles.length + 1} className="ck-module-info">{confirming
+      <td colSpan={roles.length + 1} className="ck-module-info"><div className="ck-module-bar">{confirming
         ? <span className="ck-confirm" role="group" aria-label="Delete module"><span role="alert">Delete {plural(m.items.length, "item")} too?</span>
           <button type="button" className="btn small" onClick={onModule.confirmRemove}>Delete</button>
           <button type="button" id={cancelId(m.id)} className="btn small btn-quiet" onClick={onModule.cancelRemove}>Cancel</button></span>
-        : <span className="muted">{plural(m.items.length, "item")}</span>}</td>
-      <td className="ck-actions"><RowActions id={m.id} first={first} last={last} onMove={onModule.move} onDelete={onModule.remove} what="module" /></td>
+        : <span className="muted ck-module-count">{plural(m.items.length, "item")}</span>}
+        {!confirming && <button type="button" className="btn small ck-add-item" aria-label={`+ Add item to ${name}`} disabled={!room} onClick={onModule.addLast}>+ Add item</button>}
+      </div></td>
+      <td className="ck-actions"><button type="button" id={deleteId(m.id)} className="ck-act" aria-label="Delete module" title="Delete" onClick={onModule.remove}>×</button></td>
     </tr>
-    {m.items.map(item => <ItemRow key={item.id} module={m} item={item} roles={roles} canUp={!!moveItemTarget(checklist, item.id, -1)} canDown={!!moveItemTarget(checklist, item.id, 1)} on={onItem} />)}
+    {m.items.map(item => <ItemRow key={item.id} module={m} item={item} roles={roles} roleIds={roleIds} dragged={draggedItem === item.id} handle={handle} on={onItem} />)}
   </tbody>
 }
 
-function ItemRow({ module: m, item, roles, canUp, canDown, on }: { module: ChecklistModule; item: ChecklistItem; roles: Role[]; canUp: boolean; canDown: boolean; on: ItemHandlers }) {
+function ItemRow({ module: m, item, roles, roleIds, dragged, handle, on }: { module: ChecklistModule; item: ChecklistItem; roles: Role[]; roleIds: readonly string[]; dragged: boolean; handle: HandleFor; on: ItemHandlers }) {
   const key = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter") { e.preventDefault(); on.enter(item.id) }
     else if (e.key === "Backspace" && !item.title) { e.preventDefault(); on.backspace(item.id) }
@@ -408,32 +544,33 @@ function ItemRow({ module: m, item, roles, canUp, canDown, on }: { module: Check
   const name = shortTitle(item.title)
   // sanitizeChecklist drops an item without a title, so the row says it is not saved yet.
   const untitled = !item.title.trim()
-  return <tr className="ck-item" data-testid="onboarding-item">
-    <th scope="row"><div className="ck-title-cell">
-      <GrowField id={titleId(item.id)} className="ck-title" aria-label="Item title" aria-describedby={untitled ? hintId(item.id) : undefined} value={item.title} maxLength={MAX_ITEM_TITLE}
-        onText={title => on.retitle(item.id, title)} onKeyDown={key} onPaste={paste} onBlur={on.flush} />
-      {untitled && <span id={hintId(item.id)} className="ck-hint">Add a title to save</span>}
-      {item.source && <span className="rule-id">{item.source}</span>}
+  const all = allRolesGet(item, roleIds)
+  return <tr className={`ck-item${dragged ? " is-dragged" : ""}`} data-testid="onboarding-item" data-item-id={item.id}>
+    <th scope="row"><div className="ck-lead">
+      <Grip info={handle("item", item.id, `Move ${name}`)} />
+      <div className="ck-title-cell">
+        <GrowField id={titleId(item.id)} className="ck-title" aria-label="Item title" aria-describedby={untitled ? hintId(item.id) : undefined} value={item.title} maxLength={MAX_ITEM_TITLE}
+          onText={title => on.retitle(item.id, title)} onKeyDown={key} onPaste={paste} onBlur={on.flush} />
+        {untitled && <span id={hintId(item.id)} className="ck-hint">Add a title to save</span>}
+        {item.source && <span className="rule-id">{item.source}</span>}
+      </div>
     </div></th>
     <td><ChipSelect kind={item.when ? "is-set" : "is-follow"} label={item.when ? `When for ${name}` : `When for ${name}: follows module, ${WHEN_LABEL[m.when]}`}
       shown={WHEN_LABEL[item.when ?? m.when]} value={item.when ?? ""} options={[["", followOption(WHEN_LABEL[m.when])], ...CHECKLIST_WHEN.map(w => [w, WHEN_LABEL[w]] as const)]}
       onPick={v => on.when(item.id, (v || null) as ChecklistWhen | null)} /></td>
-    <td><ChipSelect kind={item.who ? "is-set" : "is-follow"} label={item.who ? `Who does it for ${name}` : `Who does it for ${name}: follows module, ${WHO_LABEL[m.who]}`}
-      shown={WHO_LABEL[item.who ?? m.who]} value={item.who ?? ""} options={[["", followOption(WHO_LABEL[m.who])], ...CHECKLIST_WHO.map(w => [w, WHO_LABEL[w]] as const)]}
-      onPick={v => on.who(item.id, (v || null) as ChecklistWho | null)} /></td>
-    <td className="ck-col"><button type="button" className="ck-cell" aria-pressed={item.everyone} aria-label={`Everyone: ${item.everyone ? "on" : "off"} for ${name}`} onClick={() => on.everyone(item.id)}>
-      <span className={`ck-dot ${item.everyone ? "is-included" : "is-off"}`} aria-hidden="true" /></button></td>
+    <td className="ck-col"><button type="button" className="ck-cell" aria-pressed={all} aria-label={`Everyone: ${all ? "all roles get" : "not all roles get"} ${name}`} onClick={() => on.everyone(item.id)}>
+      <span className={`ck-dot ${all ? "is-on" : "is-off"}`} aria-hidden="true" /></button></td>
     {roles.map(r => {
-      const s = cellState(item, r.id)
-      return <td key={r.id} className="ck-col"><button type="button" className="ck-cell" aria-pressed={s === "inherited" || s === "included"} aria-label={CELL_NAME[s](r.displayName, name)} onClick={() => on.cell(item.id, r.id)}>
-        <span className={`ck-dot is-${s}`} aria-hidden="true" /></button></td>
+      const gets = getsItem(item, r.id)
+      return <td key={r.id} className="ck-col"><button type="button" className="ck-cell" aria-pressed={gets} aria-label={`${r.displayName}: ${gets ? "gets" : "does not get"} ${name}`} onClick={() => on.cell(item.id, r.id)}>
+        <span className={`ck-dot ${gets ? "is-on" : "is-off"}`} aria-hidden="true" /></button></td>
     })}
-    <td className="ck-actions"><RowActions id={item.id} first={!canUp} last={!canDown} onMove={dir => on.move(item.id, dir)} onDelete={() => on.remove(item.id)} what="item" /></td>
+    <td className="ck-actions"><button type="button" className="ck-act" aria-label="Delete item" title="Delete" onClick={() => on.remove(item.id)}>×</button></td>
   </tr>
 }
 
 /**
- * A When / Who chip: the visible pill shows only the value (dashed when it follows the module), and a transparent native select
+ * A When chip: the visible pill shows only the value (dashed when it follows the module), and a transparent native select
  * on top of it opens the list. The select carries the accessible name; its first option names the module value, e.g. "Week 1 (module)".
  */
 function ChipSelect({ kind, label, shown, value, options, onPick }: {
@@ -471,14 +608,6 @@ function GrowField({ value, onText, ...rest }: Omit<TextareaHTMLAttributes<HTMLT
     return () => watch.disconnect()
   }, [])
   return <textarea ref={ref} rows={1} {...rest} value={value} onChange={e => onText(e.target.value.replace(/\s*\r?\n\s*/g, " "))} />
-}
-
-function RowActions({ id, first, last, onMove, onDelete, what }: { id: string; first: boolean; last: boolean; onMove: (dir: Dir) => void; onDelete: () => void; what: "item" | "module" }) {
-  return <span className="ck-row-actions">
-    <button type="button" id={actionId(id, "up")} className="ck-act" aria-label={`Move ${what} up`} title="Move up" disabled={first} onClick={() => onMove(-1)}>↑</button>
-    <button type="button" id={actionId(id, "down")} className="ck-act" aria-label={`Move ${what} down`} title="Move down" disabled={last} onClick={() => onMove(1)}>↓</button>
-    <button type="button" id={actionId(id, "del")} className="ck-act" aria-label={`Delete ${what}`} title="Delete" onClick={onDelete}>×</button>
-  </span>
 }
 
 /** The Paste a list panel. Its preview counts what will actually be added, after the 20 / 60 / 300 limits. */

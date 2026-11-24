@@ -3,15 +3,19 @@ import type { ChecklistItem, ChecklistModule, OnboardingChecklist } from "../dat
 import { MAX_CHECKLIST_ITEMS, MAX_CHECKLIST_MODULES, MAX_ITEM_TITLE, MAX_MODULE_ITEMS, MAX_MODULE_TITLE, countItems } from "../lib/checklist"
 import { parsePastedList } from "../lib/checklistParse"
 import {
-  addPastedCounted, applyLine, canAddModule, canMoveModule, focusAfterRemoveItem, focusAfterRemoveModule, insertItems, limitIn, limitNote, locate,
-  mapItem, moveItem, moveItemTarget, moveModule, newItem, newModule, pasteIntoItem, patchModule, removeItem, removeModule, roomIn,
+  addPastedCounted, applyLine, canAddModule, focusAfterRemoveItem, focusAfterRemoveModule, insertItems, itemPlace, itemStep, limitIn, limitNote, locate,
+  mapItem, moduleFullFor, moveItemTo, moveModuleTo, newItem, newModule, pasteIntoItem, patchModule, removeItem, removeModule, roomIn,
 } from "../components/settings/onboarding/edit"
+import { columnRoles, roleColumnGroups } from "../components/settings/onboarding/columns"
+import { seedDemo } from "../data/seed"
+import { ensureWorkflowPresetTeams } from "../data/workflowTeamDefaults"
+import type { Role } from "../data/types"
 
 // Unit tests for the matrix editor's immutable edits (src/components/settings/onboarding/edit.ts). Fictional items only.
 
 const counter = (prefix = "n") => { let n = 0; return () => `${prefix}-${n++}` }
 const item = (id: string, title = `Item ${id}`): ChecklistItem => ({ id, title, everyone: true, roleIds: [], hiddenFor: [] })
-const mod = (id: string, items: ChecklistItem[], title = `Module ${id}`): ChecklistModule => ({ id, title, when: "week1", who: "new", items })
+const mod = (id: string, items: ChecklistItem[], title = `Module ${id}`): ChecklistModule => ({ id, title, when: "week1", items })
 const list = (...modules: ChecklistModule[]): OnboardingChecklist => ({ version: 1, modules, updatedOn: "2026-11-23" })
 const many = (prefix: string, n: number) => Array.from({ length: n }, (_, k) => item(`${prefix}${k}`))
 const titles = (c: OnboardingChecklist) => c.modules.map(m => m.items.map(i => i.id))
@@ -19,18 +23,19 @@ const titles = (c: OnboardingChecklist) => c.modules.map(m => m.items.map(i => i
 const sample = () => list(mod("a", [item("a1"), item("a2")]), mod("b", [item("b1")]), mod("c", []))
 
 describe("new rows", () => {
-  it("newItem goes to everyone, keeps a line's when and who, and caps the title", () => {
+  it("newItem goes to everyone, keeps a line's when, and caps the title", () => {
     expect(newItem("x")).toEqual({ id: "x", title: "", everyone: true, roleIds: [], hiddenFor: [] })
-    expect(newItem("x", { title: "  Meet   your buddy ", when: "day3", who: "buddy" })).toEqual({ id: "x", title: "Meet your buddy", when: "day3", who: "buddy", everyone: true, roleIds: [], hiddenFor: [] })
+    expect(newItem("x", { title: "  Meet   your buddy ", when: "day3" })).toEqual({ id: "x", title: "Meet your buddy", when: "day3", everyone: true, roleIds: [], hiddenFor: [] })
     expect(newItem("x", { title: "L".repeat(150) }).title).toHaveLength(MAX_ITEM_TITLE)
   })
-  it("newModule follows no deadline and the new officer, with a capped name", () => {
-    expect(newModule("m", "Tools")).toEqual({ id: "m", title: "Tools", when: "none", who: "new", items: [] })
+  it("newModule has no deadline and a capped name", () => {
+    expect(newModule("m", "Tools")).toEqual({ id: "m", title: "Tools", when: "none", items: [] })
     expect(newModule("m", "M".repeat(80)).title).toHaveLength(MAX_MODULE_TITLE)
   })
   it("applyLine caps the title and sets only what the line names", () => {
     const i = { ...item("x"), when: "week1" as const }
-    expect(applyLine(i, { title: "T".repeat(130), who: "buddy" })).toEqual({ ...i, title: "T".repeat(MAX_ITEM_TITLE), who: "buddy" })
+    expect(applyLine(i, { title: "T".repeat(130) })).toEqual({ ...i, title: "T".repeat(MAX_ITEM_TITLE) })
+    expect(applyLine(i, { title: "T", when: "day1" })).toEqual({ ...i, title: "T", when: "day1" })
   })
 })
 
@@ -116,30 +121,84 @@ describe("removing", () => {
   })
 })
 
-describe("moving", () => {
-  it("moveModule swaps neighbours and stops at the ends", () => {
-    expect(moveModule(sample(), "b", -1).modules.map(m => m.id)).toEqual(["b", "a", "c"])
+describe("moving (drag and drop, keyboard mode)", () => {
+  it("moveItemTo moves within a module, counting the index without the item", () => {
+    expect(titles(moveItemTo(sample(), "a1", "a", 1))[0]).toEqual(["a2", "a1"])
+    expect(titles(moveItemTo(sample(), "a2", "a", 0))[0]).toEqual(["a2", "a1"])
+    // An index past the end is the end.
+    expect(titles(moveItemTo(sample(), "a1", "a", 99))[0]).toEqual(["a2", "a1"])
+  })
+  it("moveItemTo moves across modules, between items, at the end, and into an empty module", () => {
+    expect(titles(moveItemTo(sample(), "a2", "b", 0))).toEqual([["a1"], ["a2", "b1"], []])
+    expect(titles(moveItemTo(sample(), "a1", "b", 1))).toEqual([["a2"], ["b1", "a1"], []])
+    expect(titles(moveItemTo(sample(), "b1", "c", 0))).toEqual([["a1", "a2"], [], ["b1"]])
+    expect(titles(moveItemTo(sample(), "b1", "a", 1))).toEqual([["a1", "b1", "a2"], [], []])
+  })
+  it("moveItemTo returns the same checklist for no change, unknown ids and a full module, and leaves its input alone", () => {
     const c = sample()
-    expect(moveModule(c, "a", -1)).toBe(c)
-    expect(moveModule(c, "c", 1)).toBe(c)
-    expect([canMoveModule(c, "a", -1), canMoveModule(c, "a", 1), canMoveModule(c, "c", 1), canMoveModule(c, "nope", 1)]).toEqual([false, true, false, false])
-  })
-  it("moves an item within its module", () => {
-    expect(titles(moveItem(sample(), "a1", 1))[0]).toEqual(["a2", "a1"])
-  })
-  it("moves an item across modules: last of the module above, first of the module below", () => {
-    expect(titles(moveItem(sample(), "a2", 1))).toEqual([["a1"], ["a2", "b1"], []])
-    expect(titles(moveItem(sample(), "b1", -1))).toEqual([["a1", "a2", "b1"], [], []])
-    // Into an empty module, and back.
-    expect(titles(moveItem(sample(), "b1", 1))).toEqual([["a1", "a2"], [], ["b1"]])
-  })
-  it("cannot move past the first or last module, or into a full one", () => {
-    const c = sample()
-    expect(moveItemTarget(c, "a1", -1)).toBeNull()
-    expect(moveItem(c, "a1", -1)).toBe(c)
+    expect(moveItemTo(c, "a1", "a", 0)).toBe(c)
+    expect(moveItemTo(c, "zz", "a", 0)).toBe(c)
+    expect(moveItemTo(c, "a1", "zz", 0)).toBe(c)
     const full = list(mod("a", [item("x")]), mod("b", many("b", MAX_MODULE_ITEMS)))
-    expect(moveItemTarget(full, "x", 1)).toBeNull()
-    expect(moveItemTarget(full, "b0", -1)).toEqual({ mi: 0, ii: 1 })
+    expect(moveItemTo(full, "x", "b", 3)).toBe(full)
+    expect(moduleFullFor(full, "x", "b")).toBe(true)
+    // Within a full module an item still moves.
+    expect(moduleFullFor(full, "b0", "b")).toBe(false)
+    expect(moveItemTo(full, "b0", "b", 5).modules[1].items[5].id).toBe("b0")
+    moveItemTo(c, "a1", "b", 0)
+    expect(titles(c)).toEqual([["a1", "a2"], ["b1"], []])
+  })
+  it("moveModuleTo puts a module at an index among the others", () => {
+    expect(moveModuleTo(sample(), "c", 0).modules.map(m => m.id)).toEqual(["c", "a", "b"])
+    expect(moveModuleTo(sample(), "a", 2).modules.map(m => m.id)).toEqual(["b", "c", "a"])
+    expect(moveModuleTo(sample(), "a", 1).modules.map(m => m.id)).toEqual(["b", "a", "c"])
+    const c = sample()
+    expect(moveModuleTo(c, "b", 1)).toBe(c)
+    expect(moveModuleTo(c, "nope", 0)).toBe(c)
+    expect(moveModuleTo(c, "a", -5)).toBe(c)
+  })
+  it("itemStep: one place in the module, then into the neighbour; null at the very ends", () => {
+    const c = sample()
+    expect(itemStep(c, "a1", 1)).toEqual({ moduleId: "a", index: 1 })
+    expect(itemStep(c, "a2", 1)).toEqual({ moduleId: "b", index: 0 })
+    expect(itemStep(c, "b1", -1)).toEqual({ moduleId: "a", index: 2 })
+    expect(itemStep(c, "b1", 1)).toEqual({ moduleId: "c", index: 0 })
+    expect(itemStep(c, "a1", -1)).toBeNull()
+    expect(itemStep(moveItemTo(c, "b1", "c", 0), "b1", 1)).toBeNull()
+    expect(itemStep(c, "zz", 1)).toBeNull()
+  })
+  it("itemPlace says where an item sits, for announcements", () => {
+    const p = itemPlace(sample(), "a2")!
+    expect([p.module.id, p.position, p.of]).toEqual(["a", 2, 2])
+    expect(itemPlace(sample(), "zz")).toBeNull()
+  })
+})
+
+describe("team columns (roleColumnGroups)", () => {
+  const role = (id: string, fn: Role["fn"] = "programs"): Role => ({ id, displayName: id, fn, holderId: null, reportsToId: null, duties: [] }) as unknown as Role
+  const teams = [{ id: "t1", name: "Leadership" }, { id: "t2", name: "Ops" }, { id: "t3", name: "Empty" }]
+
+  it("groups roles by team in team order, with the team's tone, and Not in a team last", () => {
+    const roles = [role("a"), role("b"), role("c"), role("adv", "advisor"), role("d")]
+    const groups = roleColumnGroups(roles, teams, { a: "t2", b: "t1", c: "t2", adv: "t1", d: "gone" })
+    expect(groups).toEqual([
+      { teamId: "t1", name: "Leadership", tone: 0, roleIds: ["b"] },
+      { teamId: "t2", name: "Ops", tone: 1, roleIds: ["a", "c"] },
+      { teamId: null, name: "Not in a team", tone: null, roleIds: ["adv", "d"] },
+    ])
+    expect(columnRoles(roles, groups).map(r => r.id)).toEqual(["b", "a", "c", "adv", "d"])
+  })
+  it("cycles the six team tones by team index, and works without teams", () => {
+    const many = Array.from({ length: 8 }, (_, k) => ({ id: `t${k}`, name: `T${k}` }))
+    expect(roleColumnGroups([role("x")], many, { x: "t7" })[0].tone).toBe(1)
+    expect(roleColumnGroups([role("x")])).toEqual([{ teamId: null, name: "Not in a team", tone: null, roleIds: ["x"] }])
+    expect(roleColumnGroups([], teams, {})).toEqual([])
+  })
+  it("the seed club: Club leadership, Operations, Marketing, Finance", () => {
+    const s = ensureWorkflowPresetTeams(seedDemo(undefined, "v2"))
+    expect(roleColumnGroups(s.roles, s.org.workflowTeams, s.org.workflowRoleTeams).map(g => [g.name, g.tone, g.roleIds])).toEqual([
+      ["Club leadership", 0, ["r-pres"]], ["Operations", 1, ["r-events", "r-sec"]], ["Marketing", 2, ["r-mkt"]], ["Finance", 3, ["r-fin"]],
+    ])
   })
 })
 
@@ -173,8 +232,8 @@ describe("pasting several lines into a title", () => {
   })
   it("an empty title takes the first line", () => {
     const c = list(mod("a", [item("e", "")]))
-    const r = paste(c, "e", "First @buddy\nSecond")
-    expect(r.checklist.modules[0].items.map(i => [i.id, i.title, i.who ?? null])).toEqual([["e", "First", "buddy"], ["n-0", "Second", null]])
+    const r = paste(c, "e", "First day 3\nSecond")
+    expect(r.checklist.modules[0].items.map(i => [i.id, i.title, i.when ?? null])).toEqual([["e", "First", "day3"], ["n-0", "Second", null]])
   })
   it("Section: lines place what follows like Paste a list: an existing module by name, else a new one at the end", () => {
     const r = paste(sample(), "a1", "Extra A\nmodule b:\nExtra B\nNew section:\nExtra C")

@@ -67,6 +67,42 @@ describe("the saved checklist changes from outside the editor", () => {
   })
 })
 
+describe("the grip's keyboard mode (template v2)", () => {
+  const titles = () => current.org.onboardingChecklist!.modules[0].items.map(i => i.title)
+  const grip = (title: string) => screen.getByRole("button", { name: `Move ${title}` })
+
+  it("moves on screen with the arrows, saves once on the drop, and Undo takes the whole move back", () => {
+    show()
+    startStarter()
+    const before = titles()
+    fireEvent.keyDown(grip("Join the officer group chat"), { key: " " })
+    fireEvent.keyDown(grip("Join the officer group chat"), { key: "ArrowDown" })
+    fireEvent.keyDown(grip("Join the officer group chat"), { key: "ArrowDown" })
+    // Nothing saved while the row is held.
+    expect(titles()).toEqual(before)
+    fireEvent.keyDown(grip("Join the officer group chat"), { key: "Enter" })
+    expect(titles()).toEqual(["Meet your buddy", "Get added to the club shared drive", "Join the officer group chat"])
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }))
+    expect(titles()).toEqual(before)
+    // One more Undo goes back past the starter: the move was exactly one step.
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }))
+    expect(current.org.onboardingChecklist).toBeUndefined()
+  })
+
+  it("Escape puts the row back and saves nothing", () => {
+    show()
+    startStarter()
+    const saved = current.org.onboardingChecklist
+    fireEvent.keyDown(grip("Meet your buddy"), { key: "Enter" })
+    fireEvent.keyDown(grip("Meet your buddy"), { key: "ArrowUp" })
+    expect(screen.getAllByRole("textbox", { name: "Item title" }).map(t => (t as HTMLTextAreaElement).value).slice(0, 2)).toEqual(["Meet your buddy", "Join the officer group chat"])
+    fireEvent.keyDown(grip("Meet your buddy"), { key: "Escape" })
+    expect(screen.getAllByRole("textbox", { name: "Item title" }).map(t => (t as HTMLTextAreaElement).value).slice(0, 2)).toEqual(["Join the officer group chat", "Meet your buddy"])
+    expect(current.org.onboardingChecklist).toBe(saved)
+    expect(screen.getByTestId("onboarding-announce").textContent).toBe("Move cancelled.")
+  })
+})
+
 describe("a damaged saved checklist", () => {
   const withChecklist = (value: unknown): DemoState => { const s = seedDemo(undefined, "v2"); return { ...s, org: { ...s.org, onboardingChecklist: value as never } } }
 

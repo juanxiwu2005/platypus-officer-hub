@@ -4,9 +4,9 @@ import { seedDemo } from "../data/seed"
 import { POLICY_CATALOG } from "../data/policyCatalog"
 import { STARTER_SOURCES, starterChecklist } from "../data/checklistStarter"
 import {
-  cellState, CHECKLIST_WHEN, CHECKLIST_WHO, checklistIdMaker, countEveryone, countForRole, countItems, effectiveWhen, effectiveWho, itemsForRole,
+  allRolesGet, CHECKLIST_WHEN, checklistIdMaker, countEveryone, countForRole, countItems, effectiveWhen, getsItem, itemsForRole,
   MAX_CHECKLIST_ITEMS, MAX_CHECKLIST_MODULES, MAX_ITEM_TITLE, MAX_MODULE_ITEMS, MAX_MODULE_TITLE, sameChecklist,
-  sanitizeChecklist, toggleCell, toggleEveryone, UNTITLED_MODULE, WHEN_LABEL, WHO_LABEL,
+  sanitizeChecklist, toggleCell, toggleEveryone, UNTITLED_MODULE, WHEN_LABEL,
 } from "../lib/checklist"
 import { addPasted, parsePastedList, parseShorthand } from "../lib/checklistParse"
 
@@ -14,30 +14,37 @@ const TODAY = "2026-11-23"
 const ROLES = ["r-pres", "r-fin", "r-events", "r-mkt", "r-sec"]
 const counter = (prefix = "id") => { let n = 0; return () => `${prefix}-${n++}` }
 const item = (over: Partial<ChecklistItem> = {}): ChecklistItem => ({ id: "i1", title: "Read the constitution", everyone: true, roleIds: [], hiddenFor: [], ...over })
-const mod = (over: Partial<ChecklistModule> = {}): ChecklistModule => ({ id: "m1", title: "Learn the club", when: "week1", who: "new", items: [], ...over })
+const mod = (over: Partial<ChecklistModule> = {}): ChecklistModule => ({ id: "m1", title: "Learn the club", when: "week1", items: [], ...over })
 const list = (modules: ChecklistModule[]): OnboardingChecklist => ({ version: 1, modules, updatedOn: TODAY })
 
 describe("onboarding checklist labels", () => {
-  it("labels every when and who value in English", () => {
+  it("labels every when value in English", () => {
     expect(CHECKLIST_WHEN.map(w => WHEN_LABEL[w])).toEqual(["Day 1", "Day 3", "Week 1", "Week 2", "Month 1", "No deadline"])
-    expect(CHECKLIST_WHO.map(w => WHO_LABEL[w])).toEqual(["New officer", "Buddy", "President", "Outgoing officer"])
   })
 })
 
 describe("reading the matrix", () => {
-  it("uses the item's when and who, else the module's", () => {
+  it("uses the item's when, else the module's", () => {
     const m = mod()
     expect(effectiveWhen(m, item())).toBe("week1")
-    expect(effectiveWho(m, item())).toBe("new")
     expect(effectiveWhen(m, item({ when: "day1" }))).toBe("day1")
-    expect(effectiveWho(m, item({ who: "buddy" }))).toBe("buddy")
   })
 
-  it("names the four cell states", () => {
-    expect(cellState(item(), "r-fin")).toBe("inherited")
-    expect(cellState(item({ hiddenFor: ["r-fin"] }), "r-fin")).toBe("hidden")
-    expect(cellState(item({ everyone: false, roleIds: ["r-fin"] }), "r-fin")).toBe("included")
-    expect(cellState(item({ everyone: false, roleIds: ["r-fin"] }), "r-mkt")).toBe("off")
+  it("a role cell has two states: the role gets the item or it does not", () => {
+    expect(getsItem(item(), "r-fin")).toBe(true)
+    expect(getsItem(item({ hiddenFor: ["r-fin"] }), "r-fin")).toBe(false)
+    expect(getsItem(item({ everyone: false, roleIds: ["r-fin"] }), "r-fin")).toBe(true)
+    expect(getsItem(item({ everyone: false, roleIds: ["r-fin"] }), "r-mkt")).toBe(false)
+  })
+
+  it("the Everyone cell is filled exactly when every current role gets the item", () => {
+    expect(allRolesGet(item(), ROLES)).toBe(true)
+    expect(allRolesGet(item({ hiddenFor: ["r-fin"] }), ROLES)).toBe(false)
+    expect(allRolesGet(item({ everyone: false, roleIds: [...ROLES] }), ROLES)).toBe(true)
+    expect(allRolesGet(item({ everyone: false, roleIds: ["r-fin"] }), ROLES)).toBe(false)
+    // A hidden role that is no longer current does not count; with no roles the stored flag decides.
+    expect(allRolesGet(item({ hiddenFor: ["r-gone"] }), ROLES)).toBe(true)
+    expect([allRolesGet(item(), []), allRolesGet(item({ everyone: false }), [])]).toEqual([true, false])
   })
 
   it("toggles hiddenFor under Everyone and roleIds otherwise, returning new items", () => {
@@ -53,9 +60,13 @@ describe("reading the matrix", () => {
     expect(toggleCell(on, "r-mkt").roleIds).toEqual([])
   })
 
-  it("clears both role lists when Everyone is switched either way", () => {
-    expect(toggleEveryone(item({ hiddenFor: ["r-fin"] }))).toMatchObject({ everyone: false, roleIds: [], hiddenFor: [] })
-    expect(toggleEveryone(item({ everyone: false, roleIds: ["r-fin"] }))).toMatchObject({ everyone: true, roleIds: [], hiddenFor: [] })
+  it("Everyone gives the item to all current roles, or to none when all have it, clearing both role lists", () => {
+    expect(toggleEveryone(item(), ROLES)).toMatchObject({ everyone: false, roleIds: [], hiddenFor: [] })
+    expect(toggleEveryone(item({ hiddenFor: ["r-fin"] }), ROLES)).toMatchObject({ everyone: true, roleIds: [], hiddenFor: [] })
+    expect(toggleEveryone(item({ everyone: false, roleIds: ["r-fin"] }), ROLES)).toMatchObject({ everyone: true, roleIds: [], hiddenFor: [] })
+    expect(toggleEveryone(item({ everyone: false }), ROLES)).toMatchObject({ everyone: true, roleIds: [], hiddenFor: [] })
+    // Every role picked one by one is "all roles": the next click takes it from everybody.
+    expect(toggleEveryone(item({ everyone: false, roleIds: [...ROLES] }), ROLES)).toMatchObject({ everyone: false, roleIds: [], hiddenFor: [] })
   })
 
   it("counts and lists the items each role gets, in order", () => {
@@ -63,7 +74,8 @@ describe("reading the matrix", () => {
       mod({ items: [item({ id: "a" }), item({ id: "b", hiddenFor: ["r-fin"] })] }),
       mod({ id: "m2", title: "Tools", items: [item({ id: "c", everyone: false, roleIds: ["r-fin"] }), item({ id: "d", everyone: false })] }),
     ])
-    expect(countEveryone(c)).toBe(2)
+    expect(countEveryone(c, ROLES)).toBe(1)
+    expect(countEveryone(c, ["r-mkt"])).toBe(2)
     expect(countItems(c)).toBe(4)
     expect(countForRole(c, "r-fin")).toBe(2)
     expect(countForRole(c, "r-mkt")).toBe(2)
@@ -93,7 +105,7 @@ describe("sanitizeChecklist", () => {
   })
 
   it("keeps a valid checklist as it is and stamps today", () => {
-    const c = list([mod({ items: [item({ when: "day1", who: "buddy", source: "ASU-R-004" }), item({ id: "i2", everyone: false, roleIds: ["r-fin"] })] })])
+    const c = list([mod({ items: [item({ when: "day1", source: "ASU-R-004" }), item({ id: "i2", everyone: false, roleIds: ["r-fin"] })] })])
     const out = sanitizeChecklist({ ...c, updatedOn: "2026-01-01" }, ROLES, TODAY)!
     expect(out.updatedOn).toBe(TODAY)
     expect(sameChecklist(out, c)).toBe(true)
@@ -115,11 +127,17 @@ describe("sanitizeChecklist", () => {
     const out = sanitizeChecklist(raw, ROLES, TODAY)!
     expect(out.modules).toHaveLength(1)
     const [m] = out.modules
-    expect(m).toMatchObject({ id: "m1", when: "none", who: "new" })
+    expect(m).toMatchObject({ id: "m1", when: "none" })
+    expect(Object.keys(m)).not.toContain("who")
     expect(m.title).toHaveLength(MAX_MODULE_TITLE)
     expect(m.items.map(i => i.id)).toEqual(["a", "c"])
     expect(m.items[0]).toEqual({ id: "a", title: "Read the constitution", everyone: false, roleIds: ["r-fin"], hiddenFor: [] })
     expect(m.items[1]).toMatchObject({ title: "X".repeat(MAX_ITEM_TITLE), roleIds: [], hiddenFor: ["r-sec"], source: "ASU-R-037" })
+  })
+
+  it("drops a stored who (template v1) from modules and items", () => {
+    const out = sanitizeChecklist({ version: 1, updatedOn: "", modules: [{ id: "m1", title: "Old", when: "week1", who: "president", items: [{ id: "a", title: "Meet", who: "buddy", everyone: true, roleIds: [], hiddenFor: [] }] }] }, ROLES, TODAY)!
+    expect(out.modules).toEqual([{ id: "m1", title: "Old", when: "week1", items: [{ id: "a", title: "Meet", everyone: true, roleIds: [], hiddenFor: [] }] }])
   })
 
   it("keeps a module with items whose name was cleared, under Untitled module", () => {
@@ -140,29 +158,35 @@ describe("sanitizeChecklist", () => {
 })
 
 describe("parseShorthand", () => {
-  it("reads who and when tokens and removes them from the title", () => {
-    expect(parseShorthand("Meet your buddy @buddy day 3")).toEqual({ title: "Meet your buddy", who: "buddy", when: "day3" })
-    expect(parseShorthand("Hand over keys @Predecessor WEEK 2")).toEqual({ title: "Hand over keys", who: "outgoing", when: "week2" })
-    expect(parseShorthand("Review goals day 30 @president")).toEqual({ title: "Review goals", who: "president", when: "month1" })
-    expect(parseShorthand("Get drive access month 1 @new")).toEqual({ title: "Get drive access", who: "new", when: "month1" })
+  it("reads a trailing time token and removes it from the title", () => {
+    expect(parseShorthand("Meet your buddy day 3")).toEqual({ title: "Meet your buddy", when: "day3" })
+    expect(parseShorthand("Hand over keys WEEK 2")).toEqual({ title: "Hand over keys", when: "week2" })
+    expect(parseShorthand("Review goals day 30")).toEqual({ title: "Review goals", when: "month1" })
+    expect(parseShorthand("Get drive access month 1")).toEqual({ title: "Get drive access", when: "month1" })
     expect(parseShorthand("Join the chat day 1")).toEqual({ title: "Join the chat", when: "day1" })
     // A time at the start or in the middle is part of the title.
     expect(parseShorthand("Week 2 check-in")).toEqual({ title: "Week 2 check-in" })
     expect(parseShorthand("Day 30 review")).toEqual({ title: "Day 30 review" })
     expect(parseShorthand("Day 30 review week 1")).toEqual({ title: "Day 30 review week 1" })
-    expect(parseShorthand("Plan the week 2 social @president")).toEqual({ title: "Plan the week 2 social", who: "president" })
     expect(parseShorthand("Sync calendar week 1")).toEqual({ title: "Sync calendar", when: "week1" })
+  })
+
+  it("no longer reads @ tokens: they stay in the title as typed (template v2)", () => {
+    expect(parseShorthand("Meet your buddy @buddy day 3")).toEqual({ title: "Meet your buddy @buddy", when: "day3" })
+    expect(parseShorthand("Review goals day 30 @president")).toEqual({ title: "Review goals day 30 @president" })
+    expect(parseShorthand("Plan the week 2 social @president")).toEqual({ title: "Plan the week 2 social @president" })
+    expect(Object.keys(parseShorthand("Hand over keys @predecessor week 2"))).toEqual(["title", "when"])
   })
 
   it("keeps a title made only of tokens unchanged", () => {
     expect(parseShorthand("Day 30")).toEqual({ title: "Day 30" })
-    expect(parseShorthand("@buddy week 2")).toEqual({ title: "@buddy week 2" })
+    expect(parseShorthand("week 1 day 3")).toEqual({ title: "week 1 day 3" })
   })
 
   it("does not guess: partial tokens and disagreeing tokens stay in the title", () => {
-    expect(parseShorthand("Plan day 10 @newcomer")).toEqual({ title: "Plan day 10 @newcomer" })
+    expect(parseShorthand("Plan day 10")).toEqual({ title: "Plan day 10" })
     expect(parseShorthand("Email buddy@example.org")).toEqual({ title: "Email buddy@example.org" })
-    expect(parseShorthand("Call day 1 or week 2 @buddy")).toEqual({ title: "Call day 1 or week 2", who: "buddy" })
+    expect(parseShorthand("Call day 1 or week 2")).toEqual({ title: "Call day 1 or week 2" })
   })
 })
 
@@ -181,13 +205,14 @@ describe("parsePastedList", () => {
   it("reads the SEO spreadsheet layout by header names, with section rows as modules", () => {
     const parsed = parsePastedList(SEO)
     expect(parsed.modules.map(m => m.title)).toEqual(["Onboarding Confirmation", "Accounts & Access"])
+    // The Owner column is ignored (template v2 has no "who does it").
     expect(parsed.modules[0].items).toEqual([
       { title: "Offer letter signed and returned" },
-      { title: "Meet the team lead", who: "buddy" },
+      { title: "Meet the team lead" },
     ])
     expect(parsed.modules[1].items).toEqual([
-      { title: "Get email account", who: "president", when: "week1" },
-      { title: "Receive the handoff notes", who: "outgoing", when: "month1" },
+      { title: "Get email account", when: "week1" },
+      { title: "Receive the handoff notes", when: "month1" },
       { title: "Pick a desk", when: "none" },
     ])
   })
@@ -213,24 +238,24 @@ describe("parsePastedList", () => {
     ].join("\r\n"))
     expect(parsed.modules.map(m => m.title)).toEqual(["Checklist", "First week", "Tools & access"])
     expect(parsed.modules[0].items).toEqual([{ title: "Get the group chat link" }])
-    expect(parsed.modules[1].items.map(i => i.title)).toEqual(["Meet your buddy", "Read the constitution", "Sync the calendar", "Join the drive", "Learn the budget", "Read the handbook", "Visit the office", "Sign the agreement", "2026 budget review", "Say hello"])
-    expect(parsed.modules[1].items[0]).toEqual({ title: "Meet your buddy", who: "buddy", when: "day3" })
+    expect(parsed.modules[1].items.map(i => i.title)).toEqual(["Meet your buddy @buddy", "Read the constitution", "Sync the calendar", "Join the drive", "Learn the budget", "Read the handbook", "Visit the office", "Sign the agreement", "2026 budget review", "Say hello"])
+    expect(parsed.modules[1].items[0]).toEqual({ title: "Meet your buddy @buddy", when: "day3" })
     expect(parsed.modules[2].items).toEqual([{ title: "Request a Mazevo account", when: "week2" }])
   })
 
   it("reads tab-separated text without a known header as lines, and empty text as nothing", () => {
-    expect(parsePastedList("Read\tthe constitution\nMeet\tbuddy @buddy").modules).toEqual([{ title: "Checklist", items: [{ title: "Read the constitution" }, { title: "Meet buddy", who: "buddy" }] }])
+    expect(parsePastedList("Read\tthe constitution\nMeet\tbuddy @buddy").modules).toEqual([{ title: "Checklist", items: [{ title: "Read the constitution" }, { title: "Meet buddy @buddy" }] }])
     expect(parsePastedList(" \n\n").modules).toEqual([])
   })
 })
 
 describe("addPasted", () => {
-  it("adds to a module with the same name and creates new modules with No deadline and New officer", () => {
+  it("adds to a module with the same name and creates new modules with No deadline", () => {
     const c = list([mod({ title: "First week", items: [item()] })])
-    const out = addPasted(c, { modules: [{ title: "first WEEK", items: [{ title: "Meet your buddy", who: "buddy", when: "day3" }] }, { title: "Tools", items: [{ title: "  " }, { title: "Get drive access" }] }] }, counter("new"))
+    const out = addPasted(c, { modules: [{ title: "first WEEK", items: [{ title: "Meet your buddy", when: "day3" }] }, { title: "Tools", items: [{ title: "  " }, { title: "Get drive access" }] }] }, counter("new"))
     expect(c.modules[0].items).toHaveLength(1)
-    expect(out.modules[0].items[1]).toEqual({ id: "new-0", title: "Meet your buddy", when: "day3", who: "buddy", everyone: true, roleIds: [], hiddenFor: [] })
-    expect(out.modules[1]).toEqual({ id: "new-1", title: "Tools", when: "none", who: "new", items: [{ id: "new-2", title: "Get drive access", everyone: true, roleIds: [], hiddenFor: [] }] })
+    expect(out.modules[0].items[1]).toEqual({ id: "new-0", title: "Meet your buddy", when: "day3", everyone: true, roleIds: [], hiddenFor: [] })
+    expect(out.modules[1]).toEqual({ id: "new-1", title: "Tools", when: "none", items: [{ id: "new-2", title: "Get drive access", everyone: true, roleIds: [], hiddenFor: [] }] })
     expect(out.updatedOn).toBe(TODAY)
   })
 
@@ -245,7 +270,7 @@ describe("addPasted", () => {
 
   it("turns the SEO spreadsheet into a saved-shape checklist", () => {
     const out = addPasted(null, parsePastedList("Item\tOwner\nMeet your buddy\tOnboarding Buddy"), counter())
-    expect(out.modules).toEqual([{ id: "id-0", title: "Checklist", when: "none", who: "new", items: [{ id: "id-1", title: "Meet your buddy", who: "buddy", everyone: true, roleIds: [], hiddenFor: [] }] }])
+    expect(out.modules).toEqual([{ id: "id-0", title: "Checklist", when: "none", items: [{ id: "id-1", title: "Meet your buddy", everyone: true, roleIds: [], hiddenFor: [] }] }])
   })
 })
 
@@ -254,18 +279,19 @@ describe("Platypus starter", () => {
     const s = seedDemo(TODAY)
     const c = starterChecklist(s, counter())
     expect(c.updatedOn).toBe(s.today)
-    expect(c.modules.map(m => [m.title, m.when, m.who, m.items.length])).toEqual([
-      ["First 3 days", "day3", "new", 3], ["Learn the club", "week1", "new", 5], ["Tools & access", "week2", "new", 10],
-      ["Handoff from your predecessor", "week2", "outgoing", 3], ["Check-ins", "month1", "president", 2],
+    expect(c.modules.map(m => [m.title, m.when, m.items.length])).toEqual([
+      ["First 3 days", "day3", 3], ["Learn the club", "week1", 5], ["Tools & access", "week2", 10],
+      ["Handoff from your predecessor", "week2", 3], ["Check-ins", "month1", 2],
     ])
+    expect(JSON.stringify(c)).not.toContain('"who"')
     const find = (title: string) => c.modules.flatMap(m => m.items).find(i => i.title === title)!
     expect(find("Complete Officer Training")).toMatchObject({ everyone: false, roleIds: ["r-pres", "r-fin"], source: "ASU-R-004" })
-    expect(find("Get added as a bank co-signer")).toMatchObject({ everyone: false, roleIds: ["r-fin"], who: "president" })
-    expect(find("Get admin access to the club social accounts")).toMatchObject({ roleIds: ["r-mkt"], who: "outgoing", when: "day3" })
+    expect(find("Get added as a bank co-signer")).toMatchObject({ everyone: false, roleIds: ["r-fin"] })
+    expect(find("Get admin access to the club social accounts")).toMatchObject({ roleIds: ["r-mkt"], when: "day3" })
     expect(find("Update the member roster in Sun Devil Central")).toMatchObject({ roleIds: ["r-sec"] })
-    expect(find("Meet your buddy")).toMatchObject({ everyone: true, who: "buddy" })
+    expect(find("Meet your buddy")).toMatchObject({ everyone: true })
     expect(find("Week 2 check-in")).toMatchObject({ when: "week2" })
-    expect(countEveryone(c)).toBe(13)
+    expect(countEveryone(c, s.roles.map(r => r.id))).toBe(13)
     expect(countForRole(c, "r-fin")).toBe(17)
   })
 

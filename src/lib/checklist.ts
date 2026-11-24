@@ -1,4 +1,4 @@
-import type { ChecklistItem, ChecklistModule, ChecklistWhen, ChecklistWho, OnboardingChecklist } from "../data/types"
+import type { ChecklistItem, ChecklistModule, ChecklistWhen, OnboardingChecklist } from "../data/types"
 import { nextCounter } from "./ids"
 
 /**
@@ -7,14 +7,12 @@ import { nextCounter } from "./ids"
  * The store imports this file, so it ships in the entry bundle: the paste and shorthand parser lives in
  * src/lib/checklistParse.ts, which only the lazy editor imports.
  * "When" values are relative labels, never dates: only the rule engine turns them into deadlines, in a later package.
+ * Template v2 (contract Section 8): "who does it" is gone, and a role either gets an item or does not (two states).
  */
 
 /** Every "when" value, in the order the editor lists them. */
 export const CHECKLIST_WHEN: readonly ChecklistWhen[] = ["day1", "day3", "week1", "week2", "month1", "none"]
-/** Every "who does it" value, in the order the editor lists them. */
-export const CHECKLIST_WHO: readonly ChecklistWho[] = ["new", "buddy", "president", "outgoing"]
 export const WHEN_LABEL: Readonly<Record<ChecklistWhen, string>> = { day1: "Day 1", day3: "Day 3", week1: "Week 1", week2: "Week 2", month1: "Month 1", none: "No deadline" }
-export const WHO_LABEL: Readonly<Record<ChecklistWho, string>> = { new: "New officer", buddy: "Buddy", president: "President", outgoing: "Outgoing officer" }
 
 export const MAX_CHECKLIST_MODULES = 20
 export const MAX_MODULE_ITEMS = 60
@@ -27,11 +25,8 @@ export const UNTITLED_MODULE = "Untitled module"
 /** The only `source` form kept: a policy record label from src/data/policyCatalog.ts. */
 const SOURCE_LABEL = /^ASU-R-\d{3}$/
 
-export type CellState = "inherited" | "hidden" | "included" | "off"
-
 /* Small readers shared with src/lib/checklistParse.ts (the editor-only parser). */
 export const isWhen = (v: unknown): v is ChecklistWhen => typeof v === "string" && (CHECKLIST_WHEN as readonly string[]).includes(v)
-export const isWho = (v: unknown): v is ChecklistWho => typeof v === "string" && (CHECKLIST_WHO as readonly string[]).includes(v)
 const isRecord = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v)
 export const collapse = (s: string) => s.replace(/\s+/g, " ").trim()
 /** Trim, collapse inner whitespace and cut to the limit; "" for anything that is not a string. */
@@ -41,16 +36,14 @@ export const capText = (v: unknown, max: number) => typeof v === "string" ? coll
 
 /** The item's own "when", else its module's. */
 export const effectiveWhen = (m: ChecklistModule, i: ChecklistItem): ChecklistWhen => i.when ?? m.when
-/** The item's own "who does it", else its module's. */
-export const effectiveWho = (m: ChecklistModule, i: ChecklistItem): ChecklistWho => i.who ?? m.who
+/** Whether the role gets the item: a role cell is filled or an empty ring, nothing else. */
+export const getsItem = (i: ChecklistItem, roleId: string) => i.everyone ? !i.hiddenFor.includes(roleId) : i.roleIds.includes(roleId)
 
-/** What one matrix cell shows: a light dot from Everyone, a crossed ring when hidden, a filled dot when chosen, an empty ring otherwise. */
-export function cellState(i: ChecklistItem, roleId: string): CellState {
-  if (i.everyone) return i.hiddenFor.includes(roleId) ? "hidden" : "inherited"
-  return i.roleIds.includes(roleId) ? "included" : "off"
-}
-/** Whether the role gets the item. */
-export const getsItem = (i: ChecklistItem, roleId: string) => { const state = cellState(i, roleId); return state === "inherited" || state === "included" }
+/**
+ * Whether every current role gets the item: the Everyone cell is filled exactly then. With no roles at all the stored flag decides
+ * (it still means "roles added later get it too").
+ */
+export const allRolesGet = (i: ChecklistItem, roleIds: readonly string[]) => roleIds.length ? roleIds.every(id => getsItem(i, id)) : i.everyone
 
 /** Click on a role's cell: with Everyone on it hides or unhides the role; otherwise it adds or removes the role. Returns a new item. */
 export function toggleCell(i: ChecklistItem, roleId: string): ChecklistItem {
@@ -58,17 +51,21 @@ export function toggleCell(i: ChecklistItem, roleId: string): ChecklistItem {
   return i.everyone ? { ...i, hiddenFor: flip(i.hiddenFor) } : { ...i, roleIds: flip(i.roleIds) }
 }
 
-/** The Everyone cell. Either way both role lists start empty, so the result never mixes the two meanings. */
-export const toggleEveryone = (i: ChecklistItem): ChecklistItem => ({ ...i, everyone: !i.everyone, roleIds: [], hiddenFor: [] })
+/**
+ * The Everyone cell: when every current role already gets the item, nobody gets it; otherwise every role (and roles added later) gets it.
+ * Either way both role lists start empty, so the result never mixes the two meanings.
+ */
+export const toggleEveryone = (i: ChecklistItem, roleIds: readonly string[]): ChecklistItem =>
+  ({ ...i, everyone: !allRolesGet(i, roleIds), roleIds: [], hiddenFor: [] })
 
 /** Items the role gets, across all modules. */
 export const countForRole = (c: OnboardingChecklist, roleId: string) => c.modules.reduce((n, m) => n + m.items.filter(i => getsItem(i, roleId)).length, 0)
-/** Items with Everyone on. */
-export const countEveryone = (c: OnboardingChecklist) => c.modules.reduce((n, m) => n + m.items.filter(i => i.everyone).length, 0)
+/** Items every current role gets (a filled Everyone cell). */
+export const countEveryone = (c: OnboardingChecklist, roleIds: readonly string[]) => c.modules.reduce((n, m) => n + m.items.filter(i => allRolesGet(i, roleIds)).length, 0)
 /** Items in the whole checklist. */
 export const countItems = (c: OnboardingChecklist) => c.modules.reduce((n, m) => n + m.items.length, 0)
 
-/** The role's items, in checklist order, each with its module (for the module's when and who). */
+/** The role's items, in checklist order, each with its module (for the module's when). */
 export function itemsForRole(c: OnboardingChecklist, roleId: string): { module: ChecklistModule; item: ChecklistItem }[] {
   return c.modules.flatMap(module => module.items.filter(item => getsItem(item, roleId)).map(item => ({ module, item })))
 }
@@ -105,7 +102,6 @@ function sanitizeItem(raw: unknown, known: ReadonlySet<string>, seen: Set<string
   return {
     id, title,
     ...(isWhen(raw.when) ? { when: raw.when } : {}),
-    ...(isWho(raw.who) ? { who: raw.who } : {}),
     everyone,
     roleIds: everyone ? [] : knownIds(raw.roleIds, known),
     hiddenFor: everyone ? knownIds(raw.hiddenFor, known) : [],
@@ -115,7 +111,7 @@ function sanitizeItem(raw: unknown, known: ReadonlySet<string>, seen: Set<string
 
 /**
  * The only way a checklist enters the store: a valid copy of `raw`, or null when it is not a version-1 checklist at all.
- * Unknown enum values fall back (items follow the module; a module uses No deadline / New officer), text is trimmed and
+ * Unknown enum values fall back (items follow the module; a module uses No deadline), a stored "who" (template v1) is dropped, text is trimmed and
  * capped, items with an empty title, unknown or archived role ids, repeated ids and any `source` other than "ASU-R-NNN"
  * are dropped, and the limits (20 modules, 60 items per module, 300 in total) cut what is beyond them.
  * A module whose name is empty is dropped only when it has no items; otherwise it is kept as "Untitled module" so that
@@ -140,7 +136,7 @@ export function sanitizeChecklist(raw: unknown, roleIds: readonly string[], toda
     }
     const title = capText(rm.title, MAX_MODULE_TITLE) || (items.length ? UNTITLED_MODULE : "")
     if (!title) continue
-    modules.push({ id, title, when: isWhen(rm.when) ? rm.when : "none", who: isWho(rm.who) ? rm.who : "new", items })
+    modules.push({ id, title, when: isWhen(rm.when) ? rm.when : "none", items })
   }
   return { version: 1, modules, updatedOn: today }
 }

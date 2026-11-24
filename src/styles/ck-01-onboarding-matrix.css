@@ -1,12 +1,29 @@
-/* Settings → Onboarding (CK-01, option C; docs/feedback-fix/CHECKLIST_MATRIX_CONTRACT.md Section 6): the checklist matrix.
+/* Settings → Onboarding (CK-01, option C; docs/feedback-fix/CHECKLIST_MATRIX_CONTRACT.md Sections 6 and 8): the checklist matrix.
    Loaded by its lazy component only. Tokens only (docs/DESIGN_TOKENS.md); light and dark come from the theme tokens.
-   No motion: toggling a cell is an everyday action. The table scrolls sideways inside its own frame, never the page.
-   Density (F1): with the seed club's five roles the whole matrix fits a 1440px screen. Titles wrap instead of being cut,
-   role columns are narrow with headers on up to two lines, and a chip shows only its value. Clubs with more roles scroll. */
+   Motion: only the dragged row's fade, through tokens (reduced motion makes it instant). Toggling a cell has no motion.
+   Density: with the seed club's five roles the whole matrix fits a 1440px screen. Titles wrap instead of being cut, role columns
+   are narrow with headers on up to two lines, and a chip shows only its value. Clubs with more roles scroll sideways.
+   Frozen header (Section 8 item 8): the frame is the matrix's own scroll box in both directions, at most one screen tall below the
+   app's top bar, and its header (team row and role row) is sticky at its top, so the header stays in view like a spreadsheet's. */
 
-.ck-root { --ck-item-w: 212px; --ck-col-w: 64px; --ck-edge: var(--line); min-width: 0; }
+.ck-root {
+  --ck-item-w: 248px; --ck-col-w: 88px; --ck-edge: var(--line);
+  /* One screen below the sticky top bar: the frame never hides under the bar when the page is scrolled to show it whole. */
+  --ck-frame-h: calc(100dvh - var(--topbar-h) - var(--s7));
+  /* Module palette (template v2, item 3): soft, greyed tones by module position (ck-mod-N, index % 6). They are deliberately
+     low in colour, mixed with --muted, so they never read as the six saturated team tones of fb-10-team-tones.css. Each tone is a
+     3:1 graphic on --surface in light and dark; text never sits on the tone itself, only on its light tint (--ink, AA). */
+  --ck-mod-0: color-mix(in srgb, var(--late) 42%, var(--muted));
+  --ck-mod-1: color-mix(in srgb, var(--info) 45%, var(--muted));
+  --ck-mod-2: color-mix(in srgb, var(--risk-yellow) 55%, var(--muted));
+  --ck-mod-3: color-mix(in srgb, color-mix(in srgb, var(--late) 45%, var(--info)) 50%, var(--muted));
+  --ck-mod-4: color-mix(in srgb, var(--good) 38%, var(--muted));
+  --ck-mod-5: color-mix(in srgb, var(--warn) 50%, var(--muted));
+  min-width: 0;
+}
 .ck-root h2 { margin: 0; }
 .ck-root p { margin: 0; }
+.ck-root.is-dragging { cursor: grabbing; user-select: none; }
 
 /* ---- Toolbar ---- */
 .ck-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
@@ -14,7 +31,7 @@
 .ck-status { color: var(--muted); font-size: var(--fs-md); }
 .ck-status.is-err { color: var(--late); }
 .ck-status.is-warn { color: var(--warn); }
-/* What a 20 / 60 / 300 limit left out of an addition. */
+/* What a 20 / 60 / 300 limit left out of an addition, or a refused drop into a full module. */
 .ck-note { color: var(--warn); font-size: var(--fs-md); }
 .ck-unreadable { color: var(--warn); font-size: var(--fs-md); }
 
@@ -25,34 +42,99 @@
 .ck-paste textarea { box-sizing: border-box; width: 100%; min-width: 0; font-size: var(--fs-md); }
 .ck-paste .action-row { align-items: center; }
 
-/* ---- Matrix frame: contained so a phone's layout viewport never widens to the table (same fix as .roles-table-wrap). ---- */
-/* scroll-padding keeps a focused or scrolled-to cell clear of the sticky Item column; snapping settles a scroll on a column edge,
-   so a header is not left half under the Item column. */
-.ck-wrap { min-width: 0; max-width: 100%; overflow-x: auto; contain: paint; scroll-padding-left: var(--ck-item-w); scroll-snap-type: x proximity; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+/* ---- Matrix frame: contained so a phone's layout viewport never widens to the table (same fix as .roles-table-wrap). ----
+   It scrolls both ways (an element that scrolls sideways is a scroll box for page-level sticky too, so the header sticks to the
+   frame, which is at most one screen tall). scroll-padding keeps a focused cell clear of the sticky Item column and header. */
+.ck-wrap {
+  position: relative; min-width: 0; max-width: 100%; max-height: var(--ck-frame-h); overflow: auto; contain: paint;
+  scroll-padding-left: var(--ck-item-w); scroll-padding-top: 88px; scroll-snap-type: x proximity;
+  border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface);
+}
 .tbl.ck-table { width: max-content; min-width: 100%; margin: 0; font-size: var(--fs-md); }
 .tbl.ck-table th { font-size: var(--fs-md); padding: var(--s4) var(--s3); white-space: nowrap; }
-.tbl.ck-table thead th { vertical-align: bottom; scroll-snap-align: start; background: var(--surface-2); }
 .tbl.ck-table td { height: 40px; padding: var(--s2); white-space: nowrap; }
 .tbl.ck-table tbody th { font-weight: 400; color: var(--ink); border-bottom: 1px solid var(--line); }
 /* Role columns: narrow, and a long role name wraps onto a second line (between words; a hyphen only inside a very long word). */
 .tbl.ck-table .ck-col { box-sizing: border-box; width: var(--ck-col-w); min-width: var(--ck-col-w); padding-inline: var(--s2); text-align: center; }
-.tbl.ck-table thead .ck-col { white-space: normal; line-height: 1.25; hyphens: auto; }
 
-/* The Item column stays in view while the role columns scroll. Opaque backgrounds so scrolled cells never show through. */
-.tbl.ck-table :is(thead, tbody, tfoot) tr > :first-child { position: sticky; left: 0; z-index: var(--z-raised); box-sizing: border-box; width: var(--ck-item-w); min-width: var(--ck-item-w); max-width: var(--ck-item-w); background: var(--surface); }
+/* ---- Frozen header: both rows stick to the frame's top. Opaque, above the sticky Item column (corner > header > drop line >
+   Item column > cells). ---- */
+.tbl.ck-table thead { position: sticky; top: 0; z-index: var(--z-sticky-hi); }
+.tbl.ck-table thead th { vertical-align: bottom; scroll-snap-align: start; background: var(--surface-2); }
+.tbl.ck-table thead .ck-col { white-space: normal; line-height: 1.25; hyphens: auto; }
+/* The header's lower edge, drawn inside it so it stays with the sticky rows (collapsed borders do not travel with sticky cells). */
+.tbl.ck-table thead::after { content: ""; position: absolute; right: 0; bottom: 0; left: 0; height: 1px; background: var(--edge); pointer-events: none; }
+
+/* Team row (item 5): one cell per team over its roles, tinted in the team's Roles & teams tone (--wfx-team, fb-10-team-tones.css). */
+.tbl.ck-table thead th.ck-team {
+  padding: var(--s2) var(--s2) var(--s2) var(--s3); vertical-align: middle; text-align: left;
+  border-bottom: 3px solid var(--wfx-team); border-inline: 1px solid var(--surface);
+  background: color-mix(in srgb, var(--wfx-team) 16%, var(--surface)); color: color-mix(in srgb, var(--wfx-team) 72%, var(--ink));
+  font-size: var(--fs-md); font-weight: 600;
+}
+.tbl.ck-table thead th.ck-team.is-none { border-bottom: 2px dashed var(--edge); background: var(--surface-2); color: var(--muted); }
+/* The name takes no width of its own, so a team over one narrow column wraps (or, for one very long word, breaks) instead of widening it. */
+.ck-team-name { display: block; width: 0; min-width: 100%; line-height: 1.25; white-space: normal; hyphens: auto; overflow-wrap: break-word; }
+
+/* ---- The Item column stays in view while the role columns scroll. Opaque backgrounds so scrolled cells never show through. ---- */
+.tbl.ck-table :is(tbody, tfoot) tr > :first-child, .tbl.ck-table thead th.ck-corner {
+  position: sticky; left: 0; z-index: var(--z-raised); box-sizing: border-box;
+  width: var(--ck-item-w); min-width: var(--ck-item-w); max-width: var(--ck-item-w); background: var(--surface);
+}
 /* Its right edge: a 1px line drawn inside the sticky cell (a box-shadow on a cell is not painted with collapsed table borders). */
-.tbl.ck-table :is(thead, tbody, tfoot) tr > :first-child::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 1px; background: var(--ck-edge); pointer-events: none; }
-.tbl.ck-table thead tr > :first-child { z-index: var(--z-sticky); background: var(--surface-2); }
+.tbl.ck-table :is(tbody, tfoot) tr > :first-child::after, .tbl.ck-table thead th.ck-corner::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 1px; background: var(--ck-edge); pointer-events: none; }
+.tbl.ck-table thead th.ck-corner { background: var(--surface-2); }
 .tbl.ck-table tbody tr:hover > *, .tbl.ck-table tbody tr:hover > :first-child { background: var(--lane); }
 
-/* Module rows: a band, like the mockup. */
-.tbl.ck-table tbody tr.ck-module > *, .tbl.ck-table tbody tr.ck-module > :first-child { background: var(--surface-2); border-bottom: 1px solid var(--line); }
+/* ---- Module colours (item 3): a bar down the module's left edge and a light tint on its header row. ---- */
+.ck-mod-0 { --ck-mod: var(--ck-mod-0); }
+.ck-mod-1 { --ck-mod: var(--ck-mod-1); }
+.ck-mod-2 { --ck-mod: var(--ck-mod-2); }
+.ck-mod-3 { --ck-mod: var(--ck-mod-3); }
+.ck-mod-4 { --ck-mod: var(--ck-mod-4); }
+.ck-mod-5 { --ck-mod: var(--ck-mod-5); }
+.tbl.ck-table tbody tr > :first-child::before { content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 4px; background: var(--ck-mod, var(--edge)); pointer-events: none; }
+.tbl.ck-table tbody tr.ck-module > *, .tbl.ck-table tbody tr.ck-module > :first-child { background: color-mix(in srgb, var(--ck-mod, var(--edge)) 13%, var(--surface)); border-bottom: 1px solid var(--line); }
+.tbl.ck-table tbody tr.ck-module:hover > *, .tbl.ck-table tbody tr.ck-module:hover > :first-child { background: color-mix(in srgb, var(--ck-mod, var(--edge)) 18%, var(--surface)); }
 .ck-module-info { text-align: left; }
+.ck-module-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); }
+/* "+ Add item" at the row's right end (item 4); on a phone it stays at the visible right edge while the columns scroll. */
+.ck-add-item { position: sticky; right: var(--s2); flex: none; }
 .ck-confirm { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s4); color: var(--late); font-weight: 600; }
 
 /* Totals row. */
 .tbl.ck-table tfoot tr > :is(th, td, :first-child) { background: var(--surface-2); font-weight: 600; color: var(--ink); border-bottom: 0; height: 40px; padding: var(--s4) var(--s3); }
 .tbl.ck-table tfoot th { text-align: left; }
+
+/* ---- The row's lead: grip, then the title (or module name). ---- */
+.ck-lead { display: flex; align-items: flex-start; gap: var(--s1); padding-left: var(--s2); }
+.ck-lead > :last-child { flex: 1; min-width: 0; }
+
+/* ---- Drag grip (item 1): a 24 × 32 target of six dots. Drag it with a pointer, or Space / arrows / Space from the keyboard. ---- */
+.ck-grip {
+  flex: none; box-sizing: border-box; width: 24px; height: 32px; margin: 0; padding: var(--s4) var(--s3);
+  border: 1px solid transparent; border-radius: var(--r-sm); cursor: grab; touch-action: none;
+  background: radial-gradient(circle, var(--muted) 1.5px, transparent 2px) 0 0 / 6px 6px content-box;
+  background-clip: content-box;
+}
+.ck-grip:hover { border-color: var(--line); background-color: var(--surface); }
+.ck-grip:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.ck-grip.is-lifted { border-color: var(--accent); background-color: var(--accent-soft); outline: 2px solid var(--accent); outline-offset: 0; }
+.ck-root.is-dragging .ck-grip { cursor: grabbing; }
+/* The row being dragged dims in place; the drop line shows where it will land. */
+.tbl.ck-table :is(tr.is-dragged, tbody.is-dragged > tr) > * { opacity: .45; transition: opacity var(--dur-fast) var(--ease-out); }
+.ck-drop-line {
+  position: absolute; top: var(--ck-drop-y); left: 0; z-index: var(--z-sticky); width: var(--ck-drop-w); height: 3px; margin-top: -1px;
+  border-radius: var(--r-pill); background: var(--accent); pointer-events: none;
+}
+.ck-drop-line.is-full { background: var(--late); }
+/* A small label that follows the pointer while dragging. */
+.ck-ghost {
+  position: fixed; top: 0; left: 0; z-index: var(--z-overlay); max-width: 260px; padding: var(--s3) var(--s4);
+  border: 1px solid var(--accent); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); box-shadow: var(--elev-2);
+  font-size: var(--fs-md); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none;
+  transform: translate(calc(var(--ck-gx, -999px) + 14px), calc(var(--ck-gy, -999px) + 10px));
+}
 
 /* ---- Titles: one-line text areas that wrap and grow (field-sizing; GrowField sets --ck-h elsewhere). Plain until hovered or focused. ---- */
 .tbl.ck-table :is(textarea.ck-title, textarea.ck-name) {
@@ -70,7 +152,7 @@
 /* An item without a title is not saved (sanitizeChecklist drops it): the row says so under the field. */
 .ck-title-cell .ck-hint { margin-left: var(--s3); font-size: var(--fs-md); font-weight: 600; line-height: 1.2; white-space: normal; color: var(--warn); }
 
-/* ---- When / Who chips: dashed = follows the module, filled = set on the item, outlined = the module's own value.
+/* ---- When chips: dashed = follows the module, filled = set on the item, outlined = the module's own value.
    The pill shows only the value; a transparent native select over it opens the list and carries the accessible name. ---- */
 .ck-chip { position: relative; display: inline-flex; align-items: center; box-sizing: border-box; padding: var(--s1) var(--s3); border: 1px dashed var(--edge); border-radius: var(--r-pill); background: transparent; color: var(--muted); font-size: var(--fs-md); line-height: 1.35; white-space: nowrap; cursor: pointer; }
 .ck-chip.is-set { border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
@@ -80,24 +162,19 @@
 .tbl.ck-table select.ck-select { appearance: none; position: absolute; inset: 0; box-sizing: border-box; width: 100%; height: 100%; min-height: 0; max-width: none; margin: 0; padding: 0; border: 0; border-radius: var(--r-pill); opacity: 0; font-size: var(--fs-md); cursor: pointer; }
 .ck-select option { background: var(--surface); color: var(--ink); }
 
-/* ---- Cells: filled dot = given, light dot = from Everyone, empty ring = not given, crossed ring = hidden. ---- */
+/* ---- Cells (item 6): two states only. Filled dot = the role gets it, empty ring = it does not. ---- */
 .ck-cell { display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: var(--r-circle); background: transparent; cursor: pointer; }
 .ck-cell:hover { background: var(--accent-soft); }
 .ck-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); }
-.ck-dot { position: relative; display: inline-block; flex-shrink: 0; box-sizing: border-box; width: 16px; height: 16px; border-radius: var(--r-circle); }
-.ck-dot.is-included { background: var(--accent); }
-.ck-dot.is-inherited { border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 35%, var(--surface)); }
+.ck-dot { display: inline-block; flex-shrink: 0; box-sizing: border-box; width: 16px; height: 16px; border-radius: var(--r-circle); }
+.ck-dot.is-on { background: var(--accent); }
 .ck-dot.is-off { border: 2px solid var(--edge); background: transparent; }
-.ck-dot.is-hidden { border: 2px solid var(--warn); background: transparent; }
-.ck-dot.is-hidden::after { content: ""; position: absolute; top: -2px; left: 50%; width: 2px; height: 16px; margin-left: -1px; background: var(--warn); transform: rotate(45deg); }
 
-/* ---- Row actions: 26px buttons (above the 24px minimum target, WCAG 2.5.8). ---- */
+/* ---- Row delete: a 26px button (above the 24px minimum target, WCAG 2.5.8). ---- */
 .tbl.ck-table .ck-actions { padding-inline: var(--s2); text-align: right; }
-.ck-row-actions { display: inline-flex; gap: var(--s1); }
 .ck-act { display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1px solid transparent; border-radius: var(--r-sm); background: transparent; color: var(--muted); font-size: var(--fs-lg); line-height: 1; cursor: pointer; }
-.ck-act:hover:not(:disabled) { border-color: var(--line); background: var(--surface); color: var(--ink); }
+.ck-act:hover { border-color: var(--line); background: var(--surface); color: var(--ink); }
 .ck-act:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); }
-.ck-act:disabled { opacity: .35; cursor: not-allowed; }
 
 /* ---- Legend ---- */
 .ck-legend-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s5); }
@@ -108,5 +185,7 @@
 @media (max-width: 700px) {
   .ck-toolbar-end { margin-left: 0; }
   /* A clear edge on the sticky Item column (--edge has 3:1 contrast): the columns scrolling under it stop at a visible line. */
-  .ck-root { --ck-item-w: 148px; --ck-col-w: 64px; --ck-edge: var(--edge); }
+  .ck-root { --ck-item-w: 164px; --ck-col-w: 64px; --ck-edge: var(--edge); }
+  /* The sticky "+ Add item" sits where the item count would be: the count stays for screen readers only. */
+  .ck-module-count { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }

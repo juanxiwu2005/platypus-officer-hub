@@ -1,28 +1,27 @@
-import type { ChecklistModule, ChecklistWhen, ChecklistWho, OnboardingChecklist } from "../data/types"
-import { CHECKLIST_WHEN, MAX_CHECKLIST_ITEMS, MAX_CHECKLIST_MODULES, MAX_ITEM_TITLE, MAX_MODULE_ITEMS, MAX_MODULE_TITLE, WHEN_LABEL, capText, collapse, isWhen, isWho } from "./checklist"
+import type { ChecklistModule, ChecklistWhen, OnboardingChecklist } from "../data/types"
+import { CHECKLIST_WHEN, MAX_CHECKLIST_ITEMS, MAX_CHECKLIST_MODULES, MAX_ITEM_TITLE, MAX_MODULE_ITEMS, MAX_MODULE_TITLE, WHEN_LABEL, capText, collapse, isWhen } from "./checklist"
 
 /**
  * Typed shorthand and pasted lists for the onboarding checklist editor (docs/feedback-fix/CHECKLIST_MATRIX_CONTRACT.md Section 3).
  * Kept apart from src/lib/checklist.ts, which the store imports, so this parser loads with the lazy editor and stays out of the
  * entry bundle. Pure functions only; ids come from a caller-supplied `makeId`.
+ * Template v2 (Section 8): "who does it" is gone, so "@buddy"-style words are plain title text and a spreadsheet Owner column is ignored.
  */
 
 /** Where pasted items go when no module was named before them. */
 export const DEFAULT_PASTE_MODULE = "Checklist"
 
 /** One pasted or typed item before it has an id or role columns. */
-export interface PastedItem { title: string; when?: ChecklistWhen; who?: ChecklistWho }
+export interface PastedItem { title: string; when?: ChecklistWhen }
 export interface PastedModule { title: string; items: PastedItem[] }
 export interface PastedList { modules: PastedModule[] }
 
 /* ───────────── Typed shorthand and pasted lists ───────────── */
 
-// Whole tokens only: "day 10" or "@newcomer" are not tokens. The leading space is kept in group 1 so removal keeps word gaps.
-const WHO_TOKEN = /(^|\s)@(new|buddy|president|outgoing|predecessor)(?=\s|$)/gi
+// Whole tokens only: "day 10" is not a token. The leading space is kept in group 1 so removal keeps word gaps.
 const WHEN_TOKEN = /(^|\s)(day\s+(?:1|3|30)|week\s+(?:1|2)|month\s+1)(?=\s|$)/gi
-/** The run of tokens that ends a line ("… @buddy day 3"); a time is read only from here. */
-const TRAILING_TOKENS = /(?:\s+(?:@(?:new|buddy|president|outgoing|predecessor)|day\s+(?:1|3|30)|week\s+(?:1|2)|month\s+1))+\s*$/i
-const WHO_OF_TOKEN: Record<string, ChecklistWho> = { new: "new", buddy: "buddy", president: "president", outgoing: "outgoing", predecessor: "outgoing" }
+/** The run of time tokens that ends a line ("… day 3"); a time is read only from here. */
+const TRAILING_TOKENS = /(?:\s+(?:day\s+(?:1|3|30)|week\s+(?:1|2)|month\s+1))+\s*$/i
 const WHEN_OF_TOKEN: Record<string, ChecklistWhen> = { "day 1": "day1", "day 3": "day3", "day 30": "month1", "week 1": "week1", "week 2": "week2", "month 1": "month1" }
 
 /** The one value the tokens agree on; undefined when there is none or they disagree (no guessing). */
@@ -31,13 +30,11 @@ function single<T>(text: string, token: RegExp, of: (match: string) => T): T | u
   return values.length === 1 ? values[0] : undefined
 }
 const whenTokenIn = (text: string) => single(text, WHEN_TOKEN, t => WHEN_OF_TOKEN[t])
-const whoTokenIn = (text: string) => single(text, WHO_TOKEN, t => WHO_OF_TOKEN[t])
 
 /**
- * "Meet your buddy @buddy day 3" → title "Meet your buddy", who buddy, when Day 3. Recognized tokens are case-insensitive
- * whole words: @new @buddy @president @outgoing @predecessor, and day 1, day 3, week 1, week 2, month 1, day 30 (= Month 1).
- * A time counts only at the end of the line, after the title, so titles such as "Week 2 check-in" or "Day 30 review" stay whole;
- * an @ token counts anywhere because nobody writes "@buddy" by accident.
+ * "Meet your buddy day 3" → title "Meet your buddy", when Day 3. Recognized tokens are case-insensitive whole words:
+ * day 1, day 3, week 1, week 2, month 1, day 30 (= Month 1). A time counts only at the end of the line, after the title, so
+ * titles such as "Week 2 check-in" or "Day 30 review" stay whole. "@" words are not tokens (template v2): they stay as typed.
  * Tokens that disagree (day 1 … week 2) set nothing and stay in the title. When removing the tokens would leave no title,
  * the original text stays the title and nothing is set.
  */
@@ -47,13 +44,11 @@ export function parseShorthand(text: string): PastedItem {
   const head = original.slice(0, original.length - tail.length)
   // A time in the title part as well ("Call day 1 or week 2") is ambiguous: set nothing rather than guess.
   const headHasTime = [...head.matchAll(WHEN_TOKEN)].length > 0
-  const when = headHasTime ? undefined : whenTokenIn(tail), who = whoTokenIn(original)
-  let title = original
-  if (when) title = head + tail.replace(WHEN_TOKEN, "$1")
-  if (who) title = title.replace(WHO_TOKEN, "$1")
-  title = collapse(title).replace(/^[\s,;:\-–—]+|[\s,;:\-–—]+$/g, "")
+  const when = headHasTime ? undefined : whenTokenIn(tail)
+  if (!when) return { title: original }
+  const title = collapse(head + tail.replace(WHEN_TOKEN, "$1")).replace(/^[\s,;:\-–—]+|[\s,;:\-–—]+$/g, "")
   if (!title) return { title: original }
-  return { title, ...(when ? { when } : {}), ...(who ? { who } : {}) }
+  return { title, when }
 }
 
 /** A spreadsheet "Due" cell: a single when token ("Week 1", "Day 30") or a label ("No deadline"). Dates and anything else: none. */
@@ -62,21 +57,10 @@ function whenFromCell(cell: string): ChecklistWhen | undefined {
   return label ?? whenTokenIn(cell)
 }
 
-const OWNER_WORDS: [ChecklistWho, RegExp][] = [
-  ["buddy", /\bbuddy\b/i],
-  ["president", /\b(?:vice\s+)?president\b/i],
-  ["outgoing", /\b(?:outgoing|predecessor|previous)\b/i],
-]
-/** A spreadsheet "Owner" cell: buddy, (vice) president, or outgoing/predecessor/previous. Anything else, or two of them, sets nothing. */
-function whoFromCell(cell: string): ChecklistWho | undefined {
-  const found = OWNER_WORDS.filter(([, word]) => word.test(cell)).map(([who]) => who)
-  return found.length === 1 ? found[0] : undefined
-}
-
+// No Owner / Who / Responsible column: template v2 has no "who does it", so such a column is simply not read.
 const HEADER_NAMES = {
   item: ["checklist item", "item", "task", "title"],
   section: ["section", "module", "group"],
-  owner: ["owner", "who", "responsible"],
   due: ["due", "when", "timing"],
 } as const
 type HeaderField = keyof typeof HEADER_NAMES
@@ -128,8 +112,8 @@ function parseSheet(rows: string[][], cols: Partial<Record<HeaderField, number>>
     }
     const section = withoutNumber(cell(row, cols.section))
     if (section) current = section
-    const when = whenFromCell(cell(row, cols.due)), who = whoFromCell(cell(row, cols.owner))
-    moduleFor(current ?? leading).items.push({ title: item, ...(when ? { when } : {}), ...(who ? { who } : {}) })
+    const when = whenFromCell(cell(row, cols.due))
+    moduleFor(current ?? leading).items.push({ title: item, ...(when ? { when } : {}) })
   }
   return { modules }
 }
@@ -173,7 +157,7 @@ export function parsePastedList(text: string, leading = DEFAULT_PASTE_MODULE): P
 
 /**
  * Append a parsed paste. A pasted module whose name matches an existing one (ignoring case) adds its items there;
- * other modules are new, with No deadline and New officer. New items go to everyone. Limits are respected: what does
+ * other modules are new, with No deadline. New items go to everyone. Limits are respected: what does
  * not fit is left out. Ids come from `makeId`. `updatedOn` is carried over (empty for a new checklist): the store sets it on save.
  */
 export function addPasted(c: OnboardingChecklist | null | undefined, parsed: PastedList, makeId: () => string): OnboardingChecklist {
@@ -186,14 +170,14 @@ export function addPasted(c: OnboardingChecklist | null | undefined, parsed: Pas
     if (!target) {
       // A new module that could not hold any of its items is left out too; an empty pasted module is still added.
       if (modules.length >= MAX_CHECKLIST_MODULES || (total >= MAX_CHECKLIST_ITEMS && pm.items.length > 0)) continue
-      target = { id: makeId(), title, when: "none", who: "new", items: [] }
+      target = { id: makeId(), title, when: "none", items: [] }
       modules.push(target)
     }
     for (const pi of pm.items) {
       if (total >= MAX_CHECKLIST_ITEMS || target.items.length >= MAX_MODULE_ITEMS) break
       const itemTitle = capText(pi.title, MAX_ITEM_TITLE)
       if (!itemTitle) continue
-      target.items.push({ id: makeId(), title: itemTitle, ...(isWhen(pi.when) ? { when: pi.when } : {}), ...(isWho(pi.who) ? { who: pi.who } : {}), everyone: true, roleIds: [], hiddenFor: [] })
+      target.items.push({ id: makeId(), title: itemTitle, ...(isWhen(pi.when) ? { when: pi.when } : {}), everyone: true, roleIds: [], hiddenFor: [] })
       total++
     }
   }

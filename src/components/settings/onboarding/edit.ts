@@ -4,17 +4,18 @@ import { addPasted, type PastedItem, type PastedList } from "../../../lib/checkl
 
 /**
  * Immutable edits for the onboarding matrix editor (Settings → Onboarding). They only rearrange the draft on screen:
- * validation stays in sanitizeChecklist, which the store runs on every save.
+ * validation stays in sanitizeChecklist, which the store runs on every save. Template v2: no "who does it"; rows move by drag
+ * and drop or the handle's keyboard mode (moveItemTo, moveModuleTo), not by up / down buttons.
  */
 
 export type Dir = -1 | 1
 
 /** A new item for every role, from a typed or pasted line. The title is capped like a saved one (MAX_ITEM_TITLE). */
 export const newItem = (id: string, from: PastedItem = { title: "" }): ChecklistItem => ({
-  id, title: capText(from.title, MAX_ITEM_TITLE), ...(from.when ? { when: from.when } : {}), ...(from.who ? { who: from.who } : {}), everyone: true, roleIds: [], hiddenFor: [],
+  id, title: capText(from.title, MAX_ITEM_TITLE), ...(from.when ? { when: from.when } : {}), everyone: true, roleIds: [], hiddenFor: [],
 })
 
-export const newModule = (id: string, title: string): ChecklistModule => ({ id, title: capText(title, MAX_MODULE_TITLE), when: "none", who: "new", items: [] })
+export const newModule = (id: string, title: string): ChecklistModule => ({ id, title: capText(title, MAX_MODULE_TITLE), when: "none", items: [] })
 
 /** Where an item sits: module index and item index, or null. */
 export function locate(c: OnboardingChecklist, itemId: string): { mi: number; ii: number } | null {
@@ -33,9 +34,9 @@ export const patchModule = (c: OnboardingChecklist, moduleId: string, patch: Par
 export const mapItem = (c: OnboardingChecklist, itemId: string, fn: (i: ChecklistItem) => ChecklistItem) =>
   withModules(c, c.modules.map(m => m.items.some(i => i.id === itemId) ? { ...m, items: m.items.map(i => i.id === itemId ? fn(i) : i) } : m))
 
-/** A typed or pasted line applied to an existing item: a capped title, and when / who only where the line set them. */
+/** A typed or pasted line applied to an existing item: a capped title, and when only where the line set it. */
 export const applyLine = (i: ChecklistItem, line: PastedItem): ChecklistItem =>
-  ({ ...i, title: capText(line.title, MAX_ITEM_TITLE), ...(line.when ? { when: line.when } : {}), ...(line.who ? { who: line.who } : {}) })
+  ({ ...i, title: capText(line.title, MAX_ITEM_TITLE), ...(line.when ? { when: line.when } : {}) })
 
 /** How many more items the module can take, within the module and checklist limits. */
 export const roomIn = (c: OnboardingChecklist, m: ChecklistModule) => Math.max(0, Math.min(MAX_MODULE_ITEMS - m.items.length, MAX_CHECKLIST_ITEMS - countItems(c)))
@@ -55,43 +56,62 @@ export const removeItem = (c: OnboardingChecklist, itemId: string) =>
 
 export const removeModule = (c: OnboardingChecklist, moduleId: string) => withModules(c, c.modules.filter(m => m.id !== moduleId))
 
-/** Swaps a module with its neighbour. */
-export function moveModule(c: OnboardingChecklist, moduleId: string, dir: Dir): OnboardingChecklist {
-  const i = c.modules.findIndex(m => m.id === moduleId), j = i + dir
-  if (i < 0 || j < 0 || j >= c.modules.length) return c
-  const modules = [...c.modules];
-  [modules[i], modules[j]] = [modules[j], modules[i]]
+/* ───────────── Moving (drag and drop, or the handle's keyboard mode) ───────────── */
+
+/**
+ * Moves an item to `index` in module `moduleId`, where `index` counts the target module's items as they are once the item has been
+ * taken out (0 = first; the module's length = the end, which is also how an empty module is filled). An index past the end is
+ * clamped. The same checklist comes back when nothing changes, the item or module is unknown, or another module is full
+ * (MAX_MODULE_ITEMS): use `moduleFullFor` to tell that case apart.
+ */
+export function moveItemTo(c: OnboardingChecklist, itemId: string, moduleId: string, index: number): OnboardingChecklist {
+  const at = locate(c, itemId), to = c.modules.findIndex(m => m.id === moduleId)
+  if (!at || to < 0) return c
+  if (to !== at.mi && c.modules[to].items.length >= MAX_MODULE_ITEMS) return c
+  const item = c.modules[at.mi].items[at.ii]
+  const modules = c.modules.map((m, k) => k === at.mi ? { ...m, items: m.items.filter(i => i.id !== itemId) } : m)
+  const target = modules[to], i = Math.max(0, Math.min(Math.trunc(index), target.items.length))
+  if (to === at.mi && i === at.ii) return c
+  modules[to] = { ...target, items: [...target.items.slice(0, i), item, ...target.items.slice(i)] }
   return withModules(c, modules)
 }
 
-/** Whether the module can move one more place in `dir`. */
-export const canMoveModule = (c: OnboardingChecklist, moduleId: string, dir: Dir) => {
-  const j = c.modules.findIndex(m => m.id === moduleId) + dir
-  return j >= 0 && j < c.modules.length && c.modules.some(m => m.id === moduleId)
+/** True when the item cannot go into `moduleId` because that other module already holds MAX_MODULE_ITEMS. */
+export const moduleFullFor = (c: OnboardingChecklist, itemId: string, moduleId: string) => {
+  const m = c.modules.find(x => x.id === moduleId)
+  return !!m && !m.items.some(i => i.id === itemId) && m.items.length >= MAX_MODULE_ITEMS
+}
+
+/** Moves a module to `index` among the other modules (counted without it). Clamped; the same checklist when nothing changes. */
+export function moveModuleTo(c: OnboardingChecklist, moduleId: string, index: number): OnboardingChecklist {
+  const from = c.modules.findIndex(m => m.id === moduleId)
+  if (from < 0) return c
+  const rest = c.modules.filter(m => m.id !== moduleId), i = Math.max(0, Math.min(Math.trunc(index), rest.length))
+  if (i === from) return c
+  return withModules(c, [...rest.slice(0, i), c.modules[from], ...rest.slice(i)])
 }
 
 /**
- * Moves an item one place. At the top or bottom of its module it moves into the neighbouring module (as its last or first item),
- * so an item can travel anywhere with the two buttons. Null when it cannot move.
+ * Where one Arrow Up / Down press takes an item in keyboard mode: one place within its module, and from the top or bottom of
+ * a module into the neighbouring one (as its last or first item; an empty module counts as one place). Null at the very start
+ * or end of the checklist. A full neighbour is still returned: moveItemTo refuses it and the editor says why.
  */
-export function moveItemTarget(c: OnboardingChecklist, itemId: string, dir: Dir): { mi: number; ii: number } | null {
+export function itemStep(c: OnboardingChecklist, itemId: string, dir: Dir): { moduleId: string; index: number } | null {
   const at = locate(c, itemId)
   if (!at) return null
   const m = c.modules[at.mi], ii = at.ii + dir
-  if (ii >= 0 && ii < m.items.length) return { mi: at.mi, ii }
-  const mi = at.mi + dir, next = c.modules[mi]
-  if (!next || next.items.length >= MAX_MODULE_ITEMS) return null
-  return { mi, ii: dir < 0 ? next.items.length : 0 }
+  if (ii >= 0 && ii < m.items.length) return { moduleId: m.id, index: ii }
+  const next = c.modules[at.mi + dir]
+  if (!next) return null
+  return { moduleId: next.id, index: dir < 0 ? next.items.length : 0 }
 }
 
-export function moveItem(c: OnboardingChecklist, itemId: string, dir: Dir): OnboardingChecklist {
-  const at = locate(c, itemId), to = moveItemTarget(c, itemId, dir)
-  if (!at || !to) return c
-  const item = c.modules[at.mi].items[at.ii]
-  const modules = c.modules.map(m => ({ ...m, items: m.items.filter(i => i.id !== itemId) }))
-  const target = modules[to.mi]
-  target.items = [...target.items.slice(0, to.ii), item, ...target.items.slice(to.ii)]
-  return withModules(c, modules)
+/** Where an item or module sits, for announcements: "position 2 of 5". */
+export function itemPlace(c: OnboardingChecklist, itemId: string): { module: ChecklistModule; position: number; of: number } | null {
+  const at = locate(c, itemId)
+  if (!at) return null
+  const module = c.modules[at.mi]
+  return { module, position: at.ii + 1, of: module.items.length }
 }
 
 /* ───────────── Where focus goes after a row disappears ───────────── */

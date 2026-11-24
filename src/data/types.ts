@@ -204,8 +204,6 @@ export interface Org {
 
 /** When an onboarding item is due, as a label relative to the start of the term. Never a date: the rule engine converts these later. */
 export type ChecklistWhen = "day1" | "day3" | "week1" | "week2" | "month1" | "none"
-/** Who does an onboarding item: the new officer, their buddy, the president, or the officer handing the role over. */
-export type ChecklistWho = "new" | "buddy" | "president" | "outgoing"
 /** One row of the onboarding matrix. Which roles get it is either "everyone minus hiddenFor" or "only roleIds". */
 export interface ChecklistItem {
   id: string
@@ -213,9 +211,7 @@ export interface ChecklistItem {
   title: string
   /** Absent: follow the module. */
   when?: ChecklistWhen
-  /** Absent: follow the module. */
-  who?: ChecklistWho
-  /** True: every current role gets it, minus hiddenFor. */
+  /** True: every current role gets it, minus hiddenFor; roles added later get it too. */
   everyone: boolean
   /** Used when everyone is false: the roles that get it. */
   roleIds: string[]
@@ -224,13 +220,12 @@ export interface ChecklistItem {
   /** Read-only policy label "ASU-R-NNN"; only the Platypus starter sets it. */
   source?: string
 }
-/** A user-defined group of items whose when and who are the items' defaults. */
+/** A user-defined group of items whose "when" is the items' default. ("Who does it" was removed in template v2.) */
 export interface ChecklistModule {
   id: string
   /** Trimmed, 1-60 characters. */
   title: string
   when: ChecklistWhen
-  who: ChecklistWho
   items: ChecklistItem[]
 }
 /** The whole-club onboarding checklist template. `updatedOn` is the demo day it was last saved. */

@@ -1,10 +1,10 @@
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test, type Locator, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { closeRail, noOverflow, openDemoMenu, viewAs } from "./helpers"
 import type { DemoState, OnboardingChecklist } from "../src/data/types"
 import { countEveryone, countForRole } from "../src/lib/checklist"
 
-// Settings → Onboarding (option C matrix, docs/feedback-fix/CHECKLIST_MATRIX_CONTRACT.md Section 6). Fictional seed club only.
+// Settings → Onboarding (option C matrix, docs/feedback-fix/CHECKLIST_MATRIX_CONTRACT.md Sections 6 and 8). Fictional seed club only.
 const read = (page: Page): Promise<DemoState> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
 const checklist = async (page: Page): Promise<OnboardingChecklist | undefined> => (await read(page)).org.onboardingChecklist
 const serious = async (page: Page) => (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()).violations
@@ -19,6 +19,10 @@ const row = (page: Page, title: string) => page.getByTestId("onboarding-item").f
 /** The module row whose name field holds `title`. */
 const moduleRow = (page: Page, title: string) => page.getByTestId("onboarding-module").filter({ has: page.locator("textarea.ck-name", { hasText: exactly(title) }) })
 const itemOf = (c: OnboardingChecklist | undefined, title: string) => c?.modules.flatMap(m => m.items).find(i => i.title === title)
+const roleIdsOf = async (page: Page) => (await read(page)).roles.map(r => r.id)
+const grip = (page: Page, title: string) => page.getByRole("button", { name: `Move ${title}`, exact: true })
+const moduleGrip = (page: Page, title: string) => page.getByRole("button", { name: `Move module ${title}`, exact: true })
+const itemsIn = async (page: Page, module: string) => (await checklist(page))?.modules.find(m => m.title === module)?.items.map(i => i.title)
 
 async function open(page: Page) {
   await page.route("**/api/**", route => route.fulfill({ status: 503, json: { configured: false, message: "Offline onboarding checklist" } }))
@@ -32,85 +36,148 @@ async function startStarter(page: Page) {
   await expect(matrix(page)).toBeVisible()
   await expect.poll(async () => (await checklist(page))?.modules.length).toBe(5)
 }
+const centre = async (l: Locator) => { const b = (await l.boundingBox())!; return { x: b.x + b.width / 2, y: b.y + b.height / 2 } }
+/** A mouse drag from `from` to a point `dy` px into `to` (from its top), in small steps like a hand. */
+async function mouseDrag(page: Page, from: Locator, to: Locator, dy: number, opts: { escape?: boolean } = {}) {
+  await from.scrollIntoViewIfNeeded()
+  const a = await centre(from)
+  await page.mouse.move(a.x, a.y)
+  await page.mouse.down()
+  await page.mouse.move(a.x, a.y + 8, { steps: 2 })
+  await to.scrollIntoViewIfNeeded()
+  const b = (await to.boundingBox())!
+  await page.mouse.move(a.x, b.y + dy, { steps: 8 })
+  await expect(page.getByTestId("onboarding-drop-line")).toBeVisible()
+  if (opts.escape) await page.keyboard.press("Escape")
+  await page.mouse.up()
+}
 
-test("the starter loads, its totals match the model, and hiding an Everyone item for the Treasurer lowers that count", async ({ page }) => {
+test("the starter loads, its totals match the model, and taking an Everyone item from the Treasurer lowers both counts", async ({ page }) => {
   await open(page)
   await expect(nav(page).getByRole("button", { name: "Onboarding", exact: true })).toHaveAttribute("aria-current", "page")
   await expect(page.getByTestId("onboarding-empty")).toContainText("Every new officer gets this list.")
   await startStarter(page)
   const saved = (await checklist(page))!
   const { roles } = await read(page)
-  await expect(page.getByTestId("count-everyone")).toHaveText(String(countEveryone(saved)))
+  const ids = roles.map(r => r.id)
+  await expect(page.getByTestId("count-everyone")).toHaveText(String(countEveryone(saved, ids)))
   for (const r of roles) await expect(page.getByTestId(`count-${r.id}`)).toHaveText(String(countForRole(saved, r.id)))
-  expect([countEveryone(saved), countForRole(saved, "r-fin")]).toEqual([13, 17])
+  expect([countEveryone(saved, ids), countForRole(saved, "r-fin")]).toEqual([13, 17])
   await expect(matrix(page).getByRole("columnheader", { name: "Treasurer", exact: true })).toBeVisible()
   await expect(row(page, "Complete anti-hazing training").locator(".rule-id")).toHaveText("ASU-R-004")
 
   const cell = row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: gets Join the officer group chat", exact: true })
   await expect(cell).toHaveAttribute("aria-pressed", "true")
   await cell.click()
-  const hidden = row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: hidden for Join the officer group chat", exact: true })
-  await expect(hidden).toHaveAttribute("aria-pressed", "false")
+  const off = row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: does not get Join the officer group chat", exact: true })
+  await expect(off).toHaveAttribute("aria-pressed", "false")
   await expect(page.getByTestId("count-r-fin")).toHaveText("16")
-  await expect(page.getByTestId("count-everyone")).toHaveText("13")
+  // Not every role gets it any more, so the Everyone cell is empty and its count drops.
+  await expect(row(page, "Join the officer group chat").getByRole("button", { name: "Everyone: not all roles get Join the officer group chat", exact: true })).toHaveAttribute("aria-pressed", "false")
+  await expect(page.getByTestId("count-everyone")).toHaveText("12")
   await expect.poll(async () => itemOf(await checklist(page), "Join the officer group chat")?.hiddenFor).toEqual(["r-fin"])
   await expect(page.getByTestId("onboarding-status")).toHaveText("Saved")
 
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
-  await matrix(page).evaluate(el => { el.parentElement!.scrollLeft = 10_000 })
+  await page.getByTestId("onboarding-frame").evaluate(el => { el.scrollLeft = 10_000 })
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
   // axe at a resting scroll position: the Everyone column next to the sticky Item column. At the very end of a phone's scroll a
   // column can sit half under the Item column, which axe's target-size rule reports; the phone test below checks that every
   // column scrolls fully clear of it.
-  await matrix(page).evaluate(el => {
-    const wrap = el.parentElement!, [item, ...cols] = [...el.querySelectorAll("thead th")]
+  await page.getByTestId("onboarding-frame").evaluate(wrap => {
+    const item = wrap.querySelector("thead th.ck-corner")!, cols = [...wrap.querySelectorAll("thead th:not(.ck-corner):not(.ck-actions-head)")]
     wrap.scrollLeft = 0
-    wrap.scrollLeft = cols[2].getBoundingClientRect().left - item.getBoundingClientRect().right
+    wrap.scrollLeft = cols[1].getBoundingClientRect().left - item.getBoundingClientRect().right
   })
   expect(await serious(page)).toEqual([])
 })
 
-test("Everyone off, then one role on", async ({ page }) => {
+test("two-state cells and the Everyone rule: filled exactly when every role gets it; a click gives it to all, or to none", async ({ page }) => {
   await open(page)
   await startStarter(page)
   const r = row(page, "Read the constitution")
-  await r.getByRole("button", { name: "Everyone: on for Read the constitution", exact: true }).click()
-  await expect(r.getByRole("button", { name: "Everyone: off for Read the constitution", exact: true })).toHaveAttribute("aria-pressed", "false")
+  const everyone = (all: boolean) => r.getByRole("button", { name: `Everyone: ${all ? "all roles get" : "not all roles get"} Read the constitution`, exact: true })
+  // No light "From Everyone" dot and no crossed ring: every cell is a filled dot or an empty ring.
+  expect(await matrix(page).locator(".ck-dot").evaluateAll(els => [...new Set(els.map(e => e.className))].sort())).toEqual(["ck-dot is-off", "ck-dot is-on"])
+  await expect(everyone(true)).toHaveAttribute("aria-pressed", "true")
+  // All have it: Everyone gives it to none.
+  await everyone(true).click()
+  await expect(everyone(false)).toHaveAttribute("aria-pressed", "false")
   await expect(r.getByRole("button", { name: "Treasurer: does not get Read the constitution", exact: true })).toHaveAttribute("aria-pressed", "false")
   await expect(page.getByTestId("count-everyone")).toHaveText("12")
+  await expect.poll(async () => { const i = itemOf(await checklist(page), "Read the constitution"); return i && { everyone: i.everyone, roleIds: i.roleIds, hiddenFor: i.hiddenFor } }).toEqual({ everyone: false, roleIds: [], hiddenFor: [] })
+  // One role on: still not everyone.
   await r.getByRole("button", { name: "Treasurer: does not get Read the constitution", exact: true }).click()
   await expect(r.getByRole("button", { name: "Treasurer: gets Read the constitution", exact: true })).toHaveAttribute("aria-pressed", "true")
   await expect(r.getByRole("button", { name: "Secretary: does not get Read the constitution", exact: true })).toBeVisible()
   await expect.poll(async () => { const i = itemOf(await checklist(page), "Read the constitution"); return i && { everyone: i.everyone, roleIds: i.roleIds } }).toEqual({ everyone: false, roleIds: ["r-fin"] })
   await expect(page.getByTestId("count-r-fin")).toHaveText("17")
   await expect(page.getByTestId("count-r-sec")).toHaveText(String(countForRole((await checklist(page))!, "r-sec")))
+  // Not all have it: Everyone gives it to every current role.
+  await everyone(false).click()
+  await expect(everyone(true)).toHaveAttribute("aria-pressed", "true")
+  for (const name of ["President", "Treasurer", "Events lead", "Marketing lead", "Secretary"]) await expect(r.getByRole("button", { name: `${name}: gets Read the constitution`, exact: true })).toBeVisible()
+  await expect.poll(async () => { const i = itemOf(await checklist(page), "Read the constitution"); return i && { everyone: i.everyone, roleIds: i.roleIds, hiddenFor: i.hiddenFor } }).toEqual({ everyone: true, roleIds: [], hiddenFor: [] })
+  // Every role picked one by one also fills the Everyone cell.
+  const training = row(page, "Complete Officer Training")
+  for (const name of ["Events lead", "Marketing lead", "Secretary"]) await training.getByRole("button", { name: `${name}: does not get Complete Officer Training`, exact: true }).click()
+  await expect(training.getByRole("button", { name: "Everyone: all roles get Complete Officer Training", exact: true })).toHaveAttribute("aria-pressed", "true")
+  const legend = page.getByRole("list", { name: "Legend" })
+  await expect(legend.getByRole("listitem")).toHaveText(["Gets it", "Does not get it", "Follows the module"])
 })
 
-test("Enter adds the next row with focus, shorthand sets Who and When, and Backspace on an empty row goes back", async ({ page }) => {
+test("there is no Who column, select or legend entry", async ({ page }) => {
   await open(page)
   await startStarter(page)
-  await page.getByRole("button", { name: "+ Add item", exact: true }).click()
+  await expect(matrix(page).getByRole("columnheader", { name: "Who does it" })).toHaveCount(0)
+  await expect(page.getByRole("combobox", { name: /Who does it/ })).toHaveCount(0)
+  await expect(page.getByRole("list", { name: "Legend" })).not.toContainText("Everyone")
+  expect(JSON.stringify(await checklist(page))).not.toContain('"who"')
+})
+
+test("every module has + Add item at its right end; the toolbar has none", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await expect(page.locator(".ck-toolbar").getByRole("button", { name: /Add item/ })).toHaveCount(0)
+  await expect(page.getByRole("button", { name: /^\+ Add item to / })).toHaveCount(5)
+  const learn = moduleRow(page, "Learn the club")
+  const add = learn.getByRole("button", { name: "+ Add item to Learn the club", exact: true })
+  await expect(add).toHaveText("+ Add item")
+  // At the right end of the module row: to the right of every role cell header.
+  const [b, last] = [(await add.boundingBox())!, (await matrix(page).getByRole("columnheader", { name: "Treasurer", exact: true }).boundingBox())!]
+  if (test.info().project.name === "desktop") expect(b.x + b.width).toBeGreaterThan(last.x)
+  await add.click()
+  await expect(page.locator("textarea.ck-title:focus")).toHaveValue("")
+  await page.keyboard.type("Shadow a meeting")
+  await page.keyboard.press("Tab")
+  await expect.poll(() => itemsIn(page, "Learn the club")).toEqual(["Read the constitution", "Read the ASU student org handbook", "Complete anti-hazing training", "Complete Officer Training", "Agree on 3–5 core duties with the president", "Shadow a meeting"])
+})
+
+test("Enter adds the next row with focus, shorthand sets When, @ words stay in the title, and Backspace on an empty row goes back", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await page.getByRole("button", { name: "+ Add item to Check-ins", exact: true }).click()
   const title = page.getByRole("textbox", { name: "Item title", exact: true })
   await expect(page.locator("textarea.ck-title:focus")).toHaveValue("")
   await page.keyboard.type("Meet your mentor @buddy day 3")
   await page.keyboard.press("Enter")
-  const mentor = row(page, "Meet your mentor")
-  await expect(mentor.getByRole("combobox", { name: "Who does it for Meet your mentor", exact: true })).toHaveValue("buddy")
-  await expect(mentor.getByRole("combobox", { name: "When for Meet your mentor", exact: true })).toHaveValue("day3")
-  await expect(mentor.getByRole("combobox", { name: "When for Meet your mentor", exact: true }).locator("..")).toHaveClass(/is-set/)
+  const mentor = row(page, "Meet your mentor @buddy")
+  await expect(mentor.getByRole("combobox", { name: "When for Meet your mentor @buddy", exact: true })).toHaveValue("day3")
+  await expect(mentor.getByRole("combobox", { name: "When for Meet your mentor @buddy", exact: true }).locator("..")).toHaveClass(/is-set/)
   // The new row is right below and has focus.
   const focused = page.locator("textarea.ck-title:focus")
   await expect(focused).toHaveValue("")
   const titles = await title.evaluateAll(els => els.map(e => (e as HTMLInputElement).value))
-  expect(titles.slice(-3)).toEqual(["Day 30 review", "Meet your mentor", ""])
-  await expect.poll(async () => { const i = itemOf(await checklist(page), "Meet your mentor"); return i && { who: i.who, when: i.when, everyone: i.everyone } }).toEqual({ who: "buddy", when: "day3", everyone: true })
+  expect(titles.slice(-3)).toEqual(["Day 30 review", "Meet your mentor @buddy", ""])
+  await expect.poll(async () => { const i = itemOf(await checklist(page), "Meet your mentor @buddy"); return i && { when: i.when, everyone: i.everyone, keys: Object.keys(i).sort() } })
+    .toEqual({ when: "day3", everyone: true, keys: ["everyone", "hiddenFor", "id", "roleIds", "title", "when"] })
 
   await page.keyboard.press("Backspace")
   await expect(title).toHaveCount(titles.length - 1)
-  await expect(page.locator("textarea.ck-title:focus")).toHaveValue("Meet your mentor")
+  await expect(page.locator("textarea.ck-title:focus")).toHaveValue("Meet your mentor @buddy")
 })
 
-test("Paste a list reads tab-separated rows into modules with a live preview", async ({ page }) => {
+test("Paste a list reads tab-separated rows into modules with a live preview, ignoring the Owner column", async ({ page }) => {
   await open(page)
   await page.getByTestId("onboarding-empty").getByRole("button", { name: "Paste a list", exact: true }).click()
   const box = page.getByRole("textbox", { name: "Paste a list", exact: true })
@@ -122,10 +189,11 @@ test("Paste a list reads tab-separated rows into modules with a live preview", a
   expect(await page.getByRole("textbox", { name: "Module name", exact: true }).evaluateAll(els => els.map(e => (e as HTMLInputElement).value))).toEqual(["Onboarding Confirmation", "Tools"])
   await expect(page.getByTestId("onboarding-item")).toHaveCount(3)
   const saved = await checklist(page)
-  expect(saved?.modules.map(m => [m.title, m.items.map(i => [i.title, i.who ?? null])])).toEqual([
-    ["Onboarding Confirmation", [["Sign the code of conduct", "president"], ["Set up club email", null]]],
-    ["Tools", [["Get chat access", "buddy"]]],
+  expect(saved?.modules.map(m => [m.title, m.items.map(i => i.title)])).toEqual([
+    ["Onboarding Confirmation", ["Sign the code of conduct", "Set up club email"]],
+    ["Tools", ["Get chat access"]],
   ])
+  expect(JSON.stringify(saved)).not.toContain('"who"')
   await expect(page.getByTestId("count-everyone")).toHaveText("3")
 })
 
@@ -152,13 +220,16 @@ test("Undo restores the previous saved version, and a module with items asks bef
   await expect(page.getByTestId("onboarding-empty")).toBeVisible()
 })
 
-test("the checklist survives a reload, including a typed module name and a move", async ({ page }) => {
+test("the checklist survives a reload, including a typed module name and a keyboard move", async ({ page }) => {
   await open(page)
   await startStarter(page)
   const name = page.getByRole("textbox", { name: "Module name", exact: true }).first()
   await name.fill("Week one basics")
   await expect.poll(async () => (await checklist(page))?.modules[0].title).toBe("Week one basics")
-  await row(page, "Meet your buddy").getByRole("button", { name: "Move item up", exact: true }).click()
+  await grip(page, "Meet your buddy").focus()
+  await page.keyboard.press("Space")
+  await page.keyboard.press("ArrowUp")
+  await page.keyboard.press("Space")
   await expect.poll(async () => (await checklist(page))?.modules[0].items.map(i => i.title)).toEqual(["Meet your buddy", "Join the officer group chat", "Get added to the club shared drive"])
   await page.reload()
   await closeRail(page)
@@ -201,10 +272,6 @@ test("an inherited chip shows only the value, dashed, and its name and first opt
   await expect(when.locator("option").first()).toHaveText("Week 1 (module)")
   await expect(when.locator("..")).toHaveClass(/is-follow/)
   await expect(when.locator("..").locator(":scope > span")).toHaveText("Week 1")   // the visible pill: the value only
-  const who = r.getByRole("combobox", { name: "Who does it for Read the constitution: follows module, New officer", exact: true })
-  await expect(who).toHaveValue("")
-  await expect(who.locator("..").locator(":scope > span")).toHaveText("New officer")
-  await expect(who.locator("option").first()).toHaveText("New officer (module)")
   await expect(page.getByRole("list", { name: "Legend" })).toContainText("Follows the module")
   // Set on the item: the chip fills and the name is plain again.
   await when.selectOption("day1")
@@ -219,14 +286,14 @@ test("at 1440px every column of the seed club fits without scrolling, and long t
   await row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: gets Join the officer group chat", exact: true }).click()
   const { roles } = await read(page)
   expect(roles).toHaveLength(5)
-  const box = await matrix(page).evaluate(el => {
-    const wrap = el.parentElement!, w = wrap.getBoundingClientRect()
+  const box = await page.getByTestId("onboarding-frame").evaluate(wrap => {
+    const w = wrap.getBoundingClientRect()
     return { left: w.left + wrap.clientLeft, right: w.left + wrap.clientLeft + wrap.clientWidth, scrollWidth: wrap.scrollWidth, clientWidth: wrap.clientWidth, scrollLeft: wrap.scrollLeft }
   })
   expect(box.scrollWidth).toBeLessThanOrEqual(box.clientWidth)
   expect(box.scrollLeft).toBe(0)
-  // Item, When, Who, Everyone and every role column, the last one included, lie inside the frame's visible box.
-  for (const name of ["Item", "When", "Who does it", "Everyone", ...roles.map(r => r.displayName)]) {
+  // Item, When, Everyone, every team and every role column, the last one included, lie inside the frame's visible box.
+  for (const name of ["Item", "When", "Everyone", "Club leadership", "Operations", "Marketing", "Finance", ...roles.map(r => r.displayName)]) {
     const header = (await matrix(page).getByRole("columnheader", { name, exact: true }).boundingBox())!
     expect(header.x, name).toBeGreaterThanOrEqual(box.left - 1)
     expect(header.x + header.width, name).toBeLessThanOrEqual(box.right + 1)
@@ -234,15 +301,13 @@ test("at 1440px every column of the seed club fits without scrolling, and long t
   // Titles wrap instead of being cut, and a rule tag sits on its own line under its title.
   const cut = await page.locator("textarea.ck-title").evaluateAll(els => els.filter(e => e.scrollHeight > e.clientHeight + 1 || e.scrollWidth > e.clientWidth + 1).map(e => (e as HTMLTextAreaElement).value))
   expect(cut).toEqual([])
-  const long = row(page, "Walk through a budget request in Sun Devil Central").getByRole("textbox", { name: "Item title", exact: true })
-  expect((await long.boundingBox())!.height).toBeGreaterThan(30)
   const tagged = row(page, "Complete USG-T appropriations training")
   const [title, tag] = [(await tagged.getByRole("textbox", { name: "Item title", exact: true }).boundingBox())!, (await tagged.locator(".rule-id").boundingBox())!]
   expect(tag.y).toBeGreaterThanOrEqual(title.y + title.height - 1)
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
 })
 
-test("on a phone the sticky Item column is opaque, no header hides under it, When and Who are reachable, and the page never scrolls sideways", async ({ page }, info) => {
+test("on a phone the sticky Item column is opaque, no header hides under it, When is reachable, and the page never scrolls sideways", async ({ page }, info) => {
   test.skip(info.project.name !== "mobile", "a phone width")
   await open(page)
   await startStarter(page)
@@ -250,11 +315,12 @@ test("on a phone the sticky Item column is opaque, no header hides under it, Whe
   const sticky = matrix(page).getByRole("columnheader", { name: "Item", exact: true })
   expect(await sticky.evaluate(el => getComputedStyle(el).backgroundColor)).toMatch(/^rgb\(/)   // rgb(), not a transparent rgba()
   // Scroll each column to the Item column's edge: the header is then in view, nothing covers its middle, and the page stays put.
-  const headers = matrix(page).locator("thead th")
+  const headers = matrix(page).locator("thead th:not(.ck-corner):not(.ck-actions-head)")
   const count = await headers.count()
-  for (let i = 1; i < count - 1; i++) {
+  expect(count).toBe(2 + 4 + 5)   // When, Everyone, four teams, five roles
+  for (let i = 0; i < count; i++) {
     const seen = await headers.nth(i).evaluate(th => {
-      const wrap = th.closest(".ck-wrap") as HTMLElement, item = wrap.querySelector("thead th") as HTMLElement
+      const wrap = th.closest(".ck-wrap") as HTMLElement, item = wrap.querySelector("thead th.ck-corner") as HTMLElement
       wrap.scrollLeft = 0
       wrap.scrollLeft = th.getBoundingClientRect().left - item.getBoundingClientRect().right
       const r = th.getBoundingClientRect(), edge = item.getBoundingClientRect().right, w = wrap.getBoundingClientRect()
@@ -263,11 +329,214 @@ test("on a phone the sticky Item column is opaque, no header hides under it, Whe
     })
     expect(seen, `${seen.name}`).toEqual({ name: seen.name, clear: true, inside: true, onTop: true, overflow: 0 })
   }
-  // At the start When and Who sit right next to the Item column.
-  await matrix(page).evaluate(el => { el.parentElement!.scrollLeft = 0 })
+  // At the start When sits right next to the Item column.
+  await page.getByTestId("onboarding-frame").evaluate(el => { el.scrollLeft = 0 })
   await expect(row(page, "Read the constitution").getByRole("combobox", { name: "When for Read the constitution: follows module, Week 1", exact: true })).toBeInViewport()
-  await expect(row(page, "Read the constitution").getByRole("combobox", { name: "Who does it for Read the constitution: follows module, New officer", exact: true })).toBeInViewport()
+  // Each module's + Add item stays reachable on the right of the visible frame.
+  await expect(page.getByRole("button", { name: "+ Add item to Learn the club", exact: true })).toBeInViewport()
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
+})
+
+/* ───────────── Template v2 (Section 8): teams above roles, module colours, drag and drop, frozen header ───────────── */
+
+test("a team row sits above the role names in the Roles & teams order and tones, and Everyone spans both header rows", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  const teams = matrix(page).getByTestId("onboarding-team")
+  await expect(teams).toHaveText(["Club leadership", "Operations", "Marketing", "Finance"])
+  expect(await teams.evaluateAll(els => els.map(e => [(e as HTMLTableCellElement).colSpan, [...e.classList].find(c => c.startsWith("wfx-tone-"))]))).toEqual([[1, "wfx-tone-0"], [2, "wfx-tone-1"], [1, "wfx-tone-2"], [1, "wfx-tone-3"]])
+  expect(await matrix(page).locator("thead tr").nth(1).locator("th").allTextContents()).toEqual(["President", "Events lead", "Secretary", "Marketing lead", "Treasurer"])
+  for (const name of ["Item", "When", "Everyone"]) expect(await matrix(page).getByRole("columnheader", { name, exact: true }).getAttribute("rowspan")).toBe("2")
+  // Each team cell lies over its roles.
+  const [finance, treasurer] = [(await teams.nth(3).boundingBox())!, (await matrix(page).getByRole("columnheader", { name: "Treasurer", exact: true }).boundingBox())!]
+  expect(Math.abs(finance.x - treasurer.x)).toBeLessThanOrEqual(1)
+  expect(finance.y + finance.height).toBeLessThanOrEqual(treasurer.y + 1)
+  expect(await serious(page)).toEqual([])
+})
+
+test("renaming a team or moving a role in Roles & teams changes the matrix's team row", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await nav(page).getByRole("button", { name: "Roles & teams", exact: true }).click()
+  await page.getByRole("button", { name: "Finance · 12 steps, edit team", exact: true }).click()
+  await page.getByTestId("roles-inspector").getByLabel("Team name", { exact: true }).fill("Money")
+  await expect.poll(async () => (await read(page)).org.workflowTeams!.find(t => t.id === "workflow-finance")!.name).toBe("Money")
+  await page.getByRole("button", { name: "Secretary, Priya Nair", exact: true }).click()
+  await page.getByTestId("roles-inspector").getByLabel("Team", { exact: true }).selectOption({ label: "Marketing" })
+  await expect.poll(async () => (await read(page)).org.workflowRoleTeams!["r-sec"]).toBe("workflow-marketing")
+  await nav(page).getByRole("button", { name: "Onboarding", exact: true }).click()
+  const teams = matrix(page).getByTestId("onboarding-team")
+  await expect(teams).toHaveText(["Club leadership", "Operations", "Marketing", "Money"])
+  expect(await teams.evaluateAll(els => els.map(e => (e as HTMLTableCellElement).colSpan))).toEqual([1, 1, 2, 1])
+  expect(await matrix(page).locator("thead tr").nth(1).locator("th").allTextContents()).toEqual(["President", "Events lead", "Marketing lead", "Secretary", "Treasurer"])
+  // The checklist stores role ids only: the move changed no item.
+  expect(JSON.stringify(await checklist(page))).not.toContain("workflow-")
+  await expect(row(page, "Update the member roster in Sun Devil Central").getByRole("button", { name: /^Secretary: gets Update the member roster/ })).toBeVisible()
+})
+
+test("each module has its own soft colour: a left bar and a tinted header row, different from the next module", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  const tone = (title: string) => moduleRow(page, title).evaluate(tr => {
+    const th = tr.querySelector("th")!
+    return { bar: getComputedStyle(th, "::before").backgroundColor, tint: getComputedStyle(th).backgroundColor, width: getComputedStyle(th, "::before").width }
+  })
+  const [a, b] = [await tone("First 3 days"), await tone("Learn the club")]
+  expect(a.width).toBe("4px")
+  expect(a.bar).not.toBe(b.bar)
+  expect(a.tint).not.toBe(b.tint)
+  // The bar runs down the module's item rows too.
+  expect(await row(page, "Join the officer group chat").evaluate(tr => getComputedStyle(tr.querySelector("th")!, "::before").backgroundColor)).toBe(a.bar)
+  // The module colours are not the team colours.
+  const teamColours = await matrix(page).getByTestId("onboarding-team").evaluateAll(els => els.map(e => getComputedStyle(e).borderBottomColor))
+  expect(teamColours).not.toContain(a.bar)
+  expect(teamColours).not.toContain(b.bar)
+})
+
+test("a mouse drag moves an item into another module, Escape cancels a drag, and one Undo takes the drop back", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "a mouse")
+  await open(page)
+  await startStarter(page)
+  // Escape: nothing moves.
+  await mouseDrag(page, grip(page, "Read the constitution"), row(page, "Request a Mazevo account"), 4, { escape: true })
+  await expect(page.getByTestId("onboarding-drop-line")).toHaveCount(0)
+  await expect(page.getByTestId("onboarding-announce")).toHaveText("Move cancelled.")
+  expect(await itemsIn(page, "Learn the club")).toContain("Read the constitution")
+  // A drop between two items of another module.
+  await mouseDrag(page, grip(page, "Read the constitution"), row(page, "Request a Mazevo account"), 4)
+  await expect.poll(() => itemsIn(page, "Tools & access")).toEqual([
+    "Sync the club calendar to your phone", "Update the Sun Devil Central profile", "Get added as a bank co-signer", "Complete USG-T appropriations training",
+    "Walk through a budget request in Sun Devil Central", "Read the constitution", "Request a Mazevo account", "Register a practice event in Event Registry",
+    "Read the ASU brand guidelines", "Get admin access to the club social accounts", "Update the member roster in Sun Devil Central",
+  ])
+  expect(await itemsIn(page, "Learn the club")).not.toContain("Read the constitution")
+  await expect(grip(page, "Read the constitution")).toBeFocused()
+  await expect(page.getByTestId("onboarding-announce")).toHaveText("Moved Read the constitution. Position 6 of 11 in Tools & access.")
+  // One Undo step per drop.
+  await page.getByRole("button", { name: "Undo", exact: true }).click()
+  await expect.poll(() => itemsIn(page, "Learn the club")).toEqual(["Read the constitution", "Read the ASU student org handbook", "Complete anti-hazing training", "Complete Officer Training", "Agree on 3–5 core duties with the president"])
+  // Into an empty module, over its header row.
+  await page.getByRole("button", { name: "+ Add module", exact: true }).click()
+  await page.locator("textarea.ck-name:focus").fill("New module extra")
+  await page.keyboard.press("Tab")
+  await expect.poll(async () => (await checklist(page))?.modules.at(-1)?.title).toBe("New module extra")
+  await mouseDrag(page, grip(page, "Meet your buddy"), moduleRow(page, "New module extra"), 10)
+  await expect.poll(() => itemsIn(page, "New module extra")).toEqual(["Meet your buddy"])
+  await expect.poll(() => itemsIn(page, "First 3 days")).toEqual(["Join the officer group chat", "Get added to the club shared drive"])
+})
+
+test("a module drags to another place by its grip", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "a mouse")
+  await open(page)
+  await startStarter(page)
+  await mouseDrag(page, moduleGrip(page, "Check-ins"), moduleRow(page, "First 3 days"), 4)
+  await expect.poll(async () => (await checklist(page))?.modules.map(m => m.title)).toEqual(["Check-ins", "First 3 days", "Learn the club", "Tools & access", "Handoff from your predecessor"])
+  await expect(moduleGrip(page, "Check-ins")).toBeFocused()
+  // Its items came along.
+  expect(await itemsIn(page, "Check-ins")).toEqual(["Week 2 check-in", "Day 30 review"])
+})
+
+test("the grip is a keyboard alternative: Space picks up, arrows move, Space drops, Escape cancels, each step announced", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  const announce = page.getByTestId("onboarding-announce")
+  expect(await announce.getAttribute("role")).toBe("status")
+  const g = grip(page, "Get added to the club shared drive")
+  await g.focus()
+  await page.keyboard.press("Space")
+  await expect(announce).toHaveText("Picked up Get added to the club shared drive. Position 3 of 3 in First 3 days. Arrow keys move it, Space drops it, Escape cancels.")
+  await page.keyboard.press("ArrowUp")
+  await expect(announce).toHaveText("Position 2 of 3 in First 3 days.")
+  await page.keyboard.press("Escape")
+  await expect(announce).toHaveText("Move cancelled.")
+  await expect(g).toBeFocused()
+  expect(await itemsIn(page, "First 3 days")).toEqual(["Join the officer group chat", "Meet your buddy", "Get added to the club shared drive"])
+  // Down past the end of its module: the first place of the next one. Enter drops too.
+  await page.keyboard.press("Enter")
+  await page.keyboard.press("ArrowDown")
+  await expect(announce).toHaveText("Position 1 of 6 in Learn the club.")
+  await expect(g).toBeFocused()
+  await page.keyboard.press("ArrowDown")
+  await expect(announce).toHaveText("Position 2 of 6 in Learn the club.")
+  // Nothing is saved until the drop.
+  expect(await itemsIn(page, "First 3 days")).toHaveLength(3)
+  await page.keyboard.press("Enter")
+  await expect(announce).toHaveText("Dropped Get added to the club shared drive. Position 2 of 6 in Learn the club.")
+  await expect.poll(() => itemsIn(page, "Learn the club")).toEqual(["Read the constitution", "Get added to the club shared drive", "Read the ASU student org handbook", "Complete anti-hazing training", "Complete Officer Training", "Agree on 3–5 core duties with the president"])
+  await expect(g).toBeFocused()
+  // One Undo step for the whole move.
+  await page.getByRole("button", { name: "Undo", exact: true }).click()
+  await expect.poll(() => itemsIn(page, "First 3 days")).toEqual(["Join the officer group chat", "Meet your buddy", "Get added to the club shared drive"])
+  // Modules too.
+  await moduleGrip(page, "Check-ins").focus()
+  await page.keyboard.press("Space")
+  await page.keyboard.press("ArrowUp")
+  await expect(announce).toHaveText("Position 4 of 5.")
+  await page.keyboard.press("Space")
+  await expect.poll(async () => (await checklist(page))?.modules.map(m => m.title)).toEqual(["First 3 days", "Learn the club", "Tools & access", "Check-ins", "Handoff from your predecessor"])
+  await expect(moduleGrip(page, "Check-ins")).toBeFocused()
+})
+
+test("a keyboard move into a full module is refused and said", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await page.getByRole("button", { name: "Paste a list", exact: true }).click()
+  await page.getByRole("textbox", { name: "Paste a list", exact: true }).fill(`Learn the club:\n${Array.from({ length: 55 }, (_, k) => `Task ${k}`).join("\n")}`)
+  await page.getByRole("button", { name: "Add to checklist", exact: true }).click()
+  await expect.poll(() => itemsIn(page, "Learn the club").then(t => t?.length)).toBe(60)
+  await grip(page, "Get added to the club shared drive").focus()
+  await page.keyboard.press("Space")
+  await page.keyboard.press("ArrowDown")
+  await expect(page.getByTestId("onboarding-announce")).toHaveText("No room in Learn the club: a module holds at most 60.")
+  await page.keyboard.press("Space")
+  expect(await itemsIn(page, "First 3 days")).toHaveLength(3)
+})
+
+test("a finger drags an item by its grip on a phone", async ({ page }, info) => {
+  test.skip(info.project.name !== "mobile", "a touch screen")
+  await open(page)
+  await startStarter(page)
+  const from = grip(page, "Day 30 review"), to = row(page, "Walk through open work together")
+  await to.scrollIntoViewIfNeeded()
+  await from.scrollIntoViewIfNeeded()
+  const a = await centre(from), b = (await to.boundingBox())!
+  const cdp = await page.context().newCDPSession(page)
+  const touch = (type: string, x: number, y: number) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] })
+  await touch("touchStart", a.x, a.y)
+  const steps = 10
+  for (let k = 1; k <= steps; k++) await touch("touchMove", a.x, a.y + (b.y + 4 - a.y) * k / steps)
+  await expect(page.getByTestId("onboarding-drop-line")).toBeVisible()
+  await touch("touchEnd", 0, 0)
+  await expect.poll(() => itemsIn(page, "Handoff from your predecessor")).toEqual(["Day 30 review", "Walk through open work together", "Hand over account access", "Introduce key contacts"])
+  expect(await itemsIn(page, "Check-ins")).toEqual(["Week 2 check-in"])
+  expect(await noOverflow(page)).toBeLessThanOrEqual(0)
+})
+
+test("the header stays frozen while scrolling down to the last item, above the sticky Item column", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await row(page, "Day 30 review").scrollIntoViewIfNeeded()
+  await expect(row(page, "Day 30 review")).toBeInViewport()
+  for (const name of ["Treasurer", "Finance", "Everyone", "Item"]) {
+    const header = matrix(page).getByRole("columnheader", { name, exact: true })
+    const seen = await header.evaluate(th => {
+      // On a phone, first bring the column in sideways (only sideways: the frame keeps its vertical scroll).
+      const wrap = th.closest(".ck-wrap") as HTMLElement, corner = wrap.querySelector("thead th.ck-corner") as HTMLElement
+      wrap.scrollLeft = 0
+      if (th !== corner && th.getBoundingClientRect().right > wrap.getBoundingClientRect().right) wrap.scrollLeft = th.getBoundingClientRect().left - corner.getBoundingClientRect().right
+      const r = th.getBoundingClientRect(), bar = document.querySelector(".topbar")?.getBoundingClientRect().bottom ?? 0
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+      return { onTop: !!hit && th.contains(hit), belowBar: r.top >= bar - 1, inViewport: r.top >= 0 && r.bottom <= innerHeight }
+    })
+    expect(seen, name).toEqual({ onTop: true, belowBar: true, inViewport: true })
+  }
+  // The frame really scrolled: the first module's row is under the header now, not beside it.
+  const [head, first] = [(await matrix(page).locator("thead").boundingBox())!, (await moduleRow(page, "First 3 days").boundingBox())!]
+  expect(first.y).toBeLessThan(head.y)
+  // Scrolled sideways as well (a phone), the corner stays over both the header and the Item column.
+  await page.getByTestId("onboarding-frame").evaluate(el => { el.scrollLeft = 10_000 })
+  const corner = await matrix(page).locator("thead th.ck-corner").evaluate(th => { const r = th.getBoundingClientRect(), hit = document.elementFromPoint(r.left + 20, r.top + r.height / 2); return !!hit && th.contains(hit) })
+  expect(corner).toBe(true)
 })
 
 /* ───────────── Review fixes (F2): saving at the edges, reset, damaged saves, deleting, focus, limits, names ───────────── */
@@ -332,7 +601,7 @@ test("a damaged saved checklist never breaks Settings: what can be read shows, t
     await closeRail(page)
     await nav(page).getByRole("button", { name: "Onboarding", exact: true }).click()
   }
-  // A module without its items list: the module still shows, with no items.
+  // A module without its items list (and a template v1 "who"): the module still shows, with no items.
   await seed({ version: 1, updatedOn: "", modules: [{ id: "a", title: "Damaged module", when: "none", who: "new" }] })
   await expect(page.getByRole("textbox", { name: "Module name", exact: true })).toHaveValue("Damaged module")
   await expect(page.getByTestId("onboarding-item")).toHaveCount(0)
@@ -371,30 +640,28 @@ test("only the inline Delete deletes a module: a double press on × opens the pr
   expect(await focused(page)).toEqual({ tag: "TEXTAREA", label: "Module name", row: "Learn the club" })
 })
 
-test("focus follows a moved item across modules, a moved module, and lands on a neighbour after a delete", async ({ page }) => {
+test("focus stays on a moved row's grip across modules and for modules, and lands on a neighbour after a delete", async ({ page }) => {
   await open(page)
   await startStarter(page)
-  await row(page, "Join the officer group chat").getByRole("button", { name: "Move item down", exact: true }).click()
-  expect(await focused(page)).toEqual({ tag: "BUTTON", label: "Move item down", row: "Join the officer group chat" })
-  await row(page, "Get added to the club shared drive").getByRole("button", { name: "Move item down", exact: true }).click()
+  const move = async (g: Locator, key: "ArrowUp" | "ArrowDown") => { await g.focus(); await page.keyboard.press("Space"); await page.keyboard.press(key); await page.keyboard.press("Space") }
+  await move(grip(page, "Join the officer group chat"), "ArrowDown")
+  expect(await focused(page)).toEqual({ tag: "BUTTON", label: "Move Join the officer group chat", row: "Join the officer group chat" })
+  await move(grip(page, "Get added to the club shared drive"), "ArrowDown")
   await expect.poll(async () => (await checklist(page))?.modules[1].items[0].title).toBe("Get added to the club shared drive")
-  expect(await focused(page)).toEqual({ tag: "BUTTON", label: "Move item down", row: "Get added to the club shared drive" })
+  expect(await focused(page)).toEqual({ tag: "BUTTON", label: "Move Get added to the club shared drive", row: "Get added to the club shared drive" })
   await row(page, "Join the officer group chat").getByRole("button", { name: "Delete item", exact: true }).click()
   expect(await focused(page)).toEqual({ tag: "TEXTAREA", label: "Item title", row: "Meet your buddy" })
   await row(page, "Meet your buddy").getByRole("button", { name: "Delete item", exact: true }).click()
   expect(await focused(page)).toEqual({ tag: "TEXTAREA", label: "Module name", row: "First 3 days" })
-  await moduleRow(page, "Learn the club").getByRole("button", { name: "Move module up", exact: true }).click()
+  await move(moduleGrip(page, "Learn the club"), "ArrowUp")
   await expect.poll(async () => (await checklist(page))?.modules[0].title).toBe("Learn the club")
-  // At the top the Up button is disabled, so focus goes to the module's name.
-  expect(await focused(page)).toEqual({ tag: "TEXTAREA", label: "Module name", row: "Learn the club" })
-  await moduleRow(page, "Tools & access").getByRole("button", { name: "Move module up", exact: true }).click()
-  expect(await focused(page)).toEqual({ tag: "BUTTON", label: "Move module up", row: "Tools & access" })
+  expect(await focused(page)).toEqual({ tag: "BUTTON", label: "Move module Learn the club", row: "Learn the club" })
 })
 
 test("an item without a title says it will not be saved, and the status does not claim Saved", async ({ page }) => {
   await open(page)
   await startStarter(page)
-  await page.getByRole("button", { name: "+ Add item", exact: true }).click()
+  await page.getByRole("button", { name: "+ Add item to Check-ins", exact: true }).click()
   const last = page.getByTestId("onboarding-item").last()
   await last.getByRole("button", { name: /^Treasurer: / }).click()
   await page.waitForTimeout(700)
@@ -433,6 +700,7 @@ test("limits say what they cut: the paste preview counts what fits, and Enter in
   await expect(page.getByTestId("onboarding-note")).toHaveText("Added 57 of 60 items: a module holds at most 60.")
   await expect(page.getByTestId("onboarding-announce")).toHaveText("Added 57 of 60 items: a module holds at most 60.")
   await expect.poll(async () => (await checklist(page))?.modules[0].items).toHaveLength(60)
+  await expect(page.getByRole("button", { name: "+ Add item to First 3 days", exact: true })).toBeDisabled()
   await titleField(page, "Task 10").press("Enter")
   await expect(page.getByTestId("onboarding-note")).toHaveText("No room for another item: a module holds at most 60.")
   await expect(page.getByTestId("onboarding-item")).toHaveCount(80)
@@ -450,9 +718,9 @@ test("the save status is not a live region; Undo is announced; cells and selects
   await expect(page.getByTestId("onboarding-announce")).toHaveText("Undid the last change.")
   const r = row(page, "Join the officer group chat")
   await expect(r.getByRole("button", { name: "Treasurer: gets Join the officer group chat", exact: true })).toHaveAttribute("aria-pressed", "true")
-  await expect(r.getByRole("button", { name: "Everyone: on for Join the officer group chat", exact: true })).toBeVisible()
+  await expect(r.getByRole("button", { name: "Everyone: all roles get Join the officer group chat", exact: true })).toBeVisible()
   await expect(r.getByRole("combobox", { name: "When for Join the officer group chat: follows module, Day 3", exact: true })).toHaveValue("")
-  await expect(r.getByRole("combobox", { name: "Who does it for Join the officer group chat: follows module, New officer", exact: true })).toHaveValue("")
+  await expect(r.getByRole("button", { name: "Move Join the officer group chat", exact: true })).toHaveAccessibleDescription("Drag to move, or press Space, then the arrow keys.")
   // Long titles are cut to about 40 characters in the name.
   await expect(row(page, "Walk through a budget request in Sun Devil Central").getByRole("button", { name: "Treasurer: gets Walk through a budget request in Sun De…", exact: true })).toBeVisible()
 })
