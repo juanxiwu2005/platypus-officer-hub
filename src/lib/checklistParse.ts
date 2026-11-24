@@ -114,7 +114,7 @@ function moduleList() {
   return { modules, moduleFor }
 }
 
-function parseSheet(rows: string[][], cols: Partial<Record<HeaderField, number>>): PastedList {
+function parseSheet(rows: string[][], cols: Partial<Record<HeaderField, number>>, leading: string): PastedList {
   const { modules, moduleFor } = moduleList()
   const cell = (row: string[], i: number | undefined) => i === undefined ? "" : row[i] ?? ""
   let current: string | null = null
@@ -129,12 +129,12 @@ function parseSheet(rows: string[][], cols: Partial<Record<HeaderField, number>>
     const section = withoutNumber(cell(row, cols.section))
     if (section) current = section
     const when = whenFromCell(cell(row, cols.due)), who = whoFromCell(cell(row, cols.owner))
-    moduleFor(current ?? DEFAULT_PASTE_MODULE).items.push({ title: item, ...(when ? { when } : {}), ...(who ? { who } : {}) })
+    moduleFor(current ?? leading).items.push({ title: item, ...(when ? { when } : {}), ...(who ? { who } : {}) })
   }
   return { modules }
 }
 
-function parseLines(lines: string[]): PastedList {
+function parseLines(lines: string[], leading: string): PastedList {
   const { modules, moduleFor } = moduleList()
   let current: string | null = null
   for (const raw of lines) {
@@ -145,7 +145,7 @@ function parseLines(lines: string[]): PastedList {
       if (title) { current = title; moduleFor(title) }
       continue
     }
-    moduleFor(current ?? DEFAULT_PASTE_MODULE).items.push(parseShorthand(line))
+    moduleFor(current ?? leading).items.push(parseShorthand(line))
   }
   return { modules }
 }
@@ -154,19 +154,21 @@ function parseLines(lines: string[]): PastedList {
  * Pasted text to modules and items, without ids. Tab-separated text whose first row names an item column
  * (Item, Checklist Item, Task, Title) is read as a spreadsheet: columns by header name, section rows become modules.
  * Anything else is read as lines: "Name:" starts a module, list markers are stripped, each line goes through parseShorthand.
- * Absolute dates are never read. Items before any module go into "Checklist". Modules with the same name are merged.
+ * Absolute dates are never read. Items before any module go into `leading` ("Checklist"). Modules with the same name are merged.
+ * The editor passes "" as `leading` for text pasted into an item's title, to tell those lines apart from a module named
+ * "Checklist" (a module name read from the text is never empty).
  */
-export function parsePastedList(text: string): PastedList {
+export function parsePastedList(text: string, leading = DEFAULT_PASTE_MODULE): PastedList {
   const lines = text.split(/\r?\n/)
   const first = lines.findIndex(l => l.trim())
   if (first < 0) return { modules: [] }
   if (lines[first].includes("\t")) {
     const split = (l: string) => l.split("\t").map(c => c.trim().replace(/^"([\s\S]*)"$/, "$1").trim())
     const cols = headerColumns(split(lines[first]))
-    if (cols.item !== undefined) return parseSheet(lines.slice(first + 1).filter(l => l.trim()).map(split), cols)
-    return parseLines(lines.map(l => l.replace(/\t+/g, " ")))
+    if (cols.item !== undefined) return parseSheet(lines.slice(first + 1).filter(l => l.trim()).map(split), cols, leading)
+    return parseLines(lines.map(l => l.replace(/\t+/g, " ")), leading)
   }
-  return parseLines(lines)
+  return parseLines(lines, leading)
 }
 
 /**

@@ -1,6 +1,6 @@
 import type { ChecklistItem, ChecklistModule, OnboardingChecklist } from "../../../data/types"
-import { MAX_CHECKLIST_ITEMS, MAX_CHECKLIST_MODULES, MAX_MODULE_ITEMS, countItems } from "../../../lib/checklist"
-import type { PastedItem } from "../../../lib/checklistParse"
+import { MAX_CHECKLIST_ITEMS, MAX_CHECKLIST_MODULES, MAX_ITEM_TITLE, MAX_MODULE_ITEMS, MAX_MODULE_TITLE, capText, countItems } from "../../../lib/checklist"
+import { addPasted, type PastedItem, type PastedList } from "../../../lib/checklistParse"
 
 /**
  * Immutable edits for the onboarding matrix editor (Settings → Onboarding). They only rearrange the draft on screen:
@@ -9,12 +9,12 @@ import type { PastedItem } from "../../../lib/checklistParse"
 
 export type Dir = -1 | 1
 
-/** A new item for every role, from a typed or pasted line. */
+/** A new item for every role, from a typed or pasted line. The title is capped like a saved one (MAX_ITEM_TITLE). */
 export const newItem = (id: string, from: PastedItem = { title: "" }): ChecklistItem => ({
-  id, title: from.title, ...(from.when ? { when: from.when } : {}), ...(from.who ? { who: from.who } : {}), everyone: true, roleIds: [], hiddenFor: [],
+  id, title: capText(from.title, MAX_ITEM_TITLE), ...(from.when ? { when: from.when } : {}), ...(from.who ? { who: from.who } : {}), everyone: true, roleIds: [], hiddenFor: [],
 })
 
-export const newModule = (id: string, title: string): ChecklistModule => ({ id, title, when: "none", who: "new", items: [] })
+export const newModule = (id: string, title: string): ChecklistModule => ({ id, title: capText(title, MAX_MODULE_TITLE), when: "none", who: "new", items: [] })
 
 /** Where an item sits: module index and item index, or null. */
 export function locate(c: OnboardingChecklist, itemId: string): { mi: number; ii: number } | null {
@@ -32,6 +32,10 @@ export const patchModule = (c: OnboardingChecklist, moduleId: string, patch: Par
 
 export const mapItem = (c: OnboardingChecklist, itemId: string, fn: (i: ChecklistItem) => ChecklistItem) =>
   withModules(c, c.modules.map(m => m.items.some(i => i.id === itemId) ? { ...m, items: m.items.map(i => i.id === itemId ? fn(i) : i) } : m))
+
+/** A typed or pasted line applied to an existing item: a capped title, and when / who only where the line set them. */
+export const applyLine = (i: ChecklistItem, line: PastedItem): ChecklistItem =>
+  ({ ...i, title: capText(line.title, MAX_ITEM_TITLE), ...(line.when ? { when: line.when } : {}), ...(line.who ? { who: line.who } : {}) })
 
 /** How many more items the module can take, within the module and checklist limits. */
 export const roomIn = (c: OnboardingChecklist, m: ChecklistModule) => Math.max(0, Math.min(MAX_MODULE_ITEMS - m.items.length, MAX_CHECKLIST_ITEMS - countItems(c)))
@@ -60,6 +64,12 @@ export function moveModule(c: OnboardingChecklist, moduleId: string, dir: Dir): 
   return withModules(c, modules)
 }
 
+/** Whether the module can move one more place in `dir`. */
+export const canMoveModule = (c: OnboardingChecklist, moduleId: string, dir: Dir) => {
+  const j = c.modules.findIndex(m => m.id === moduleId) + dir
+  return j >= 0 && j < c.modules.length && c.modules.some(m => m.id === moduleId)
+}
+
 /**
  * Moves an item one place. At the top or bottom of its module it moves into the neighbouring module (as its last or first item),
  * so an item can travel anywhere with the two buttons. Null when it cannot move.
@@ -82,4 +92,86 @@ export function moveItem(c: OnboardingChecklist, itemId: string, dir: Dir): Onbo
   const target = modules[to.mi]
   target.items = [...target.items.slice(0, to.ii), item, ...target.items.slice(to.ii)]
   return withModules(c, modules)
+}
+
+/* ───────────── Where focus goes after a row disappears ───────────── */
+
+/** After deleting an item: the previous item in its module, else the next one, else the module (its name). */
+export function focusAfterRemoveItem(c: OnboardingChecklist, itemId: string): { item: string } | { module: string } | null {
+  const at = locate(c, itemId)
+  if (!at) return null
+  const m = c.modules[at.mi], near = m.items[at.ii - 1] ?? m.items[at.ii + 1]
+  return near ? { item: near.id } : { module: m.id }
+}
+
+/** After deleting a module: the previous module, else the next one, else null (the checklist is empty). */
+export function focusAfterRemoveModule(c: OnboardingChecklist, moduleId: string): string | null {
+  const i = c.modules.findIndex(m => m.id === moduleId)
+  if (i < 0) return null
+  return (c.modules[i - 1] ?? c.modules[i + 1])?.id ?? null
+}
+
+/* ───────────── Adding many items, and saying what the limits cut ───────────── */
+
+/** Which limit cut an addition: 60 items in a module, 300 in the checklist, or 20 modules. */
+export type Limit = "module" | "total" | "modules"
+export const LIMIT_REASON: Readonly<Record<Limit, string>> = {
+  module: `a module holds at most ${MAX_MODULE_ITEMS}`,
+  total: `the checklist holds at most ${MAX_CHECKLIST_ITEMS} items`,
+  modules: `the checklist holds at most ${MAX_CHECKLIST_MODULES} modules`,
+}
+/** An addition and how much of it went in. `limit` is set only when something was left out. */
+export interface Added { checklist: OnboardingChecklist; requested: number; added: number; limit: Limit | null }
+
+/** The limit that stops more items going into `m` (checked before inserting). */
+export const limitIn = (c: OnboardingChecklist, m: ChecklistModule): Limit =>
+  MAX_CHECKLIST_ITEMS - countItems(c) < MAX_MODULE_ITEMS - m.items.length ? "total" : "module"
+
+/** "Added 57 of 60 items: a module holds at most 60." when a limit cut an addition, else null. */
+export function limitNote(r: Pick<Added, "requested" | "added" | "limit">): string | null {
+  if (!r.limit || r.added >= r.requested) return null
+  if (r.requested === 1) return `No room for another item: ${LIMIT_REASON[r.limit]}.`
+  return `Added ${r.added} of ${r.requested} items: ${LIMIT_REASON[r.limit]}.`
+}
+
+/** Pasted items that addPasted would try to add: a non-empty title in a module with a non-empty name. */
+const pastedItems = (parsed: PastedList) =>
+  parsed.modules.filter(pm => capText(pm.title, MAX_MODULE_TITLE)).reduce((n, pm) => n + pm.items.filter(i => capText(i.title, MAX_ITEM_TITLE)).length, 0)
+
+/** addPasted (the Paste a list panel), counting what the limits left out. */
+export function addPastedCounted(c: OnboardingChecklist | null, parsed: PastedList, makeId: () => string): Added {
+  const checklist = addPasted(c, parsed, makeId)
+  const requested = pastedItems(parsed), added = countItems(checklist) - (c ? countItems(c) : 0)
+  if (added >= requested) return { checklist, requested, added, limit: null }
+  const named = (title: string) => checklist.modules.some(m => m.title.trim().toLowerCase() === title.toLowerCase())
+  const lostModule = parsed.modules.some(pm => { const t = capText(pm.title, MAX_MODULE_TITLE); return t && pm.items.length > 0 && !named(t) })
+  return { checklist, requested, added, limit: countItems(checklist) >= MAX_CHECKLIST_ITEMS ? "total" : lostModule ? "modules" : "module" }
+}
+
+/**
+ * Several lines pasted into one item's title. `parsed` comes from parsePastedList(text, ""), so the lines before any
+ * "Section:" line arrive in a module with an empty name. This matches the Paste a list panel: those leading lines go right
+ * below the item, in its module (the first one becomes the item's title when that title is empty), and the lines after a
+ * "Section:" line go to that module, an existing one with the same name or a new one at the end, as Add to checklist does.
+ * `focus` is the last item placed below the row (or the row itself), so typing can continue there.
+ */
+export function pasteIntoItem(c: OnboardingChecklist, itemId: string, parsed: PastedList, makeId: () => string): Added & { focus: string | null } {
+  const at = locate(c, itemId)
+  if (!at) return { checklist: c, requested: 0, added: 0, limit: null, focus: null }
+  const moduleId = c.modules[at.mi].id
+  const here = parsed.modules.filter(pm => !pm.title).flatMap(pm => pm.items).filter(i => capText(i.title, MAX_ITEM_TITLE))
+  const elsewhere: PastedList = { modules: parsed.modules.filter(pm => pm.title) }
+  const replaceSelf = here.length > 0 && !c.modules[at.mi].items[at.ii].title.trim()
+  let next = replaceSelf ? mapItem(c, itemId, i => applyLine(i, here[0])) : c
+  const below = (replaceSelf ? here.slice(1) : here).map(line => newItem(makeId(), line))
+  const module = next.modules[at.mi], room = roomIn(next, module)
+  const hereLimit = below.length > room ? limitIn(next, module) : null
+  next = insertItems(next, moduleId, at.ii + 1, below)
+  const placed = below.slice(0, room)
+  let requested = below.length + (replaceSelf ? 1 : 0), added = placed.length + (replaceSelf ? 1 : 0), limit: Limit | null = hereLimit
+  if (elsewhere.modules.length) {
+    const more = addPastedCounted(next, elsewhere, makeId)
+    next = more.checklist; requested += more.requested; added += more.added; limit ??= more.limit
+  }
+  return { checklist: next, requested, added, limit, focus: placed.at(-1)?.id ?? (replaceSelf ? itemId : null) }
 }

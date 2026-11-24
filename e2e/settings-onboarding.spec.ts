@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
-import { closeRail, noOverflow, viewAs } from "./helpers"
+import { closeRail, noOverflow, openDemoMenu, viewAs } from "./helpers"
 import type { DemoState, OnboardingChecklist } from "../src/data/types"
 import { countEveryone, countForRole } from "../src/lib/checklist"
 
@@ -46,10 +46,10 @@ test("the starter loads, its totals match the model, and hiding an Everyone item
   await expect(matrix(page).getByRole("columnheader", { name: "Treasurer", exact: true })).toBeVisible()
   await expect(row(page, "Complete anti-hazing training").locator(".rule-id")).toHaveText("ASU-R-004")
 
-  const cell = row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: gets this item", exact: true })
+  const cell = row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: gets Join the officer group chat", exact: true })
   await expect(cell).toHaveAttribute("aria-pressed", "true")
   await cell.click()
-  const hidden = row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: hidden", exact: true })
+  const hidden = row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: hidden for Join the officer group chat", exact: true })
   await expect(hidden).toHaveAttribute("aria-pressed", "false")
   await expect(page.getByTestId("count-r-fin")).toHaveText("16")
   await expect(page.getByTestId("count-everyone")).toHaveText("13")
@@ -74,13 +74,13 @@ test("Everyone off, then one role on", async ({ page }) => {
   await open(page)
   await startStarter(page)
   const r = row(page, "Read the constitution")
-  await r.getByRole("button", { name: "Everyone: on", exact: true }).click()
-  await expect(r.getByRole("button", { name: "Everyone: off", exact: true })).toHaveAttribute("aria-pressed", "false")
-  await expect(r.getByRole("button", { name: "Treasurer: not included", exact: true })).toHaveAttribute("aria-pressed", "false")
+  await r.getByRole("button", { name: "Everyone: on for Read the constitution", exact: true }).click()
+  await expect(r.getByRole("button", { name: "Everyone: off for Read the constitution", exact: true })).toHaveAttribute("aria-pressed", "false")
+  await expect(r.getByRole("button", { name: "Treasurer: does not get Read the constitution", exact: true })).toHaveAttribute("aria-pressed", "false")
   await expect(page.getByTestId("count-everyone")).toHaveText("12")
-  await r.getByRole("button", { name: "Treasurer: not included", exact: true }).click()
-  await expect(r.getByRole("button", { name: "Treasurer: gets this item", exact: true })).toHaveAttribute("aria-pressed", "true")
-  await expect(r.getByRole("button", { name: "Secretary: not included", exact: true })).toBeVisible()
+  await r.getByRole("button", { name: "Treasurer: does not get Read the constitution", exact: true }).click()
+  await expect(r.getByRole("button", { name: "Treasurer: gets Read the constitution", exact: true })).toHaveAttribute("aria-pressed", "true")
+  await expect(r.getByRole("button", { name: "Secretary: does not get Read the constitution", exact: true })).toBeVisible()
   await expect.poll(async () => { const i = itemOf(await checklist(page), "Read the constitution"); return i && { everyone: i.everyone, roleIds: i.roleIds } }).toEqual({ everyone: false, roleIds: ["r-fin"] })
   await expect(page.getByTestId("count-r-fin")).toHaveText("17")
   await expect(page.getByTestId("count-r-sec")).toHaveText(String(countForRole((await checklist(page))!, "r-sec")))
@@ -95,9 +95,9 @@ test("Enter adds the next row with focus, shorthand sets Who and When, and Backs
   await page.keyboard.type("Meet your mentor @buddy day 3")
   await page.keyboard.press("Enter")
   const mentor = row(page, "Meet your mentor")
-  await expect(mentor.getByRole("combobox", { name: "Who does it", exact: true })).toHaveValue("buddy")
-  await expect(mentor.getByRole("combobox", { name: "When", exact: true })).toHaveValue("day3")
-  await expect(mentor.getByRole("combobox", { name: "When", exact: true }).locator("..")).toHaveClass(/is-set/)
+  await expect(mentor.getByRole("combobox", { name: "Who does it for Meet your mentor", exact: true })).toHaveValue("buddy")
+  await expect(mentor.getByRole("combobox", { name: "When for Meet your mentor", exact: true })).toHaveValue("day3")
+  await expect(mentor.getByRole("combobox", { name: "When for Meet your mentor", exact: true }).locator("..")).toHaveClass(/is-set/)
   // The new row is right below and has focus.
   const focused = page.locator("textarea.ck-title:focus")
   await expect(focused).toHaveValue("")
@@ -132,11 +132,11 @@ test("Paste a list reads tab-separated rows into modules with a live preview", a
 test("Undo restores the previous saved version, and a module with items asks before it is deleted", async ({ page }) => {
   await open(page)
   await startStarter(page)
-  await row(page, "Meet your buddy").getByRole("button", { name: "Treasurer: gets this item", exact: true }).click()
+  await row(page, "Meet your buddy").getByRole("button", { name: "Treasurer: gets Meet your buddy", exact: true }).click()
   await expect.poll(async () => itemOf(await checklist(page), "Meet your buddy")?.hiddenFor).toEqual(["r-fin"])
   await page.getByRole("button", { name: "Undo", exact: true }).click()
   await expect.poll(async () => itemOf(await checklist(page), "Meet your buddy")?.hiddenFor).toEqual([])
-  await expect(row(page, "Meet your buddy").getByRole("button", { name: "Treasurer: gets this item", exact: true })).toBeVisible()
+  await expect(row(page, "Meet your buddy").getByRole("button", { name: "Treasurer: gets Meet your buddy", exact: true })).toBeVisible()
 
   const checkIns = moduleRow(page, "Check-ins")
   await checkIns.getByRole("button", { name: "Delete module", exact: true }).click()
@@ -185,8 +185,8 @@ test("the deep link opens Onboarding, and dark mode has no serious accessibility
   await expect(page.getByTestId("onboarding-settings")).toBeVisible()
   expect(await serious(page)).toEqual([])
   await startStarter(page)
-  await row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: gets this item", exact: true }).click()
-  await row(page, "Read the constitution").getByRole("combobox", { name: "When: follows module, Week 1", exact: true }).selectOption("day1")
+  await row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: gets Join the officer group chat", exact: true }).click()
+  await row(page, "Read the constitution").getByRole("combobox", { name: "When for Read the constitution: follows module, Week 1", exact: true }).selectOption("day1")
   await page.getByRole("button", { name: "Paste a list", exact: true }).click()
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
   expect(await serious(page)).toEqual([])
@@ -196,19 +196,19 @@ test("an inherited chip shows only the value, dashed, and its name and first opt
   await open(page)
   await startStarter(page)
   const r = row(page, "Read the constitution")
-  const when = r.getByRole("combobox", { name: "When: follows module, Week 1", exact: true })
+  const when = r.getByRole("combobox", { name: "When for Read the constitution: follows module, Week 1", exact: true })
   await expect(when).toHaveValue("")
   await expect(when.locator("option").first()).toHaveText("Week 1 (module)")
   await expect(when.locator("..")).toHaveClass(/is-follow/)
   await expect(when.locator("..").locator(":scope > span")).toHaveText("Week 1")   // the visible pill: the value only
-  const who = r.getByRole("combobox", { name: "Who does it: follows module, New officer", exact: true })
+  const who = r.getByRole("combobox", { name: "Who does it for Read the constitution: follows module, New officer", exact: true })
   await expect(who).toHaveValue("")
   await expect(who.locator("..").locator(":scope > span")).toHaveText("New officer")
   await expect(who.locator("option").first()).toHaveText("New officer (module)")
   await expect(page.getByRole("list", { name: "Legend" })).toContainText("Follows the module")
   // Set on the item: the chip fills and the name is plain again.
   await when.selectOption("day1")
-  await expect(r.getByRole("combobox", { name: "When", exact: true }).locator("..")).toHaveClass(/is-set/)
+  await expect(r.getByRole("combobox", { name: "When for Read the constitution", exact: true }).locator("..")).toHaveClass(/is-set/)
 })
 
 test("at 1440px every column of the seed club fits without scrolling, and long titles and rule tags stay readable", async ({ page }, info) => {
@@ -216,7 +216,7 @@ test("at 1440px every column of the seed club fits without scrolling, and long t
   await page.setViewportSize({ width: 1440, height: 900 })
   await open(page)
   await startStarter(page)
-  await row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: gets this item", exact: true }).click()
+  await row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: gets Join the officer group chat", exact: true }).click()
   const { roles } = await read(page)
   expect(roles).toHaveLength(5)
   const box = await matrix(page).evaluate(el => {
@@ -265,7 +265,194 @@ test("on a phone the sticky Item column is opaque, no header hides under it, Whe
   }
   // At the start When and Who sit right next to the Item column.
   await matrix(page).evaluate(el => { el.parentElement!.scrollLeft = 0 })
-  await expect(row(page, "Read the constitution").getByRole("combobox", { name: "When: follows module, Week 1", exact: true })).toBeInViewport()
-  await expect(row(page, "Read the constitution").getByRole("combobox", { name: "Who does it: follows module, New officer", exact: true })).toBeInViewport()
+  await expect(row(page, "Read the constitution").getByRole("combobox", { name: "When for Read the constitution: follows module, Week 1", exact: true })).toBeInViewport()
+  await expect(row(page, "Read the constitution").getByRole("combobox", { name: "Who does it for Read the constitution: follows module, New officer", exact: true })).toBeInViewport()
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
+})
+
+/* ───────────── Review fixes (F2): saving at the edges, reset, damaged saves, deleting, focus, limits, names ───────────── */
+
+const titlesIn = (c: OnboardingChecklist | undefined) => c?.modules.flatMap(m => m.items.map(i => i.title)) ?? []
+const titleField = (page: Page, title: string) => row(page, title).getByRole("textbox", { name: "Item title", exact: true })
+/** What has focus: the tag, its accessible label, and the title of the row it sits in. */
+const focused = (page: Page) => page.evaluate(() => {
+  const a = document.activeElement as HTMLElement, tr = a.closest("tr")
+  const title = tr?.querySelector<HTMLTextAreaElement>("textarea.ck-title, textarea.ck-name")?.value ?? null
+  return { tag: a.tagName, label: a.getAttribute("aria-label") ?? a.textContent ?? "", row: title }
+})
+/** Pastes `text` into the focused field as a clipboard paste would. */
+const pasteText = (page: Page, text: string) => page.evaluate(t => {
+  const dt = new DataTransfer(); dt.setData("text/plain", t)
+  document.activeElement!.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }))
+}, text)
+
+test("typing is saved when the page reloads right after it", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await titleField(page, "Read the constitution").fill("Read the constitution twice")
+  await page.reload()
+  expect(titlesIn(await checklist(page))).toContain("Read the constitution twice")
+})
+
+test("typing is saved before View as switches to an officer who cannot edit the checklist", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await titleField(page, "Read the constitution").fill("Read the constitution twice")
+  await viewAs(page, "maya")
+  await page.waitForTimeout(800)
+  expect(titlesIn(await checklist(page))).toContain("Read the constitution twice")
+})
+
+test("Reset demo drops typing still waiting and the Undo history of the old checklist", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await row(page, "Meet your buddy").getByRole("button", { name: /^Treasurer: / }).click()
+  await expect.poll(async () => itemOf(await checklist(page), "Meet your buddy")?.hiddenFor).toEqual(["r-fin"])
+  // Arm Reset first, then type without leaving the field, then reset with a script click, so the typing is still waiting.
+  await openDemoMenu(page)
+  await page.getByTestId("reset-demo").click()
+  await expect(page.getByTestId("reset-demo")).toHaveText("Click again to reset")
+  await page.getByRole("textbox", { name: "Module name", exact: true }).first().focus()
+  await page.keyboard.type(" typed")
+  await page.evaluate(() => (document.querySelector("[data-testid=reset-demo]") as HTMLButtonElement).click())
+  await expect(page.getByTestId("onboarding-empty")).toBeVisible()
+  await page.waitForTimeout(800)
+  expect((await checklist(page)) ?? null).toBeNull()
+  await expect(page.getByTestId("onboarding-empty")).toBeVisible()
+  await expect(page.getByRole("button", { name: "Undo", exact: true })).toHaveCount(0)
+})
+
+test("a damaged saved checklist never breaks Settings: what can be read shows, the rest says it could not be read", async ({ page }) => {
+  const errors: string[] = []
+  page.on("pageerror", e => errors.push(e.message))
+  await open(page)
+  const seed = async (value: unknown) => {
+    await page.evaluate(v => { const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!); s.org.onboardingChecklist = v; localStorage.setItem("platypus.v1.demo", JSON.stringify(s)) }, value)
+    await page.reload()
+    await closeRail(page)
+    await nav(page).getByRole("button", { name: "Onboarding", exact: true }).click()
+  }
+  // A module without its items list: the module still shows, with no items.
+  await seed({ version: 1, updatedOn: "", modules: [{ id: "a", title: "Damaged module", when: "none", who: "new" }] })
+  await expect(page.getByRole("textbox", { name: "Module name", exact: true })).toHaveValue("Damaged module")
+  await expect(page.getByTestId("onboarding-item")).toHaveCount(0)
+  // Not a checklist at all: the empty state, one line saying so, and the starter still works over it.
+  await seed({ version: 7, modules: "nope" })
+  await expect(page.getByTestId("onboarding-empty")).toContainText("The saved checklist could not be read.")
+  await startStarter(page)
+  await expect(page.getByTestId("onboarding-empty")).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test("only the inline Delete deletes a module: a double press on × opens the prompt, Escape cancels and gives focus back", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  const first = moduleRow(page, "First 3 days")
+  const x = first.getByRole("button", { name: "Delete module", exact: true })
+  await x.dblclick()
+  await page.waitForTimeout(300)
+  expect((await checklist(page))?.modules).toHaveLength(5)
+  await expect(first.getByRole("alert")).toHaveText("Delete 3 items too?")
+  // One press: the prompt takes focus on its Cancel button (on a phone the second press of a double tap may land elsewhere).
+  await first.getByRole("button", { name: "Cancel", exact: true }).click()
+  await expect(first.getByRole("alert")).toHaveCount(0)
+  await x.click()
+  await expect(first.getByRole("button", { name: "Cancel", exact: true })).toBeFocused()
+  await page.keyboard.press("Escape")
+  await expect(first.getByRole("alert")).toHaveCount(0)
+  await expect(x).toBeFocused()
+  await x.press("Enter")
+  await x.press("Enter")
+  expect((await checklist(page))?.modules).toHaveLength(5)
+  await expect(first.getByRole("button", { name: "Cancel", exact: true })).toBeVisible()
+  await first.getByRole("button", { name: "Delete", exact: true }).click()
+  await expect.poll(async () => (await checklist(page))?.modules).toHaveLength(4)
+  // Focus lands on the next module's name, not on the page.
+  expect(await focused(page)).toEqual({ tag: "TEXTAREA", label: "Module name", row: "Learn the club" })
+})
+
+test("focus follows a moved item across modules, a moved module, and lands on a neighbour after a delete", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await row(page, "Join the officer group chat").getByRole("button", { name: "Move item down", exact: true }).click()
+  expect(await focused(page)).toEqual({ tag: "BUTTON", label: "Move item down", row: "Join the officer group chat" })
+  await row(page, "Get added to the club shared drive").getByRole("button", { name: "Move item down", exact: true }).click()
+  await expect.poll(async () => (await checklist(page))?.modules[1].items[0].title).toBe("Get added to the club shared drive")
+  expect(await focused(page)).toEqual({ tag: "BUTTON", label: "Move item down", row: "Get added to the club shared drive" })
+  await row(page, "Join the officer group chat").getByRole("button", { name: "Delete item", exact: true }).click()
+  expect(await focused(page)).toEqual({ tag: "TEXTAREA", label: "Item title", row: "Meet your buddy" })
+  await row(page, "Meet your buddy").getByRole("button", { name: "Delete item", exact: true }).click()
+  expect(await focused(page)).toEqual({ tag: "TEXTAREA", label: "Module name", row: "First 3 days" })
+  await moduleRow(page, "Learn the club").getByRole("button", { name: "Move module up", exact: true }).click()
+  await expect.poll(async () => (await checklist(page))?.modules[0].title).toBe("Learn the club")
+  // At the top the Up button is disabled, so focus goes to the module's name.
+  expect(await focused(page)).toEqual({ tag: "TEXTAREA", label: "Module name", row: "Learn the club" })
+  await moduleRow(page, "Tools & access").getByRole("button", { name: "Move module up", exact: true }).click()
+  expect(await focused(page)).toEqual({ tag: "BUTTON", label: "Move module up", row: "Tools & access" })
+})
+
+test("an item without a title says it will not be saved, and the status does not claim Saved", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await page.getByRole("button", { name: "+ Add item", exact: true }).click()
+  const last = page.getByTestId("onboarding-item").last()
+  await last.getByRole("button", { name: /^Treasurer: / }).click()
+  await page.waitForTimeout(700)
+  await expect(page.getByTestId("onboarding-status")).toHaveText("1 item needs a title")
+  await expect(last).toContainText("Add a title to save")
+  const field = last.getByRole("textbox", { name: "Item title", exact: true })
+  await expect(field).toHaveAccessibleDescription("Add a title to save")
+  await field.fill("Shadow the treasurer")
+  await expect(page.getByTestId("onboarding-status")).toHaveText("Saved")
+  await expect(row(page, "Shadow the treasurer")).not.toContainText("Add a title to save")
+  await expect.poll(async () => itemOf(await checklist(page), "Shadow the treasurer")?.hiddenFor).toEqual(["r-fin"])
+})
+
+test("several lines pasted into a title keep the 120-character cap and place Section: lines like Paste a list", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await titleField(page, "Read the constitution").focus()
+  await pasteText(page, `Extra A\n${"L".repeat(150)}\nTools & access:\nExtra B\nNew section:\nExtra C`)
+  await expect.poll(async () => (await checklist(page))?.modules.map(m => m.title)).toEqual(["First 3 days", "Learn the club", "Tools & access", "Handoff from your predecessor", "Check-ins", "New section"])
+  const c = (await checklist(page))!
+  const learn = c.modules[1].items.map(i => i.title), at = learn.indexOf("Read the constitution")
+  expect(learn.slice(at, at + 3)).toEqual(["Read the constitution", "Extra A", "L".repeat(120)])
+  expect(c.modules[2].items.at(-1)?.title).toBe("Extra B")
+  expect(c.modules[5].items.map(i => i.title)).toEqual(["Extra C"])
+  // Focus stays where the lines went in: the last line placed below the row, shown capped.
+  await expect(page.locator("textarea.ck-title:focus")).toHaveValue("L".repeat(120))
+})
+
+test("limits say what they cut: the paste preview counts what fits, and Enter in a full module explains", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await page.getByRole("button", { name: "Paste a list", exact: true }).click()
+  await page.getByRole("textbox", { name: "Paste a list", exact: true }).fill(`First 3 days:\n${Array.from({ length: 60 }, (_, k) => `Task ${k}`).join("\n")}`)
+  await expect(page.getByTestId("onboarding-paste-preview")).toHaveText("57 of 60 items fit: a module holds at most 60.")
+  await page.getByRole("button", { name: "Add to checklist", exact: true }).click()
+  await expect(page.getByTestId("onboarding-note")).toHaveText("Added 57 of 60 items: a module holds at most 60.")
+  await expect(page.getByTestId("onboarding-announce")).toHaveText("Added 57 of 60 items: a module holds at most 60.")
+  await expect.poll(async () => (await checklist(page))?.modules[0].items).toHaveLength(60)
+  await titleField(page, "Task 10").press("Enter")
+  await expect(page.getByTestId("onboarding-note")).toHaveText("No room for another item: a module holds at most 60.")
+  await expect(page.getByTestId("onboarding-item")).toHaveCount(80)
+})
+
+test("the save status is not a live region; Undo is announced; cells and selects name their item", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  const status = page.getByTestId("onboarding-status")
+  expect(await status.evaluate(el => !!el.closest("[role=status], [role=alert], [aria-live]"))).toBe(false)
+  await titleField(page, "Read the constitution").fill("Read the constitution now")
+  await expect(status).toHaveText("Saved")
+  await expect(page.getByTestId("onboarding-announce")).toHaveText("")
+  await page.getByRole("button", { name: "Undo", exact: true }).click()
+  await expect(page.getByTestId("onboarding-announce")).toHaveText("Undid the last change.")
+  const r = row(page, "Join the officer group chat")
+  await expect(r.getByRole("button", { name: "Treasurer: gets Join the officer group chat", exact: true })).toHaveAttribute("aria-pressed", "true")
+  await expect(r.getByRole("button", { name: "Everyone: on for Join the officer group chat", exact: true })).toBeVisible()
+  await expect(r.getByRole("combobox", { name: "When for Join the officer group chat: follows module, Day 3", exact: true })).toHaveValue("")
+  await expect(r.getByRole("combobox", { name: "Who does it for Join the officer group chat: follows module, New officer", exact: true })).toHaveValue("")
+  // Long titles are cut to about 40 characters in the name.
+  await expect(row(page, "Walk through a budget request in Sun Devil Central").getByRole("button", { name: "Treasurer: gets Walk through a budget request in Sun De…", exact: true })).toBeVisible()
 })
