@@ -13,6 +13,10 @@
 .ck-toolbar-end { display: flex; align-items: center; gap: var(--s4); margin-left: auto; }
 .ck-status { color: var(--muted); font-size: var(--fs-md); }
 .ck-status.is-err { color: var(--late); }
+.ck-status.is-warn { color: var(--warn); }
+/* What a 20 / 60 / 300 limit left out of an addition. */
+.ck-note { color: var(--warn); font-size: var(--fs-md); }
+.ck-unreadable { color: var(--warn); font-size: var(--fs-md); }
 
 /* ---- Empty state and paste panel ---- */
 .ck-empty { display: grid; gap: var(--s5); justify-items: start; padding: var(--s6); border: 1px dashed var(--edge); border-radius: var(--r-md); background: var(--lane); }
@@ -63,6 +67,8 @@
 /* The rule tag sits on its own line under the title, so it never takes width from it. */
 .ck-title-cell { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s1); }
 .ck-title-cell .rule-id { margin-left: var(--s3); font-size: var(--fs-md); line-height: 1.2; color: var(--muted); }
+/* An item without a title is not saved (sanitizeChecklist drops it): the row says so under the field. */
+.ck-title-cell .ck-hint { margin-left: var(--s3); font-size: var(--fs-md); font-weight: 600; line-height: 1.2; white-space: normal; color: var(--warn); }
 
 /* ---- When / Who chips: dashed = follows the module, filled = set on the item, outlined = the module's own value.
    The pill shows only the value; a transparent native select over it opens the list and carries the accessible name. ---- */
