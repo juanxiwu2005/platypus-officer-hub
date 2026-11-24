@@ -122,6 +122,8 @@ test("two-state cells and the Everyone rule: filled exactly when every role gets
   const training = row(page, "Complete Officer Training")
   for (const name of ["Events lead", "Marketing lead", "Secretary"]) await training.getByRole("button", { name: `${name}: does not get Complete Officer Training`, exact: true }).click()
   await expect(training.getByRole("button", { name: "Everyone: all roles get Complete Officer Training", exact: true })).toHaveAttribute("aria-pressed", "true")
+  // F3: and it is stored as Everyone's, so roles added later get it too (the filled Everyone cell always means that).
+  await expect.poll(async () => { const i = itemOf(await checklist(page), "Complete Officer Training"); return i && { everyone: i.everyone, roleIds: i.roleIds, hiddenFor: i.hiddenFor } }).toEqual({ everyone: true, roleIds: [], hiddenFor: [] })
   const legend = page.getByRole("list", { name: "Legend" })
   await expect(legend.getByRole("listitem")).toHaveText(["Gets it", "Does not get it", "Follows the module"])
 })
@@ -477,32 +479,42 @@ test("the grip is a keyboard alternative: Space picks up, arrows move, Space dro
   await expect(moduleGrip(page, "Check-ins")).toBeFocused()
 })
 
-test("a keyboard move into a full module is refused and said", async ({ page }) => {
+test("a keyboard move passes over a full module to the next one with room, as a pointer drag can, and says so", async ({ page }) => {
   await open(page)
   await startStarter(page)
   await page.getByRole("button", { name: "Paste a list", exact: true }).click()
   await page.getByRole("textbox", { name: "Paste a list", exact: true }).fill(`Learn the club:\n${Array.from({ length: 55 }, (_, k) => `Task ${k}`).join("\n")}`)
   await page.getByRole("button", { name: "Add to checklist", exact: true }).click()
   await expect.poll(() => itemsIn(page, "Learn the club").then(t => t?.length)).toBe(60)
+  const announce = page.getByTestId("onboarding-announce")
   await grip(page, "Get added to the club shared drive").focus()
   await page.keyboard.press("Space")
   await page.keyboard.press("ArrowDown")
-  await expect(page.getByTestId("onboarding-announce")).toHaveText("No room in Learn the club: a module holds at most 60.")
+  await expect(announce).toHaveText("Skipped Learn the club, which is full. Position 1 of 11 in Tools & access.")
+  // And back over it: the end of First 3 days.
+  await page.keyboard.press("ArrowUp")
+  await expect(announce).toHaveText("Skipped Learn the club, which is full. Position 3 of 3 in First 3 days.")
+  await page.keyboard.press("ArrowDown")
   await page.keyboard.press("Space")
-  expect(await itemsIn(page, "First 3 days")).toHaveLength(3)
+  await expect.poll(async () => (await itemsIn(page, "Tools & access"))?.[0]).toBe("Get added to the club shared drive")
+  expect(await itemsIn(page, "First 3 days")).toHaveLength(2)
+  expect(await itemsIn(page, "Learn the club")).toHaveLength(60)
 })
 
-test("a finger drags an item by its grip on a phone", async ({ page }, info) => {
+test("a finger drags an item by its grip on a phone after a press and hold", async ({ page }, info) => {
   test.skip(info.project.name !== "mobile", "a touch screen")
   await open(page)
   await startStarter(page)
   const from = grip(page, "Day 30 review"), to = row(page, "Walk through open work together")
-  await to.scrollIntoViewIfNeeded()
-  await from.scrollIntoViewIfNeeded()
+  // Mid-screen, away from the edges that scroll the view while a drag rests near them.
+  await from.evaluate(el => el.scrollIntoView({ block: "center" }))
+  await expect(to).toBeInViewport()
   const a = await centre(from), b = (await to.boundingBox())!
   const cdp = await page.context().newCDPSession(page)
   const touch = (type: string, x: number, y: number) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] })
   await touch("touchStart", a.x, a.y)
+  // A press and hold starts the drag (F3: a finger that moves at once scrolls instead).
+  await page.waitForTimeout(350)
   const steps = 10
   for (let k = 1; k <= steps; k++) await touch("touchMove", a.x, a.y + (b.y + 4 - a.y) * k / steps)
   await expect(page.getByTestId("onboarding-drop-line")).toBeVisible()
@@ -723,4 +735,220 @@ test("the save status is not a live region; Undo is announced; cells and selects
   await expect(r.getByRole("button", { name: "Move Join the officer group chat", exact: true })).toHaveAccessibleDescription("Drag to move, or press Space, then the arrow keys.")
   // Long titles are cut to about 40 characters in the name.
   await expect(row(page, "Walk through a budget request in Sun Devil Central").getByRole("button", { name: "Treasurer: gets Walk through a budget request in Sun De…", exact: true })).toBeVisible()
+})
+
+/* ───────────── Review fixes (F3): drops outside the frame, touch, focus after a cancelled lift, short windows, tones ───────────── */
+
+const shownTitles = (page: Page, module: string) => page.getByTestId("onboarding-module-group").filter({ has: moduleRow(page, module) }).locator("textarea.ck-title").evaluateAll(els => els.map(e => (e as HTMLTextAreaElement).value))
+const modulesNow = async (page: Page) => JSON.stringify((await checklist(page))?.modules)
+
+test("a release outside the frame's visible box cancels the drag: beside the table, above it and below it", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "a mouse")
+  await page.setViewportSize({ width: 1600, height: 900 })
+  await open(page)
+  await startStarter(page)
+  const before = await modulesNow(page)
+  const frame = (await page.getByTestId("onboarding-frame").boundingBox())!
+  const heading = (await page.getByRole("heading", { name: "Onboarding checklist", exact: true }).boundingBox())!
+  const legend = (await page.getByRole("list", { name: "Legend" }).boundingBox())!
+  expect(frame.x + frame.width + 20).toBeLessThan(1600)
+  const announce = page.getByTestId("onboarding-announce")
+  for (const [where, x, y] of [
+    ["right", frame.x + frame.width + 20, frame.y + 200], ["left", frame.x - 12, frame.y + 200],
+    ["above", frame.x + 300, heading.y + heading.height / 2], ["below", legend.x + 20, legend.y + legend.height / 2],
+  ] as const) {
+    await page.evaluate(() => { scrollTo(0, 0); document.querySelector(".ck-wrap")!.scrollTop = 0 })
+    const a = await centre(grip(page, "Read the constitution"))
+    await page.mouse.move(a.x, a.y)
+    await page.mouse.down()
+    await page.mouse.move(a.x, a.y + 30, { steps: 4 })
+    await expect(page.getByTestId("onboarding-drop-line"), where).toBeVisible()
+    await page.mouse.move(x, y, { steps: 6 })
+    // Outside: no drop line, so nothing suggests a place.
+    await expect(page.getByTestId("onboarding-drop-line"), where).toHaveCount(0)
+    await page.mouse.up()
+    await expect(announce, where).toHaveText("Move cancelled.")
+    expect(await modulesNow(page), where).toBe(before)
+    await announce.evaluate(el => { el.textContent = "" })
+  }
+})
+
+test("a drop on the row's own place says Not moved", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "a mouse")
+  await open(page)
+  await startStarter(page)
+  const before = await modulesNow(page)
+  const g = grip(page, "Meet your buddy"), a = await centre(g)
+  await page.mouse.move(a.x, a.y)
+  await page.mouse.down()
+  await page.mouse.move(a.x, a.y + 10, { steps: 3 })
+  await page.mouse.move(a.x, a.y + 2, { steps: 2 })
+  await expect(page.getByTestId("onboarding-drop-line")).toBeVisible()
+  await page.mouse.up()
+  await expect(page.getByTestId("onboarding-announce")).toHaveText("Not moved.")
+  await expect(g).toBeFocused()
+  expect(await modulesNow(page)).toBe(before)
+})
+
+test("Tab away from a row lifted into another module puts it back and keeps focus where Tab went", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  await grip(page, "Join the officer group chat").focus()
+  await page.keyboard.press("Space")
+  for (let k = 0; k < 3; k++) await page.keyboard.press("ArrowDown")
+  await expect(page.getByTestId("onboarding-announce")).toHaveText("Position 1 of 6 in Learn the club.")
+  await page.keyboard.press("Tab")
+  await expect(page.getByTestId("onboarding-announce")).toHaveText("Move cancelled.")
+  expect(await shownTitles(page, "First 3 days")).toEqual(["Join the officer group chat", "Meet your buddy", "Get added to the club shared drive"])
+  // The row went back to its module (and was rebuilt there): focus is on its title, the next stop after the grip, not on the page.
+  await expect.poll(() => focused(page)).toEqual({ tag: "TEXTAREA", label: "Item title", row: "Join the officer group chat" })
+  // Shift+Tab the other way: focus stays on a control, never on the page.
+  await grip(page, "Meet your buddy").focus()
+  await page.keyboard.press("Space")
+  await page.keyboard.press("ArrowDown")
+  await page.keyboard.press("ArrowDown")
+  await page.keyboard.press("Shift+Tab")
+  await expect(page.getByTestId("onboarding-announce")).toHaveText("Move cancelled.")
+  await expect.poll(() => page.evaluate(() => document.activeElement?.tagName)).not.toBe("BODY")
+})
+
+test("a pointer press elsewhere puts a lifted row back; a press on a cell still toggles it", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  const announce = page.getByTestId("onboarding-announce")
+  await grip(page, "Join the officer group chat").focus()
+  await page.keyboard.press("Space")
+  for (let k = 0; k < 3; k++) await page.keyboard.press("ArrowDown")
+  await expect(announce).toHaveText("Position 1 of 6 in Learn the club.")
+  await page.getByRole("heading", { name: "Onboarding checklist", exact: true }).click()
+  await expect(announce).toHaveText("Move cancelled.")
+  expect(await shownTitles(page, "First 3 days")).toEqual(["Join the officer group chat", "Meet your buddy", "Get added to the club shared drive"])
+  await expect(grip(page, "Join the officer group chat")).not.toHaveClass(/is-lifted/)
+  // Lifted again, then a press on a cell of another module: the row goes back and the cell changes.
+  await grip(page, "Join the officer group chat").focus()
+  await page.keyboard.press("Space")
+  await page.keyboard.press("ArrowDown")
+  await row(page, "Request a Mazevo account").getByRole("button", { name: "Treasurer: does not get Request a Mazevo account", exact: true }).click()
+  await expect(row(page, "Request a Mazevo account").getByRole("button", { name: "Treasurer: gets Request a Mazevo account", exact: true })).toHaveAttribute("aria-pressed", "true")
+  expect(await shownTitles(page, "First 3 days")).toEqual(["Join the officer group chat", "Meet your buddy", "Get added to the club shared drive"])
+  await expect.poll(() => itemsIn(page, "First 3 days")).toEqual(["Join the officer group chat", "Meet your buddy", "Get added to the club shared drive"])
+})
+
+test("holding Space on a grip picks the row up once and does not drop it at once", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  const g = grip(page, "Meet your buddy")
+  await g.focus()
+  await page.keyboard.down(" ")
+  await page.keyboard.down(" ")   // a key repeat
+  await page.keyboard.up(" ")
+  await expect(g).toHaveClass(/is-lifted/)
+  await expect(page.getByTestId("onboarding-announce")).toHaveText("Picked up Meet your buddy. Position 2 of 3 in First 3 days. Arrow keys move it, Space drops it, Escape cancels.")
+  await page.keyboard.press("Escape")
+  await expect(g).not.toHaveClass(/is-lifted/)
+})
+
+for (const vp of [{ width: 640, height: 360 }, { width: 1280, height: 720 }]) {
+  test(`at ${vp.width}×${vp.height} the frozen header stays below the top bar with the page scrolled to its end`, async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "a desktop window size or zoom")
+    await page.setViewportSize(vp)
+    await open(page)
+    await startStarter(page)
+    await page.evaluate(() => { scrollTo(0, 1e6); document.querySelector(".ck-wrap")!.scrollTop = 1e6 })
+    await page.waitForTimeout(100)
+    const seen = await page.getByTestId("onboarding-frame").evaluate(wrap => {
+      const thead = wrap.querySelector("thead")!, head = thead.getBoundingClientRect(), bar = document.querySelector(".topbar")!.getBoundingClientRect().bottom
+      const hit = document.elementFromPoint(head.left + 30, head.top + 5)
+      return { belowBar: head.top >= bar - 1, onTop: !!hit && thead.contains(hit), scrolled: wrap.scrollTop > 0, atEnd: Math.abs(scrollY - (document.documentElement.scrollHeight - innerHeight)) <= 1 }
+    })
+    expect(seen).toEqual({ belowBar: true, onTop: true, scrolled: true, atEnd: true })
+  })
+}
+
+test("rows focused from the bottom up are never hidden under the frozen header", async ({ page }) => {
+  await open(page)
+  await startStarter(page)
+  const hidden = await page.getByTestId("onboarding-frame").evaluate(async wrap => {
+    const thead = wrap.querySelector("thead")!
+    wrap.scrollTop = wrap.scrollHeight
+    await new Promise(r => setTimeout(r, 50))
+    const out: string[] = []
+    for (const f of [...wrap.querySelectorAll<HTMLTextAreaElement>("textarea.ck-title, textarea.ck-name")].reverse()) {
+      f.focus()
+      await new Promise(r => setTimeout(r, 0))
+      const fr = f.getBoundingClientRect(), hr = thead.getBoundingClientRect()
+      if (fr.top < hr.bottom - 1) out.push(`${f.value}: ${Math.round(hr.bottom - fr.top)}px`)
+    }
+    return out
+  })
+  expect(hidden).toEqual([])
+})
+
+test("on a phone the last rows scroll clear of the floating Ask button", async ({ page }, info) => {
+  test.skip(info.project.name !== "mobile", "a phone width")
+  await open(page)
+  await startStarter(page)
+  const fab = (await page.locator(".ask-fab").boundingBox())!
+  // The frame's lower edge at the bottom of the screen, under the button, and the frame scrolled to its end.
+  const seen = await page.getByTestId("onboarding-frame").evaluate(wrap => {
+    scrollBy(0, wrap.getBoundingClientRect().bottom - innerHeight)
+    wrap.scrollTop = 1e6
+    return { frameBottom: wrap.getBoundingClientRect().bottom, lastRow: wrap.querySelector("tfoot tr")!.getBoundingClientRect().bottom }
+  })
+  expect(seen.frameBottom).toBeGreaterThan(fab.y + fab.height)
+  expect(seen.lastRow).toBeLessThanOrEqual(fab.y)
+})
+
+test("a quick finger swipe that starts on a grip scrolls and does not reorder", async ({ page }, info) => {
+  test.skip(info.project.name !== "mobile", "a touch screen")
+  await open(page)
+  await startStarter(page)
+  const before = await modulesNow(page)
+  const from = grip(page, "Read the constitution")
+  await from.scrollIntoViewIfNeeded()
+  const a = await centre(from)
+  const scrolled = () => page.evaluate(() => scrollY + document.querySelector(".ck-wrap")!.scrollTop)
+  const start = await scrolled()
+  const cdp = await page.context().newCDPSession(page)
+  const touch = (type: string, x: number, y: number) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : [{ x, y }] })
+  await touch("touchStart", a.x, a.y)
+  for (let k = 1; k <= 6; k++) await touch("touchMove", a.x, a.y - 30 * k)
+  await expect(page.getByTestId("onboarding-drop-line")).toHaveCount(0)
+  await touch("touchEnd", 0, 0)
+  await page.waitForTimeout(300)
+  expect(await scrolled()).toBeGreaterThan(start + 20)
+  expect(await modulesNow(page)).toBe(before)
+})
+
+test("six modules and six teams each get their own tone: module tones 0–5 and team tones 0–5", async ({ page }) => {
+  await open(page)
+  // A fictional club with six roles, each in its own team (the sixth role is a copy of the seed's Secretary, with no holder).
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
+    const sec = s.roles.find((r: { id: string }) => r.id === "r-sec")
+    s.roles.push({ ...sec, id: "r-web", displayName: "Webmaster", holderId: null })
+    s.org.workflowTeams = [...s.org.workflowTeams.slice(0, 4), { id: "workflow-outreach", name: "Outreach" }, { id: "workflow-web", name: "Web" }]
+    s.org.workflowRoleTeams = Object.fromEntries(s.roles.map((r: { id: string }, k: number) => [r.id, s.org.workflowTeams[k].id]))
+    localStorage.setItem("platypus.v1.demo", JSON.stringify(s))
+  })
+  await page.reload()
+  await closeRail(page)
+  await nav(page).getByRole("button", { name: "Onboarding", exact: true }).click()
+  await startStarter(page)
+  await page.getByRole("button", { name: "+ Add module", exact: true }).click()
+  await expect(page.getByTestId("onboarding-module")).toHaveCount(6)
+  const teams = matrix(page).getByTestId("onboarding-team")
+  await expect(teams).toHaveCount(6)
+  const team = await teams.evaluateAll(els => els.map(e => ({ tone: [...e.classList].find(c => c.startsWith("wfx-tone-")), colour: getComputedStyle(e).borderBottomColor })))
+  expect(team.map(t => t.tone)).toEqual(["wfx-tone-0", "wfx-tone-1", "wfx-tone-2", "wfx-tone-3", "wfx-tone-4", "wfx-tone-5"])
+  expect(new Set(team.map(t => t.colour)).size).toBe(6)
+  const mods = await page.getByTestId("onboarding-module-group").evaluateAll(els => els.map(e => {
+    const th = e.querySelector("th")!
+    return { tone: [...e.classList].find(c => c.startsWith("ck-mod-")), bar: getComputedStyle(th, "::before").backgroundColor, tint: getComputedStyle(th).backgroundColor }
+  }))
+  expect(mods.map(m => m.tone)).toEqual(["ck-mod-0", "ck-mod-1", "ck-mod-2", "ck-mod-3", "ck-mod-4", "ck-mod-5"])
+  expect(new Set(mods.map(m => m.bar)).size).toBe(6)
+  expect(new Set(mods.map(m => m.tint)).size).toBe(6)
+  // No module bar is a team colour.
+  for (const m of mods) expect(team.map(t => t.colour)).not.toContain(m.bar)
 })

@@ -44,10 +44,12 @@
 
 /* ---- Matrix frame: contained so a phone's layout viewport never widens to the table (same fix as .roles-table-wrap). ----
    It scrolls both ways (an element that scrolls sideways is a scroll box for page-level sticky too, so the header sticks to the
-   frame, which is at most one screen tall). scroll-padding keeps a focused cell clear of the sticky Item column and header. */
+   frame, which is at most one screen tall). scroll-padding keeps a focused cell clear of the sticky Item column and header
+   (--ck-head-h: the header's measured height, set by the editor with --ck-frame-h; a focused title scrolls its text, not its
+   border, into view, so a small gap keeps the whole field clear). */
 .ck-wrap {
   position: relative; min-width: 0; max-width: 100%; max-height: var(--ck-frame-h); overflow: auto; contain: paint;
-  scroll-padding-left: var(--ck-item-w); scroll-padding-top: 88px; scroll-snap-type: x proximity;
+  scroll-padding-left: var(--ck-item-w); scroll-padding-top: calc(var(--ck-head-h, 88px) + var(--s4)); scroll-snap-type: x proximity;
   border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface);
 }
 .tbl.ck-table { width: max-content; min-width: 100%; margin: 0; font-size: var(--fs-md); }
@@ -113,7 +115,9 @@
 /* ---- Drag grip (item 1): a 24 × 32 target of six dots. Drag it with a pointer, or Space / arrows / Space from the keyboard. ---- */
 .ck-grip {
   flex: none; box-sizing: border-box; width: 24px; height: 32px; margin: 0; padding: var(--s4) var(--s3);
-  border: 1px solid transparent; border-radius: var(--r-sm); cursor: grab; touch-action: none;
+  border: 1px solid transparent; border-radius: var(--r-sm); cursor: grab; user-select: none;
+  /* A swipe that starts here still scrolls: a finger drags only after a short hold (useRowDrag), which then stops the scroll. */
+  touch-action: manipulation;
   background: radial-gradient(circle, var(--muted) 1.5px, transparent 2px) 0 0 / 6px 6px content-box;
   background-clip: content-box;
 }
@@ -181,6 +185,12 @@
 .ck-legend { display: flex; flex-wrap: wrap; gap: var(--s4) var(--s6); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--fs-md); }
 .ck-legend li { display: inline-flex; align-items: center; gap: var(--s3); }
 .ck-chip-swatch { box-sizing: border-box; width: 28px; height: 16px; border: 1px dashed var(--edge); border-radius: var(--r-pill); }
+
+/* Below 1200px the floating Ask button (.ask-fab, 52px at 18px from the corner) can sit over the frame's lower edge: room at the
+   end of the frame lets its last rows scroll clear of it. */
+@media (max-width: 1199px) {
+  .ck-wrap { padding-bottom: calc(var(--s7) * 3); scroll-padding-bottom: calc(var(--s7) * 3); }
+}
 
 @media (max-width: 700px) {
   .ck-toolbar-end { margin-left: 0; }

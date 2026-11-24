@@ -94,7 +94,7 @@ export function moveModuleTo(c: OnboardingChecklist, moduleId: string, index: nu
 /**
  * Where one Arrow Up / Down press takes an item in keyboard mode: one place within its module, and from the top or bottom of
  * a module into the neighbouring one (as its last or first item; an empty module counts as one place). Null at the very start
- * or end of the checklist. A full neighbour is still returned: moveItemTo refuses it and the editor says why.
+ * or end of the checklist. A full neighbour is still returned: itemStepWithRoom (the editor's keyboard mode) passes over it.
  */
 export function itemStep(c: OnboardingChecklist, itemId: string, dir: Dir): { moduleId: string; index: number } | null {
   const at = locate(c, itemId)
@@ -104,6 +104,25 @@ export function itemStep(c: OnboardingChecklist, itemId: string, dir: Dir): { mo
   const next = c.modules[at.mi + dir]
   if (!next) return null
   return { moduleId: next.id, index: dir < 0 ? next.items.length : 0 }
+}
+
+/**
+ * itemStep for the keyboard mode, which can do what a pointer drag can: a full module (MAX_MODULE_ITEMS) next in the arrow's
+ * direction is passed over, and the item enters the first module beyond it that has room (as its last or first item).
+ * `skipped` lists the full modules passed. When every module that way is full, `full` is the first of them (the move is refused).
+ * Null at the very start or end of the checklist.
+ */
+export function itemStepWithRoom(c: OnboardingChecklist, itemId: string, dir: Dir):
+  { moduleId: string; index: number; skipped: ChecklistModule[] } | { full: ChecklistModule } | null {
+  const step = itemStep(c, itemId, dir)
+  if (!step) return null
+  const skipped: ChecklistModule[] = []
+  for (let mi = c.modules.findIndex(m => m.id === step.moduleId); mi >= 0 && mi < c.modules.length; mi += dir) {
+    const m = c.modules[mi]
+    if (!moduleFullFor(c, itemId, m.id)) return !skipped.length ? { ...step, skipped } : { moduleId: m.id, index: dir < 0 ? m.items.length : 0, skipped }
+    skipped.push(m)
+  }
+  return { full: skipped[0] }
 }
 
 /** Where an item or module sits, for announcements: "position 2 of 5". */

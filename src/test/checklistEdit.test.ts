@@ -3,7 +3,7 @@ import type { ChecklistItem, ChecklistModule, OnboardingChecklist } from "../dat
 import { MAX_CHECKLIST_ITEMS, MAX_CHECKLIST_MODULES, MAX_ITEM_TITLE, MAX_MODULE_ITEMS, MAX_MODULE_TITLE, countItems } from "../lib/checklist"
 import { parsePastedList } from "../lib/checklistParse"
 import {
-  addPastedCounted, applyLine, canAddModule, focusAfterRemoveItem, focusAfterRemoveModule, insertItems, itemPlace, itemStep, limitIn, limitNote, locate,
+  addPastedCounted, applyLine, canAddModule, focusAfterRemoveItem, focusAfterRemoveModule, insertItems, itemPlace, itemStep, itemStepWithRoom, limitIn, limitNote, locate,
   mapItem, moduleFullFor, moveItemTo, moveModuleTo, newItem, newModule, pasteIntoItem, patchModule, removeItem, removeModule, roomIn,
 } from "../components/settings/onboarding/edit"
 import { columnRoles, roleColumnGroups } from "../components/settings/onboarding/columns"
@@ -166,6 +166,25 @@ describe("moving (drag and drop, keyboard mode)", () => {
     expect(itemStep(c, "a1", -1)).toBeNull()
     expect(itemStep(moveItemTo(c, "b1", "c", 0), "b1", 1)).toBeNull()
     expect(itemStep(c, "zz", 1)).toBeNull()
+  })
+  it("itemStepWithRoom (F3): passes over full modules to the next one with room, and refuses only when every module that way is full", () => {
+    const full = (id: string) => mod(id, many(id, MAX_MODULE_ITEMS))
+    const c = list(mod("a", [item("a1"), item("a2")]), full("b"), full("c"), mod("d", [item("d1")]))
+    // Within its own module, or into a neighbour with room: what itemStep says, nothing skipped.
+    expect(itemStepWithRoom(c, "a1", 1)).toEqual({ moduleId: "a", index: 1, skipped: [] })
+    expect(itemStepWithRoom(c, "d1", 1)).toBeNull()
+    // Down from the end of a: over b and c (full) to the start of d; up from d: over c and b to the end of a.
+    const down = itemStepWithRoom(c, "a2", 1)!
+    expect("full" in down ? null : [down.moduleId, down.index, down.skipped.map(m => m.id)]).toEqual(["d", 0, ["b", "c"]])
+    const up = itemStepWithRoom(c, "d1", -1)!
+    expect("full" in up ? null : [up.moduleId, up.index, up.skipped.map(m => m.id)]).toEqual(["a", 2, ["c", "b"]])
+    // An item inside a full module still moves within it and out of it.
+    expect(itemStepWithRoom(c, "b0", 1)).toEqual({ moduleId: "b", index: 1, skipped: [] })
+    expect(itemStepWithRoom(c, "b0", -1)).toEqual({ moduleId: "a", index: 2, skipped: [] })
+    // Every module that way is full: refused, naming the first one.
+    const blocked = list(mod("a", [item("a1")]), full("b"), full("c"))
+    expect(itemStepWithRoom(blocked, "a1", 1)).toEqual({ full: blocked.modules[1] })
+    expect(itemStepWithRoom(c, "zz", 1)).toBeNull()
   })
   it("itemPlace says where an item sits, for announcements", () => {
     const p = itemPlace(sample(), "a2")!

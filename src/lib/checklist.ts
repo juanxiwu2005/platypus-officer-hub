@@ -45,10 +45,16 @@ export const getsItem = (i: ChecklistItem, roleId: string) => i.everyone ? !i.hi
  */
 export const allRolesGet = (i: ChecklistItem, roleIds: readonly string[]) => roleIds.length ? roleIds.every(id => getsItem(i, id)) : i.everyone
 
-/** Click on a role's cell: with Everyone on it hides or unhides the role; otherwise it adds or removes the role. Returns a new item. */
-export function toggleCell(i: ChecklistItem, roleId: string): ChecklistItem {
+/**
+ * Click on a role's cell: with Everyone on it hides or unhides the role; otherwise it adds or removes the role. Returns a new item.
+ * Given the current `roleIds`, switching on the last role that lacked the item makes it Everyone's (`everyone: true`, both lists
+ * empty), so a filled Everyone cell always means "roles added later get it too"; switching roles off never changes the flag.
+ */
+export function toggleCell(i: ChecklistItem, roleId: string, roleIds: readonly string[] = []): ChecklistItem {
   const flip = (ids: string[]) => ids.includes(roleId) ? ids.filter(id => id !== roleId) : [...ids, roleId]
-  return i.everyone ? { ...i, hiddenFor: flip(i.hiddenFor) } : { ...i, roleIds: flip(i.roleIds) }
+  if (i.everyone) return { ...i, hiddenFor: flip(i.hiddenFor) }
+  const next = { ...i, roleIds: flip(i.roleIds) }
+  return roleIds.length && roleIds.every(id => next.roleIds.includes(id)) ? { ...next, everyone: true, roleIds: [], hiddenFor: [] } : next
 }
 
 /**

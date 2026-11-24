@@ -60,6 +60,22 @@ describe("reading the matrix", () => {
     expect(toggleCell(on, "r-mkt").roleIds).toEqual([])
   })
 
+  it("switching on, one by one, every current role that lacked the item makes it Everyone's (F3); switching roles off never does", () => {
+    const some = item({ everyone: false, roleIds: ["r-pres", "r-fin", "r-events", "r-mkt"] })
+    // The last missing role: everyone, both lists empty, so roles added later get it too.
+    expect(toggleCell(some, "r-sec", ROLES)).toEqual({ ...some, everyone: true, roleIds: [], hiddenFor: [] })
+    // Not the last one yet: still a list of roles.
+    expect(toggleCell(item({ everyone: false, roleIds: ["r-pres"] }), "r-fin", ROLES)).toMatchObject({ everyone: false, roleIds: ["r-pres", "r-fin"] })
+    // Switching a role off keeps the flag as it is, under Everyone (hidden) and without it (removed).
+    expect(toggleCell(item(), "r-fin", ROLES)).toMatchObject({ everyone: true, hiddenFor: ["r-fin"], roleIds: [] })
+    expect(toggleCell(item({ everyone: false, roleIds: [...ROLES] }), "r-fin", ROLES)).toMatchObject({ everyone: false, roleIds: ["r-pres", "r-events", "r-mkt", "r-sec"] })
+    // Unhiding the last hidden role under Everyone leaves it Everyone's with nothing hidden.
+    expect(toggleCell(item({ hiddenFor: ["r-fin"] }), "r-fin", ROLES)).toEqual(item())
+    // Without the current roles (or with none), a click only flips that role.
+    expect(toggleCell(some, "r-sec")).toMatchObject({ everyone: false, roleIds: [...ROLES.slice(0, 4), "r-sec"] })
+    expect(toggleCell(item({ everyone: false }), "r-sec", [])).toMatchObject({ everyone: false, roleIds: ["r-sec"] })
+  })
+
   it("Everyone gives the item to all current roles, or to none when all have it, clearing both role lists", () => {
     expect(toggleEveryone(item(), ROLES)).toMatchObject({ everyone: false, roleIds: [], hiddenFor: [] })
     expect(toggleEveryone(item({ hiddenFor: ["r-fin"] }), ROLES)).toMatchObject({ everyone: true, roleIds: [], hiddenFor: [] })

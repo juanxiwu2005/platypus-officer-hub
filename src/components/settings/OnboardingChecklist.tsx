@@ -10,7 +10,7 @@ import { parsePastedList, parseShorthand } from "../../lib/checklistParse"
 import { Info } from "../ui"
 import { useRail } from "../rail/RailContext"
 import {
-  LIMIT_REASON, addPastedCounted, applyLine, canAddModule, focusAfterRemoveItem, focusAfterRemoveModule, insertItems, itemPlace, itemStep, limitIn, limitNote,
+  LIMIT_REASON, addPastedCounted, applyLine, canAddModule, focusAfterRemoveItem, focusAfterRemoveModule, insertItems, itemPlace, itemStepWithRoom, limitIn, limitNote,
   locate, mapItem, moduleFullFor, moveItemTo, moveModuleTo, newItem, newModule, pasteIntoItem, patchModule, removeItem, removeModule, roomIn, type Dir,
 } from "./onboarding/edit"
 import { columnRoles, roleColumnGroups, type RoleColumnGroup } from "./onboarding/columns"
@@ -94,6 +94,7 @@ export default function OnboardingChecklist() {
   const [pending, setPending] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const focusNext = useRef<string | null>(null)
+  const focusFallback = useRef<string | null>(null)
   const [, rerender] = useReducer((n: number) => n + 1, 0)
   const [pasteOpen, setPasteOpen] = useState(false)
   const [confirmModule, setConfirmModule] = useState<string | null>(null)
@@ -111,17 +112,26 @@ export default function OnboardingChecklist() {
   // Frozen header (contract Section 8 item 8): the frame is the matrix's vertical scroll box, so its sticky header stays in view.
   // Its height is what the screen has left once the top bar and everything below the frame (legend, card and page padding) fit:
   // then even at the very end of the page the frame's top, and so its header, sits just under the top bar, never behind it.
+  // Only when that space cannot show the header and one row (a very short window, a high zoom) is it taller, and never taller
+  // than the screen below the top bar. The header's own height (--ck-head-h) keeps a focused row clear of it (scroll-padding).
   useLayoutEffect(() => {
     const wrap = wrapRef.current
     if (!wrap || typeof ResizeObserver === "undefined") return
     const fit = () => {
       const bar = document.querySelector(".topbar")?.getBoundingClientRect().height ?? 0
       const below = Math.max(0, document.documentElement.scrollHeight - (wrap.getBoundingClientRect().bottom + window.scrollY))
-      wrap.style.setProperty("--ck-frame-h", `${Math.max(240, Math.floor(window.innerHeight - bar - below - 8))}px`)
+      const head = Math.ceil(wrap.querySelector("thead")?.getBoundingClientRect().height ?? 0)
+      const row = Math.ceil(wrap.querySelector("tbody tr")?.getBoundingClientRect().height ?? 0)
+      const screen = window.innerHeight - bar - 8
+      const floor = Math.min(head + row, screen)
+      wrap.style.setProperty("--ck-head-h", `${head}px`)
+      wrap.style.setProperty("--ck-frame-h", `${Math.floor(Math.max(floor, screen - below))}px`)
     }
     fit()
     const watch = new ResizeObserver(fit)
     watch.observe(document.body)
+    const thead = wrap.querySelector("thead")
+    if (thead) watch.observe(thead)
     window.addEventListener("resize", fit)
     return () => { watch.disconnect(); window.removeEventListener("resize", fit) }
   }, [hasRows])
@@ -130,8 +140,8 @@ export default function OnboardingChecklist() {
   const setUndo = (next: (Checklist | null)[]) => { undoRef.current = next; setUndoStack(next) }
   const setLift = (next: Lift | null) => { liftRef.current = next; setLiftState(next) }
   const say = (text: string | null, visible = true) => { setNote(visible ? text : null); setSpoken(text ?? "") }
-  /** Focus an element after the next render (and make sure there is one). */
-  const focusLater = (id: string) => { focusNext.current = id; rerender() }
+  /** Focus an element after the next render (and make sure there is one); `fallback` when no element has that id any more. */
+  const focusLater = (id: string, fallback?: string) => { focusNext.current = id; focusFallback.current = fallback ?? null; rerender() }
   const readNow = (value: unknown) => { const s = getState(); return readSaved(value, s.roles.map(r => r.id), s.today) }
 
   /** Saves `next` to the store. A version that changed the store goes on the Undo stack. */
@@ -198,18 +208,28 @@ export default function OnboardingChecklist() {
   // Leaving a title field saves it too (onBlur below). A click or a changed control anywhere on the page also saves it first:
   // these listeners run in the capture phase, before React's handlers, so a View as switch to an officer who cannot edit the
   // checklist saves the typing while the viewer can still save it, even when the switch never moved focus.
-  // A row picked up from the keyboard is put back when the pointer goes down anywhere or focus moves off its handle.
+  // A row picked up from the keyboard is put back when the pointer goes down anywhere or focus moves off its handle. Putting it
+  // back can rebuild the rows the focus went to (the row returns to its module), so focus follows the element it went to by id,
+  // or, when that element has none, stays on it while it is still there and otherwise goes to the row's grip.
   const flushRef = useRef(flush)
   flushRef.current = flush
   const cancelLiftRef = useRef(cancelLift)
   cancelLiftRef.current = cancelLift
+  const focusLaterRef = useRef(focusLater)
+  focusLaterRef.current = focusLater
   useEffect(() => {
     const leave = () => flushRef.current()
     const hidden = () => { if (document.visibilityState === "hidden") flushRef.current() }
     // A click into a text field changes nothing by itself (leaving the old field already saved it), so typing keeps one Undo step.
     const clicked = (e: Event) => { if (!(e.target instanceof HTMLTextAreaElement)) flushRef.current() }
     const pressed = () => cancelLiftRef.current()
-    const focused = (e: FocusEvent) => { const l = liftRef.current; if (l && (e.target as Element | null)?.id !== handleId(l.id)) cancelLiftRef.current() }
+    const focused = (e: FocusEvent) => {
+      const l = liftRef.current, to = e.target instanceof HTMLElement ? e.target : null
+      if (!l || to?.id === handleId(l.id)) return
+      cancelLiftRef.current()
+      if (to?.id) focusLaterRef.current(to.id, handleId(l.id))
+      else window.requestAnimationFrame(() => { if (!to?.isConnected) document.getElementById(handleId(l.id))?.focus() })
+    }
     window.addEventListener("pagehide", leave)
     document.addEventListener("visibilitychange", hidden)
     document.addEventListener("click", clicked, true)
@@ -232,10 +252,10 @@ export default function OnboardingChecklist() {
     setPending(false); setDraft(saved); setUndo([]); setConfirmModule(null); setFailed(false); say(null)
   }, [raw])
   useEffect(() => {
-    const id = focusNext.current
+    const id = focusNext.current, fallback = focusFallback.current
     if (!id) return
-    focusNext.current = null
-    document.getElementById(id)?.focus()
+    focusNext.current = null; focusFallback.current = null
+    ;(document.getElementById(id) ?? (fallback ? document.getElementById(fallback) : null))?.focus()
   })
 
   const makeId = () => checklistIdMaker(draftRef.current)
@@ -283,7 +303,7 @@ export default function OnboardingChecklist() {
   const applyMove = (c: Checklist, kind: DragKind, id: string, to: { moduleId: string | null; index: number }) =>
     kind === "module" ? moveModuleTo(c, id, to.index) : moveItemTo(c, id, to.moduleId!, to.index)
 
-  const { view: dragView, handleProps } = useRowDrag({
+  const { view: dragView, handleProps, handleRef } = useRowDrag({
     wrap: wrapRef, ghost: ghostRef,
     isFull: (itemId, moduleId) => { const c = draftRef.current; return !!c && moduleFullFor(c, itemId, moduleId) },
     onStart: () => { cancelLift(false); flush(); say(null); setConfirmModule(null) },
@@ -292,7 +312,7 @@ export default function OnboardingChecklist() {
       if (!c) return
       if (drop.full) { const m = c.modules.find(x => x.id === drop.moduleId); if (m) say(fullText(m)); focusLater(handleId(id)); return }
       const next = applyMove(c, kind, id, drop)
-      if (next === c) { focusLater(handleId(id)); return }
+      if (next === c) { say("Not moved.", false); focusLater(handleId(id)); return }
       act(() => next, handleId(id))
       say(`Moved ${rowName(next, kind, id)}. ${placeText(next, kind, id)}`, false)
     },
@@ -304,6 +324,8 @@ export default function OnboardingChecklist() {
     const l = liftRef.current, mine = l?.id === id
     const c = draftRef.current
     if (!c) return
+    // A held key repeats: only its first press picks up or drops (and a held arrow moves one place per press).
+    if (e.repeat) { if (mine || e.key === " " || e.key === "Enter") e.preventDefault(); return }
     if (e.key === " " || e.key === "Enter") {
       e.preventDefault()
       if (!mine) {
@@ -329,14 +351,16 @@ export default function OnboardingChecklist() {
       setDraft(next); focusLater(handleId(id)); say(placeText(next, kind, id), false)
       return
     }
-    const to = itemStep(c, id, dir)
+    // Like a pointer drag, the arrows pass over a full module to the next one with room, and say which they passed.
+    const to = itemStepWithRoom(c, id, dir)
     if (!to) { say(dir < 0 ? "Already first." : "Already last.", false); return }
-    if (moduleFullFor(c, id, to.moduleId)) { say(fullText(c.modules.find(m => m.id === to.moduleId)!), false); return }
+    if ("full" in to) { say(fullText(to.full), false); return }
     const next = moveItemTo(c, id, to.moduleId, to.index)
-    setDraft(next); focusLater(handleId(id)); say(placeText(next, kind, id), false)
+    const skipped = to.skipped.length ? `Skipped ${to.skipped.map(moduleName).join(", ")}, which ${to.skipped.length === 1 ? "is" : "are"} full. ` : ""
+    setDraft(next); focusLater(handleId(id)); say(`${skipped}${placeText(next, kind, id)}`, false)
   }
   const handle = (kind: DragKind, id: string, label: string) => ({
-    id: handleId(id), label, lifted: lift?.id === id,
+    id: handleId(id), label, lifted: lift?.id === id, ref: handleRef,
     props: { ...handleProps(kind, id, label), onKeyDown: (e: KeyboardEvent<HTMLButtonElement>) => handleKey(kind, id, e) },
   })
 
@@ -407,7 +431,7 @@ export default function OnboardingChecklist() {
             onItem={{
               retitle: (id, title) => typeIn(c => mapItem(c, id, i => ({ ...i, title }))),
               when: (id, when) => act(c => mapItem(c, id, i => { const { when: _w, ...rest } = i; void _w; return when ? { ...rest, when } : rest })),
-              cell: (id, roleId) => act(c => mapItem(c, id, i => toggleCell(i, roleId))),
+              cell: (id, roleId) => act(c => mapItem(c, id, i => toggleCell(i, roleId, roleIds))),
               everyone: id => act(c => mapItem(c, id, i => toggleEveryone(i, roleIds))),
               remove: id => {
                 const c = draftRef.current
@@ -472,12 +496,12 @@ function TeamHeader({ group: g }: { group: RoleColumnGroup }) {
   </th>
 }
 
-interface HandleInfo { id: string; label: string; lifted: boolean; props: ButtonHTMLAttributes<HTMLButtonElement> }
+interface HandleInfo { id: string; label: string; lifted: boolean; ref: (el: HTMLElement | null) => void; props: ButtonHTMLAttributes<HTMLButtonElement> }
 type HandleFor = (kind: DragKind, id: string, label: string) => HandleInfo
 
 /** The grip at the start of a row: drag it, or use it from the keyboard (WCAG 2.5.7). */
 function Grip({ info }: { info: HandleInfo }) {
-  return <button type="button" id={info.id} className={`ck-grip${info.lifted ? " is-lifted" : ""}`} aria-label={info.label} aria-describedby={DRAG_HELP_ID} title="Drag to move" {...info.props} />
+  return <button type="button" ref={info.ref} id={info.id} className={`ck-grip${info.lifted ? " is-lifted" : ""}`} aria-label={info.label} aria-describedby={DRAG_HELP_ID} title="Drag to move" {...info.props} />
 }
 
 interface ModuleHandlers {
