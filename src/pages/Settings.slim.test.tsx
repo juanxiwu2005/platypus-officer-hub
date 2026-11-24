@@ -19,7 +19,7 @@ describe("slimmer Settings", () => {
   it("has no Links & files tab; ?tab=links opens Club, where Planning notes saves and the stored links stay", async () => {
     const s = seedDemo(undefined, "v2")
     show(s, "/settings?tab=links")
-    expect(within(nav()).getAllByRole("button").map(b => b.textContent)).toEqual(["Club", "Roles & teams", "Workflow", "My preferences", "Admin"])
+    expect(within(nav()).getAllByRole("button").map(b => b.textContent)).toEqual(["Club", "Roles & teams", "Workflow", "Onboarding", "My preferences", "Admin"])
     expect(screen.getByRole("heading", { name: "Club", level: 2 })).toBeTruthy()
     expect(screen.queryByLabelText(/Calendar link|Drive folder|messaging channel|planning files/i)).toBeNull()
     expect(screen.queryByText("Semester goals")).toBeNull()
