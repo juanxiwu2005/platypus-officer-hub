@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 
 // DX-08: with Reduce Motion on, nothing keeps blinking or spinning. With it off, the "working" dots still blink.
-const PAGES = ["/", "/events", "/tasks", "/team", "/rules", "/handoff", "/settings"]
+const PAGES = ["/", "/events", "/tasks", "/team", "/rules", "/handoff", "/playbook", "/settings"]
 
 async function putWaitCardOnPage(page: import("@playwright/test").Page) {
   await page.evaluate(() => {
