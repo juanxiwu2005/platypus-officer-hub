@@ -89,10 +89,15 @@ test("Rules search finds archived records and keyboard controls open sources and
   await expect(official).toHaveURL("https://eventreg.asu.edu/")
   await expect(official.getByRole("heading")).toHaveText("Official Registry test destination")
   await official.close()
-  await source.getByRole("button", { name: "Ask Platypus about ASU Event Registry · ASU-R-010", exact: true }).focus()
+  await source.getByRole("button", { name: "Ask Platypus about ASU Event Registry", exact: true }).focus()
   await page.keyboard.press("Space")
   await expect(page.locator(".bubble.user").last()).toContainText("What does ASU Event Registry cover")
   await expect(page.getByTestId("rule-answer").last()).toBeVisible()
+  // An archive answer names its source; the record ID stays only in the link's data hook.
+  const answer = page.getByTestId("rule-answer").last()
+  await expect(answer.getByRole("link", { name: "ASU Event Registry ↗", exact: true })).toHaveAttribute("data-source-id", "ASU-R-010")
+  await expect(answer).toContainText("ASU Event Registry checked")
+  await expect(answer).not.toContainText(/ASU-R-|\bR\d{2}\b/)
 })
 
 test("Events mounts one focused description and opens the shared detail without changing the official limit", async ({ page }) => {

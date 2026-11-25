@@ -116,7 +116,8 @@ test("only officers who may create events can change the event date", async ({ p
 
 test("changing the event date recomputes the plan and warnings in the Flow", async ({ page }) => {
   await page.getByTestId("event-date").fill("2026-12-09")
-  await expect(page.getByTestId("event-issues")).toContainText("R13")
+  await expect(page.getByTestId("event-issues")).toContainText("Student Organization Handbook 2025–26")
+  await expect(page.getByTestId("event-issues")).not.toContainText("R13")
   await page.getByTestId("event-date").fill("2026-12-03")
   await page.getByTestId("flow-node-purchaseRequest").click()
   const replanned = await savedTask(page, "e-night:purchaseRequest")

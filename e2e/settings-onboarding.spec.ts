@@ -64,7 +64,10 @@ test("the starter loads, its totals match the model, and taking an Everyone item
   for (const r of roles) await expect(page.getByTestId(`count-${r.id}`)).toHaveText(String(countForRole(saved, r.id)))
   expect([countEveryone(saved, ids), countForRole(saved, "r-fin")]).toEqual([13, 17])
   await expect(matrix(page).getByRole("columnheader", { name: "Treasurer", exact: true })).toBeVisible()
-  await expect(row(page, "Complete anti-hazing training").locator(".rule-id")).toHaveText("ASU-R-004")
+  const handbookTag = row(page, "Complete anti-hazing training").locator('[data-source-id="ASU-R-004"]')
+  await expect(handbookTag).toHaveText("Student Club and Organization Handbook 2026-2027")
+  await expect(handbookTag).toHaveAttribute("title", "Student Club and Organization Handbook 2026-2027")
+  await expect(matrix(page)).not.toContainText("ASU-R-")
 
   const cell = row(page, "Join the officer group chat").getByRole("button", { name: "Treasurer: gets Join the officer group chat", exact: true })
   await expect(cell).toHaveAttribute("aria-pressed", "true")

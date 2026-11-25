@@ -8,6 +8,7 @@ import { defaultTaskDue } from "../../engine/taskDates"
 import { TaskDueFields } from "./TaskFields"
 import { Feedback } from "../Feedback"
 import { RULES } from "../../data/rules"
+import { distinctSources, withSourceNames } from "../../lib/sourceNames"
 import { officers } from "../../data/permissions"
 import { useRail } from "./RailContext"
 import { findWorkflowTemplateVersion } from "../../data/workflowTemplates"
@@ -80,9 +81,9 @@ function ChangeItem({ change, initial, index, onNudge }: { change: ChangeSet; in
   return <article className="change-item" data-testid="change-item">
     <b>{opLabel(pending ? op : initial, commandContext(state))}</b>
     {op.op === "answer_question" ? <>
-      <p>{op.answer}</p>
-      <details><summary>Sources checked</summary>{op.citations.map(id=>{const r=RULES.find(r=>r.id===id)!;return <div key={id}><b>{id} · checked {r.checkedOn}</b>{r.sources.map(s=><p key={s.url}><a href={s.url} target="_blank" rel="noreferrer">{s.label}</a></p>)}</div>})}</details>
-      <div className="action-row">{op.citations.map(id => { const rule = RULES.find(r => r.id === id)!; return <a key={id} href={rule.sources[0].url} target="_blank" rel="noreferrer">{id} · checked {rule.checkedOn}</a> })}</div>
+      <p>{withSourceNames(op.answer)}</p>
+      <details><summary>Sources checked</summary>{distinctSources(op.citations).map(({ id, name })=>{const r=RULES.find(r=>r.id===id)!;return <div key={id} data-source-id={id}><b>{name} · checked {r.checkedOn}</b>{r.sources.map(s=><p key={s.url}><a href={s.url} target="_blank" rel="noreferrer">{s.label}</a></p>)}</div>})}</details>
+      <div className="action-row">{distinctSources(op.citations).map(({ id, name }) => { const rule = RULES.find(r => r.id === id)!; return <a key={id} data-source-id={id} href={rule.sources[0].url} target="_blank" rel="noreferrer">{name} · checked {rule.checkedOn}</a> })}</div>
     </> : pending && <fieldset disabled={!canNudge} className="review-fields">
       <legend className="small muted">Check or edit before applying</legend>
       {op.op === "create_event" && <>

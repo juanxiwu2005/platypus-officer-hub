@@ -7,6 +7,7 @@ import {
   sanitizeChecklist, toggleCell, toggleEveryone,
 } from "../../lib/checklist"
 import { parsePastedList, parseShorthand } from "../../lib/checklistParse"
+import { sourceName } from "../../lib/sourceNames"
 import { Info } from "../ui"
 import { useRail } from "../rail/RailContext"
 import {
@@ -576,7 +577,7 @@ function ItemRow({ module: m, item, roles, roleIds, dragged, handle, on }: { mod
         <GrowField id={titleId(item.id)} className="ck-title" aria-label="Item title" aria-describedby={untitled ? hintId(item.id) : undefined} value={item.title} maxLength={MAX_ITEM_TITLE}
           onText={title => on.retitle(item.id, title)} onKeyDown={key} onPaste={paste} onBlur={on.flush} />
         {untitled && <span id={hintId(item.id)} className="ck-hint">Add a title to save</span>}
-        {item.source && <span className="rule-id">{item.source}</span>}
+        {item.source && <span className="rule-id" data-source-id={item.source} title={sourceName(item.source)}>{sourceName(item.source)}</span>}
       </div>
     </div></th>
     <td><ChipSelect kind={item.when ? "is-set" : "is-follow"} label={item.when ? `When for ${name}` : `When for ${name}: follows module, ${WHEN_LABEL[m.when]}`}

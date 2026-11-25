@@ -78,7 +78,7 @@ export default function Rules() {
             {source.sourceUrl
               ? <a className="btn small icon-btn" href={source.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Open source: ${source.officialName}`} title={source.officialName}><ExternalIcon /></a>
               : <span className="btn small icon-btn muted" role="img" aria-label={`No single official URL for ${source.officialName}`} title={source.sourceUrlNote ?? "No single official URL"}><ExternalIcon /></span>}
-            <button type="button" className="btn small icon-btn" aria-label={`Ask Platypus about ${source.officialName} · ${source.recordId}`} title="Ask Platypus" onClick={() => rail.ask(`What does ${source.officialName} cover, and how could it apply to our event?`, true)}><ChatIcon /></button>
+            <button type="button" className="btn small icon-btn" aria-label={`Ask Platypus about ${source.officialName}`} title="Ask Platypus" onClick={() => rail.ask(`What does ${source.officialName} cover, and how could it apply to our event?`, true)}><ChatIcon /></button>
           </span>
         </li>)}
       </ul> : <Empty>No matching source.{(query.trim() !== "" || tab !== "all") && <> <button type="button" className="link" onClick={() => { setQuery(""); setTab("all"); setPage(0) }}>Clear filters</button></>}</Empty>}
