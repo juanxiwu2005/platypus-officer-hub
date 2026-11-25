@@ -753,7 +753,7 @@ export interface LogEntry {
 export type PlaybookCategory = "funding" | "venues" | "food" | "promotion" | "people" | "timeline" | "tools"
 export interface PlaybookQuestion {
   id: string
-  /** The reader-facing question, 1–140 characters. */
+  /** The reader-facing question, 1–100 characters (MAX_QUESTION_TEXT). */
   text: string
   /** One of the seven universal categories, or the id of a club category (`cat:…`). */
   category: PlaybookCategory | string
