@@ -766,6 +766,8 @@ export interface PlaybookQuestion {
   origin: "seed" | "handoff" | "club" | "asked" | "records" | "community"
   /** Set when merged into another question; old links follow it. */
   mergedInto?: string
+  /** Set by the president or VP; hidden questions leave the lists. */
+  hidden?: boolean
   createdOn: string
   createdBy: string | null
 }

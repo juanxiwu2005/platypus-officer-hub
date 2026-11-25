@@ -42,8 +42,8 @@ export type PlaybookAction =
  * A hidden question. `PlaybookQuestion` in types.ts has no field for it yet, so the model stores an optional `hidden: true`
  * on the question and reads it only through `isQuestionHidden` (reported to the main agent as a needed type addition).
  */
-type StoredQuestion = PlaybookQuestion & { hidden?: true }
-export const isQuestionHidden = (q: PlaybookQuestion) => (q as StoredQuestion).hidden === true
+type StoredQuestion = PlaybookQuestion
+export const isQuestionHidden = (q: PlaybookQuestion) => q.hidden === true
 
 const UNIVERSAL = new Set<string>(PLAYBOOK_CATEGORIES.map(c => c.id))
 const FALLBACK_CATEGORY: PlaybookCategory = "timeline"

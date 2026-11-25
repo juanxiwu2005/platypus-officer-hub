@@ -1,14 +1,13 @@
 import { useState } from "react"
 import { useStore } from "../../data/store"
-import { answerSet, MAX_ANSWER_TEXT, MAX_QUESTION_TEXT, newPlaybookId } from "../../data/playbook"
+import { answerSet, canEditAnswer, canEditQuestion as modelCanEditQuestion, hiddenAnswers, MAX_ANSWER_TEXT, MAX_QUESTION_TEXT, newPlaybookId, type PlaybookAction } from "../../data/playbook"
 import { policySourceById } from "../../data/policyCatalog"
 import { sourceName } from "../../lib/sourceNames"
 import type { DemoState, PlaybookAnswer, PlaybookQuestion } from "../../data/types"
 import { useRail } from "../rail/RailContext"
 import { firstNameOf } from "../ui"
 import { AnswerFields } from "./AnswerFields"
-import { modelSupports, playbookStoreAction, type UiPlaybookAction } from "./compat"
-import { canEditAnswer, categoriesOf, categoryLabel, Chevron, KIND_LABEL, monthLabel, Spark, ThumbDown, ThumbUp, type PlaybookViewer } from "./shared"
+import { categoriesOf, playbookDispatch, categoryLabel, Chevron, KIND_LABEL, monthLabel, Spark, ThumbDown, ThumbUp, type PlaybookViewer } from "./shared"
 
 /**
  * One question (Playbook phase 1). The row is a button that expands in place (AGENTS.md §6 Playbook exception); the answers are
@@ -35,11 +34,13 @@ function Answers({ q, viewer, id, labelledBy }: { q: PlaybookQuestion; viewer: P
   const [showAlternates, setShowAlternates] = useState(false)
   const [adding, setAdding] = useState(false)
   const [editingQuestion, setEditingQuestion] = useState(false)
-  const act = (a: UiPlaybookAction) => dispatch(playbookStoreAction(a))
+  const act = (a: PlaybookAction) => dispatch(playbookDispatch(a))
   const primaries = [set.rule, set.club, set.experience].filter((a): a is PlaybookAnswer => !!a)
-  const canChangeQuestion = viewer.officer && (viewer.lead || q.createdBy === viewer.id)
-  const canEditQuestion = canChangeQuestion && modelSupports(state, { kind: "editQuestion", questionId: q.id })
-  const canHideQuestion = viewer.lead && modelSupports(state, { kind: "hideQuestion", questionId: q.id, hidden: true })
+  const canEditQuestion = modelCanEditQuestion(state, q)
+  const canHideQuestion = viewer.lead
+  // Hidden answers are listed only for the president or VP (hiddenAnswers returns none for anyone else), so they can be restored.
+  const hidden = hiddenAnswers(state, q.id)
+  const [showHidden, setShowHidden] = useState(false)
   return <div className="pb-answers" id={id} role="region" aria-labelledby={labelledBy}>
     {editingQuestion && <EditQuestion q={q} onDone={() => setEditingQuestion(false)} />}
     {primaries.length === 0 && <p className="muted pb-none">No answer yet.</p>}
@@ -47,6 +48,9 @@ function Answers({ q, viewer, id, labelledBy }: { q: PlaybookQuestion; viewer: P
     {set.alternates.length > 0 && (showAlternates
       ? set.alternates.map(a => <Answer key={a.id} a={a} viewer={viewer} />)
       : <button type="button" className="link pb-more-answers" onClick={() => setShowAlternates(true)}>{set.alternates.length === 1 ? "1 more answer" : `${set.alternates.length} more answers`}</button>)}
+    {hidden.length > 0 && (showHidden
+      ? hidden.map(a => <p key={a.id} className="pb-hidden muted" data-testid="pb-hidden-answer"><span>{a.text}</span> <button type="button" className="btn small btn-quiet" onClick={() => act({ kind: "hideAnswer", answerId: a.id, hidden: false })}>Unhide</button></p>)
+      : <button type="button" className="link pb-more-answers" onClick={() => setShowHidden(true)}>{hidden.length === 1 ? "1 hidden answer" : `${hidden.length} hidden answers`}</button>)}
     {adding
       ? <AddAnswer q={q} viewer={viewer} onDone={() => setAdding(false)} />
       : <div className="pb-row-actions">
@@ -60,7 +64,7 @@ function Answers({ q, viewer, id, labelledBy }: { q: PlaybookQuestion; viewer: P
 
 function Answer({ a, viewer }: { a: PlaybookAnswer; viewer: PlaybookViewer }) {
   const { state, dispatch } = useStore()
-  const act = (x: UiPlaybookAction) => dispatch(playbookStoreAction(x))
+  const act = (x: PlaybookAction) => dispatch(playbookDispatch(x))
   const [editing, setEditing] = useState(false)
   const [text, setText] = useState(a.text)
   const author = a.authorId ? state.people.find(p => p.id === a.authorId) : null
@@ -87,7 +91,7 @@ function Answer({ a, viewer }: { a: PlaybookAnswer; viewer: PlaybookViewer }) {
       <button type="button" className="pb-vote" aria-pressed={down} disabled={!viewer.canVote} onClick={() => act({ kind: "vote", answerId: a.id, vote: down ? 0 : -1 })}>
         <ThumbDown /><span className="sr-only">Dislike</span><span>{a.votes.down.length}</span>
       </button>
-      {canEditAnswer(viewer, a) && <button type="button" className="btn small btn-quiet" onClick={() => { setText(a.text); setEditing(true) }}>Edit</button>}
+      {canEditAnswer(state, a) && <button type="button" className="btn small btn-quiet" onClick={() => { setText(a.text); setEditing(true) }}>Edit</button>}
       {viewer.lead && <button type="button" className="btn small btn-quiet" onClick={() => act({ kind: "hideAnswer", answerId: a.id, hidden: true })}>Hide</button>}
     </div>}
   </article>
@@ -100,7 +104,7 @@ function AddAnswer({ q, viewer, onDone }: { q: PlaybookQuestion; viewer: Playboo
   return <form className="pb-form" aria-label="Add an answer" onSubmit={e => {
     e.preventDefault()
     if (!text.trim()) return
-    dispatch(playbookStoreAction({ kind: "addAnswer", id: newPlaybookId(state, "pa-"), questionId: q.id, answerKind: viewer.lead ? kind : "experience", text }))
+    dispatch(playbookDispatch({ kind: "addAnswer", id: newPlaybookId(state, "pa-"), questionId: q.id, answerKind: viewer.lead ? kind : "experience", text }))
     onDone()
   }}>
     <AnswerFields lead={viewer.lead} kind={kind} setKind={setKind} text={text} setText={setText} autoFocus />
@@ -114,7 +118,7 @@ function EditQuestion({ q, onDone }: { q: PlaybookQuestion; onDone: () => void }
   const [category, setCategory] = useState(q.category)
   return <form className="pb-form" aria-label="Edit question" onSubmit={e => {
     e.preventDefault()
-    if (text.trim()) dispatch(playbookStoreAction({ kind: "editQuestion", questionId: q.id, text, category }))
+    if (text.trim()) dispatch(playbookDispatch({ kind: "editQuestion", questionId: q.id, text, category }))
     onDone()
   }}>
     <label className="field"><span>Question</span><input maxLength={MAX_QUESTION_TEXT} value={text} onChange={e => setText(e.target.value)} autoFocus /></label>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { PageHead } from "../components/Page"
 import { AddExperience } from "../components/playbook/AddExperience"
-import { modelSupports, playbookStoreAction } from "../components/playbook/compat"
+import { playbookDispatch } from "../components/playbook/shared"
 import { QuestionRow } from "../components/playbook/QuestionRow"
 import { categoriesOf, playbookViewer } from "../components/playbook/shared"
 import { isRead, playbookOf, QUESTIONS_PER_VIEW, questionsFor } from "../data/playbook"
@@ -37,13 +37,13 @@ export default function Playbook() {
   const shown = questions.slice(0, limit)
   const more = Math.min(questions.length - shown.length, QUESTIONS_PER_VIEW)
   const openHandoffs = state.handoff ? state.handoffRoles.filter(r => !r.completed).length : 0
-  const canImport = viewer.lead && modelSupports(state, { kind: "importStarter" })
+  const canImport = viewer.lead
 
   const filter = (role: string, cat: string) => { setRoleFilter(role); setCategory(cat); setLimit(QUESTIONS_PER_VIEW) }
   const toggle = (id: string) => {
     if (openIds.includes(id)) { setOpenIds(openIds.filter(x => x !== id)); return }
     setOpenIds([...openIds, id])
-    if (!isRead(state, viewer.id, id)) dispatch(playbookStoreAction({ kind: "markRead", questionId: id }))
+    if (!isRead(state, viewer.id, id)) dispatch(playbookDispatch({ kind: "markRead", questionId: id }))
   }
   const closeAdd = () => { setAdding(false); requestAnimationFrame(() => addButton.current?.focus()) }
 
@@ -64,7 +64,7 @@ export default function Playbook() {
         <p>No questions yet.</p>
         {viewer.officer && <div className="action-row">
           <button ref={addButton} type="button" className="btn btn-primary small" onClick={() => setAdding(true)} data-testid="pb-add-open">+ Add experience</button>
-          {canImport && <button type="button" className="btn small" onClick={() => dispatch(playbookStoreAction({ kind: "importStarter" }))}>Start from your handoff notes</button>}
+          {canImport && <button type="button" className="btn small" onClick={() => dispatch(playbookDispatch({ kind: "importStarter" }))}>Start from your handoff notes</button>}
         </div>}
       </section>
       : <section className="card pb-list" aria-label="Questions">

@@ -61,7 +61,7 @@ export function starterPlaybook(s: DemoState, p: Playbook): { questions: Playboo
     const id = starterQuestionId(role.id)
     let target = p.questions.find(q => q.id === id)
     for (let hops = 0; target?.mergedInto && hops <= p.questions.length; hops++) target = p.questions.find(q => q.id === target!.mergedInto)
-    if (target && (target as { hidden?: boolean }).hidden) continue
+    if (target?.hidden) continue
     if (!target && takenQ.has(id)) continue
     const questionId = target?.id ?? id
     if (!target) {

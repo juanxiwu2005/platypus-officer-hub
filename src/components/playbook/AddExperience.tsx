@@ -2,7 +2,8 @@ import { useId, useRef, useState } from "react"
 import { useStore } from "../../data/store"
 import { liveQuestion, MAX_QUESTION_TEXT, newPlaybookId, playbookOf } from "../../data/playbook"
 import { AnswerFields } from "./AnswerFields"
-import { playbookStoreAction, similarQuestions } from "./compat"
+import { similarQuestions } from "../../lib/playbookMatch"
+import { playbookDispatch } from "./shared"
 import { CategorySelect } from "./QuestionRow"
 import type { PlaybookViewer } from "./shared"
 
@@ -34,9 +35,9 @@ export function AddExperience({ viewer, defaultCategory, roleIds, onSaved, onCan
     let questionId = existing?.id
     if (!questionId) {
       questionId = newPlaybookId(state, "pq-")
-      dispatch(playbookStoreAction({ kind: "addQuestion", id: questionId, text: question, category: cat, roleIds }))
+      dispatch(playbookDispatch({ kind: "addQuestion", id: questionId, text: question, category: cat, roleIds }))
     }
-    dispatch(playbookStoreAction({ kind: "addAnswer", id: newPlaybookId(state, "pa-"), questionId, answerKind: viewer.lead ? kind : "experience", text }))
+    dispatch(playbookDispatch({ kind: "addAnswer", id: newPlaybookId(state, "pa-"), questionId, answerKind: viewer.lead ? kind : "experience", text }))
     onSaved(questionId, cat)
   }
   return <form ref={form} className="card pb-add" aria-labelledby={`${id}-title`} data-testid="pb-add" onSubmit={e => { e.preventDefault(); save() }}>

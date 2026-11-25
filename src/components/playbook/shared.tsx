@@ -1,4 +1,4 @@
-import { PLAYBOOK_CATEGORIES, playbookOf } from "../../data/playbook"
+import { type PlaybookAction, PLAYBOOK_CATEGORIES, playbookOf } from "../../data/playbook"
 import { canLead, isOfficer } from "../../data/permissions"
 import type { DemoState, PlaybookAnswer } from "../../data/types"
 
@@ -22,7 +22,8 @@ export function playbookViewer(s: DemoState): PlaybookViewer {
   return { id: s.viewerId, officer, lead: officer && canLead(s), canVote: officer || !!me?.incomingFor, roleId: roleId && s.roles.some(r => r.id === roleId) ? roleId : null }
 }
 
-export const canEditAnswer = (v: PlaybookViewer, a: PlaybookAnswer) => v.officer && a.kind !== "rule" && (v.lead || a.authorId === v.id)
+/** The store action for a Playbook action. */
+export const playbookDispatch = (a: PlaybookAction) => ({ type: "playbookAction" as const, action: a })
 
 /** The seven universal categories, then the club's own. */
 export const categoriesOf = (s: DemoState): { id: string; label: string }[] => [...PLAYBOOK_CATEGORIES, ...(playbookOf(s).categories ?? [])]
