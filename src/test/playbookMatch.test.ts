@@ -82,11 +82,11 @@ describe("similarQuestions (contract item 6)", () => {
     expect(ids(similarQuestions(s, "When can promoting start?", { policyIds: ["ASU-R-004"] }))).toEqual(["pq-2", "pq-1"])
   })
 
-  it("leaves out merged and hidden questions", () => {
+  it("leaves out merged and deleted questions", () => {
     let s = base()
     s = changePlaybook(s, { kind: "mergeQuestion", fromId: "pq-1", intoId: "pq-3" })
     expect(ids(similarQuestions(s, "How far ahead must a funding request go in?"))).not.toContain("pq-1")
-    s = changePlaybook(s, { kind: "hideQuestion", questionId: "pq-7", hidden: true })
+    s = changePlaybook(s, { kind: "deleteQuestion", questionId: "pq-7" })
     expect(similarQuestions(s, "Can members bring homemade food?")).toEqual([])
   })
 

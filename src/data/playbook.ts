@@ -19,7 +19,7 @@ export const PLAYBOOK_CATEGORIES: readonly { id: PlaybookCategory; label: string
 /** Lowered from 140 to 100 on 2026-11-25 so a full page of rows stays within its word budget; longer stored questions are cut when read. */
 export const MAX_QUESTION_TEXT = 100
 export const MAX_ANSWER_TEXT = 400
-/** At most this many questions show per category (or in "For your role") before "Show N more". */
+/** At most this many questions show per category (or under All) before "Show N more". */
 export const QUESTIONS_PER_VIEW = 8
 /** Size limits: actions that would go beyond them are refused, and damaged saves are cut to them when read. */
 export const MAX_QUESTIONS = 500
@@ -29,13 +29,15 @@ export type PlaybookAction =
   | { kind: "addQuestion"; id: string; text: string; category: string; roleIds: string[] | "all"; policyIds?: string[] }
   | { kind: "addAnswer"; id: string; questionId: string; answerKind: "club" | "experience"; text: string }
   | { kind: "editAnswer"; answerId: string; text: string }
-  | { kind: "hideAnswer"; answerId: string; hidden: boolean }
+  /** President or VP. Rule answers cannot be deleted. Replaced hiding on 2026-11-26. */
+  | { kind: "deleteAnswer"; answerId: string }
   | { kind: "vote"; answerId: string; vote: 1 | -1 | 0 }
   | { kind: "markRead"; questionId: string }
   | { kind: "mergeQuestion"; fromId: string; intoId: string }
   /** Fields left out keep their current values. */
   | { kind: "editQuestion"; questionId: string; text?: string; category?: string; roleIds?: string[] | "all" }
-  | { kind: "hideQuestion"; questionId: string; hidden: boolean }
+  /** President or VP. Deletes the question, every answer it has (its school rule answers included) and the questions merged into it. */
+  | { kind: "deleteQuestion"; questionId: string }
   /**
    * Starter questions from the handoff notes (president or VP). The lazily loaded page computes them with `starterPlaybook`
    * (src/data/playbookStarter.ts, kept out of the startup bundle); the reducer still checks them (see `checkedStarter`).
@@ -46,22 +48,18 @@ export type PlaybookAction =
 export const starterQuestionId = (roleId: string) => `pq-start-${roleId}`
 /**
  * The stable id of one starter answer: the role, the handoff round it came from and the line's place in that round's interview.
- * Re-importing compares these ids, never the text, so a line that was edited or hidden does not come back.
+ * Re-importing compares these ids, never the text, so a line that was edited does not come back. A deleted line is gone from
+ * the Playbook, so an explicit later import may add it again (the import is offered only while the Playbook is empty).
  */
 export const starterAnswerId = (roleId: string, round: string, line: number) => `pa-start-${roleId}-${round}-${line}`
 
-/**
- * A hidden question. `PlaybookQuestion` in types.ts has no field for it yet, so the model stores an optional `hidden: true`
- * on the question and reads it only through `isQuestionHidden` (reported to the main agent as a needed type addition).
- */
 type StoredQuestion = PlaybookQuestion
-export const isQuestionHidden = (q: PlaybookQuestion) => q.hidden === true
 
 const UNIVERSAL = new Set<string>(PLAYBOOK_CATEGORIES.map(c => c.id))
 const FALLBACK_CATEGORY: PlaybookCategory = "timeline"
 const ORIGINS = new Set<string>(["seed", "handoff", "club", "asked", "records", "community"])
 const ANSWER_KINDS = new Set<string>(["rule", "club", "experience"])
-const STATUSES = new Set<string>(["active", "stale", "hidden"])
+const STATUSES = new Set<string>(["active", "stale"])
 const SHARES = new Set<string>(["none", "pending", "shared"])
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 const ID = /^[A-Za-z0-9:_.-]{1,120}$/
@@ -113,7 +111,13 @@ function breakMergeCycles(questions: StoredQuestion[]): StoredQuestion[] {
   return questions.map((q, i) => { if (!clear.has(i)) return q; const { mergedInto: _drop, ...rest } = q; return rest })
 }
 
-/** The sanitized Playbook (contract item 1). Never throws; keeps the original objects where nothing needed fixing. */
+/**
+ * The sanitized Playbook (contract item 1). Never throws; keeps the original objects where nothing needed fixing.
+ *
+ * Hiding was removed on 2026-11-26 (Juanxi: delete instead of hide). An old save may still hold questions with `hidden: true` and
+ * answers with `status: "hidden"`: they are dropped here, as if the president or VP had deleted them, together with the answers
+ * of a dropped question and the questions merged into one. Nothing else in the app reads them.
+ */
 function sanitize(raw: Playbook, people: Person[]): Playbook {
   const known = new Set(people.map(p => p?.id))
   const r = raw as Partial<Record<keyof Playbook, unknown>>
@@ -128,6 +132,8 @@ function sanitize(raw: Playbook, people: Person[]): Playbook {
 
   let questions: StoredQuestion[] = []
   const seenQ = new Set<string>(), seenA = new Set<string>()
+  /** Old saves: questions hidden before hiding was removed (dropped below, after merge links are resolved). */
+  const wasHidden = new Set<string>()
   const rawQuestions = Array.isArray(r.questions) ? r.questions as unknown[] : []
   for (const v of rawQuestions) {
     const q = v as Partial<Record<keyof StoredQuestion, unknown>> | null
@@ -140,16 +146,24 @@ function sanitize(raw: Playbook, people: Person[]): Playbook {
       origin: typeof q.origin === "string" && ORIGINS.has(q.origin) ? q.origin as PlaybookQuestion["origin"] : "club",
       ...(typeof q.mergedInto === "string" && q.mergedInto !== q.id ? { mergedInto: q.mergedInto } : {}),
       createdOn: date(q.createdOn), createdBy: typeof q.createdBy === "string" ? q.createdBy : null,
-      ...(q.hidden === true ? { hidden: true as const } : {}),
     }
+    if ((v as { hidden?: unknown }).hidden === true) wasHidden.add(q.id)
     questions.push(keepIfSame(v, next))
     seenQ.add(q.id)
     if (questions.length >= MAX_QUESTIONS) break
   }
   const qids = new Set(questions.map(q => q.id))
   questions = breakMergeCycles(questions.map(q => q.mergedInto && !qids.has(q.mergedInto) ? (({ mergedInto: _drop, ...rest }) => rest)(q) : q))
+  const liveIn = (map: Map<string, StoredQuestion>, id: string) => { let q = map.get(id); for (let hops = 0; q?.mergedInto && hops <= questions.length; hops++) q = map.get(q.mergedInto); return q }
+  if (wasHidden.size) {
+    // A question goes when it, or any question on its merge chain, was hidden (cycles are already broken, so the walk ends).
+    const allById = new Map(questions.map(q => [q.id, q]))
+    const touchesHidden = (id: string) => { for (let q = allById.get(id), hops = 0; q && hops <= questions.length; q = q.mergedInto ? allById.get(q.mergedInto) : undefined, hops++) if (wasHidden.has(q.id)) return true; return false }
+    questions = questions.filter(q => !touchesHidden(q.id))
+    qids.clear(); for (const q of questions) qids.add(q.id)
+  }
   const byId = new Map(questions.map(q => [q.id, q]))
-  const live = (id: string) => { let q = byId.get(id); for (let hops = 0; q?.mergedInto && hops <= questions.length; hops++) q = byId.get(q.mergedInto); return q }
+  const live = (id: string) => liveIn(byId, id)
 
   const answers: PlaybookAnswer[] = []
   const rawAnswers = Array.isArray(r.answers) ? r.answers as unknown[] : []
@@ -157,7 +171,8 @@ function sanitize(raw: Playbook, people: Person[]): Playbook {
     const a = v as Partial<Record<keyof PlaybookAnswer, unknown>> | null
     if (!a || typeof a !== "object" || typeof a.id !== "string" || !ID.test(a.id) || seenA.has(a.id)) continue
     const text = str(a.text, MAX_ANSWER_TEXT), target = typeof a.questionId === "string" ? live(a.questionId) : undefined
-    if (!text || !target || typeof a.kind !== "string" || !ANSWER_KINDS.has(a.kind)) continue
+    // An answer hidden in an old save is dropped (see above).
+    if (!text || !target || typeof a.kind !== "string" || !ANSWER_KINDS.has(a.kind) || a.status === "hidden") continue
     const votes = (a.votes && typeof a.votes === "object" ? a.votes : {}) as { up?: unknown; down?: unknown }
     const up0 = idList(votes.up, id => known.has(id), known.size), down0 = idList(votes.down, id => known.has(id), known.size)
     // Someone listed as both liking and disliking: the vote is unclear, so neither counts.
@@ -221,14 +236,11 @@ export function liveQuestion(p: Playbook, id: string): PlaybookQuestion | undefi
 }
 
 /**
- * Questions for a role (or all roles), optionally one category; merged and hidden questions are left out
- * (`includeHidden` keeps hidden ones, for the president or VP to unhide). Newest last.
+ * The listed questions, optionally of one category; merged questions are left out. Newest last.
+ * Every viewer sees every question (Juanxi, 2026-11-26): `roleIds` stays in the data for later use but no longer filters.
  */
-export function questionsFor(s: DemoState, opts: { roleId?: string | null; category?: string | null; includeHidden?: boolean } = {}): PlaybookQuestion[] {
-  return playbookOf(s).questions.filter(q => !q.mergedInto
-    && (opts.includeHidden || !isQuestionHidden(q))
-    && (!opts.category || q.category === opts.category)
-    && (!opts.roleId || q.roleIds === "all" || q.roleIds.includes(opts.roleId)))
+export function questionsFor(s: DemoState, opts: { category?: string | null } = {}): PlaybookQuestion[] {
+  return playbookOf(s).questions.filter(q => !q.mergedInto && (!opts.category || q.category === opts.category))
 }
 
 /** Likes minus dislikes. */
@@ -237,20 +249,13 @@ const cmp = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0
 /** Answer order within one kind: highest net votes, then most recent `verifiedOn ?? on`, then id. */
 export const compareAnswers = (a: PlaybookAnswer, b: PlaybookAnswer) => netVotes(b) - netVotes(a) || cmp(b.verifiedOn ?? b.on, a.verifiedOn ?? a.on) || cmp(a.id, b.id)
 
-/** Primary answer per kind plus collapsed alternates (rule, then club, then experience, each in ranking order). Hidden answers never show. */
+/** Primary answer per kind plus collapsed alternates (rule, then club, then experience, each in ranking order). */
 export function answerSet(s: DemoState, questionId: string): { rule?: PlaybookAnswer; club?: PlaybookAnswer; experience?: PlaybookAnswer; alternates: PlaybookAnswer[] } {
   const p = playbookOf(s), id = liveQuestion(p, questionId)?.id ?? questionId
-  const all = p.answers.filter(a => a.questionId === id && a.status !== "hidden")
+  const all = p.answers.filter(a => a.questionId === id)
   const pick = (kind: PlaybookAnswer["kind"]) => all.filter(a => a.kind === kind).sort(compareAnswers)
   const rule = pick("rule"), club = pick("club"), experience = pick("experience")
   return { rule: rule[0], club: club[0], experience: experience[0], alternates: [...rule.slice(1), ...club.slice(1), ...experience.slice(1)] }
-}
-
-/** Hidden answers of a question (ranking order), for the president or VP to unhide; empty for everyone else. */
-export function hiddenAnswers(s: DemoState, questionId: string): PlaybookAnswer[] {
-  if (!playbookRights(s).lead) return []
-  const p = playbookOf(s), id = liveQuestion(p, questionId)?.id ?? questionId
-  return p.answers.filter(a => a.questionId === id && a.status === "hidden").sort(compareAnswers)
 }
 
 /** Has the viewer opened this question? A read of a question that was merged later counts for the question it was merged into. */
@@ -273,7 +278,7 @@ export interface PlaybookRights {
   vote: boolean
   /** Current officer: add questions and experience answers. */
   write: boolean
-  /** President or VP: club answers, hide/unhide, merge, edit any question or answer, import the starter. */
+  /** President or VP: club answers, delete answers and questions, merge, edit any question or answer, import the starter. */
   lead: boolean
 }
 export function playbookRights(s: DemoState): PlaybookRights {
@@ -286,6 +291,10 @@ export function canEditAnswer(s: DemoState, a: PlaybookAnswer): boolean {
   const r = playbookRights(s)
   return a.kind === "club" ? r.lead : a.kind === "experience" ? r.lead || (r.write && a.authorId === s.viewerId) : false
 }
+/** May the viewer delete this answer? The president or VP, for any answer except a school rule. */
+export const canDeleteAnswer = (s: DemoState, a: PlaybookAnswer): boolean => a.kind !== "rule" && playbookRights(s).lead
+/** May the viewer delete this question (with all its answers)? The president or VP. */
+export const canDeleteQuestion = (s: DemoState, q: PlaybookQuestion): boolean => !q.mergedInto && playbookRights(s).lead
 /** May the viewer edit this question? Its creator (a current officer) or the president or VP. */
 export const canEditQuestion = (s: DemoState, q: PlaybookQuestion): boolean => { const r = playbookRights(s); return r.lead || (r.write && !!q.createdBy && q.createdBy === s.viewerId) }
 
@@ -328,7 +337,7 @@ function checkedStarter(s: DemoState, p: Playbook, rawQuestions: unknown, rawAns
     const role = roles.find(r => id.startsWith(`pa-start-${r.id}-`) && x.questionId === liveQuestion(after, starterQuestionId(r.id))?.id)
     const target = role && liveQuestion(after, starterQuestionId(role.id))
     const author = x.authorId === null || (typeof x.authorId === "string" && records.some(h => h?.roleId === role?.id && h.outgoingId === x.authorId))
-    if (!role || !target || target.mergedInto || isQuestionHidden(target) || !author) return null
+    if (!role || !target || target.mergedInto || !author) return null
     if (takenA.has(id)) continue
     takenA.add(id)
     answers.push({ id, questionId: target.id, kind: "experience", text: str(x.text, MAX_ANSWER_TEXT), authorId: x.authorId ?? null, on: s.today, status: "active", votes: { up: [], down: [] } })
@@ -345,18 +354,17 @@ export function changePlaybook(s: DemoState, a: PlaybookAction): DemoState {
   const putQuestion = (q: PlaybookQuestion, next: StoredQuestion) => put({ ...p, questions: p.questions.map(x => x === q ? next : x) })
   const answer = (id: unknown) => typeof id === "string" ? p.answers.find(x => x.id === id) : undefined
   const question = (id: unknown) => typeof id === "string" ? p.questions.find(x => x.id === id) : undefined
-  const open = (q: PlaybookQuestion | undefined) => !!q && !q.mergedInto && (!isQuestionHidden(q) || r.lead)
-  /** Votes and new answers need a listed question: not hidden (whoever asks) and not merged away. */
-  const listed = (q: PlaybookQuestion | undefined) => !!q && !q.mergedInto && !isQuestionHidden(q)
+  /** Reads, votes and new answers need a listed question: one that was not merged away. */
+  const listed = (q: PlaybookQuestion | undefined) => !!q && !q.mergedInto
   switch (a.kind) {
     case "markRead": {
       const q = question(a.questionId), target = q && liveQuestion(p, q.id)
-      if (!r.markRead || !target || !open(target) || p.reads?.[me]?.includes(target.id)) return s
+      if (!r.markRead || !target || !listed(target) || p.reads?.[me]?.includes(target.id)) return s
       return put({ ...p, reads: { ...p.reads, [me]: [...(p.reads?.[me] ?? []), target.id] } })
     }
     case "vote": {
       const ans = answer(a.answerId)
-      if (!r.vote || !ans || ans.status === "hidden" || !listed(question(ans.questionId)) || (a.vote !== 1 && a.vote !== -1 && a.vote !== 0)) return s
+      if (!r.vote || !ans || !listed(question(ans.questionId)) || (a.vote !== 1 && a.vote !== -1 && a.vote !== 0)) return s
       const was = ans.votes.up.includes(me) ? 1 : ans.votes.down.includes(me) ? -1 : 0
       if (was === a.vote) return s
       const up = ans.votes.up.filter(id => id !== me), down = ans.votes.down.filter(id => id !== me)
@@ -377,11 +385,16 @@ export function changePlaybook(s: DemoState, a: PlaybookAction): DemoState {
       const next = keepIfSame(q, { ...q, text, category, roleIds })
       return next === q ? s : putQuestion(q, next)
     }
-    case "hideQuestion": {
+    case "deleteQuestion": {
       const q = question(a.questionId)
-      if (!r.lead || !q || q.mergedInto || typeof a.hidden !== "boolean" || isQuestionHidden(q) === a.hidden) return s
-      const { hidden: _was, ...rest } = q as StoredQuestion
-      return putQuestion(q, a.hidden ? { ...rest, hidden: true } : rest)
+      if (!q || !canDeleteQuestion(s, q)) return s
+      // The question goes with every answer it has and every question merged into it (their answers already moved here), so no
+      // old link can bring a deleted question back. Reads and "asked" links to them go too.
+      const gone = new Set(p.questions.filter(x => liveQuestion(p, x.id)?.id === q.id).map(x => x.id))
+      gone.add(q.id)
+      const reads = p.reads && Object.fromEntries(Object.entries(p.reads).map(([who, ids]) => [who, ids.filter(id => !gone.has(id))] as const).filter(([, ids]) => ids.length))
+      const asked = p.asked?.map(x => x.questionId && gone.has(x.questionId) ? (({ questionId: _drop, ...rest }) => rest)(x) : x)
+      return put({ ...p, questions: p.questions.filter(x => !gone.has(x.id)), answers: p.answers.filter(x => !gone.has(x.questionId)), ...(reads ? { reads } : {}), ...(asked ? { asked } : {}) })
     }
     case "addAnswer": {
       const text = str(a.text, MAX_ANSWER_TEXT), target = question(a.questionId) && liveQuestion(p, a.questionId)
@@ -395,15 +408,14 @@ export function changePlaybook(s: DemoState, a: PlaybookAction): DemoState {
       if (!ans || !text || text === ans.text || !canEditAnswer(s, ans)) return s
       return putAnswer(ans, { text, on: s.today })
     }
-    case "hideAnswer": {
+    case "deleteAnswer": {
       const ans = answer(a.answerId)
-      if (!ans || ans.kind === "rule" || !r.lead || typeof a.hidden !== "boolean") return s
-      const status = a.hidden ? "hidden" : "active"
-      return ans.status === status || (!a.hidden && ans.status !== "hidden") ? s : putAnswer(ans, { status })
+      if (!ans || !canDeleteAnswer(s, ans)) return s
+      return put({ ...p, answers: p.answers.filter(x => x !== ans) })
     }
     case "mergeQuestion": {
       const from = question(a.fromId), into = question(a.intoId) && liveQuestion(p, a.intoId)
-      if (!r.lead || !from || !into || from.id === into.id || from.mergedInto || isQuestionHidden(into)) return s
+      if (!r.lead || !from || !into || from.id === into.id || from.mergedInto) return s
       // Rule answers come only from the school pack and can be regenerated. When the target already has one, the merged question's
       // rule answers are dropped, so they never compete with (or outrank) the target's own.
       const dropRules = p.answers.some(x => x.questionId === into.id && x.kind === "rule")

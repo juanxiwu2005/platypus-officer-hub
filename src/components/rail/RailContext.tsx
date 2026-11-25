@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { emitUi } from "../../lib/uiLog"
+import type { PlaybookAskContext } from "../../lib/playbookAsk"
 
 /**
  * The right rail (v1.1, decision 1): one column on the right of every page with two tabs.
@@ -35,8 +36,16 @@ interface RailValue {
   /** Settings supplies its selected workflow-step editor to the shared Details tab. */
   setWorkflowDetail: (content: ReactNode | null) => void
   workflowDetail: ReactNode | null
-  /** Put a question into the Ask box (and send it if `send`). */
+  /** Put a question into the Ask box (and send it if `send`). Ends any Playbook question context. */
   ask: (text: string, send?: boolean) => void
+  /**
+   * Ask AI on a Playbook question: the question goes into the Ask box (not sent) and Ask looks at it ("Looking at: …"), so a
+   * message sent while the chip shows carries the context as `playbookQuestion` (docs/feedback-fix/PLAYBOOK_ASK_INTERFACE.md).
+   */
+  askAbout: (context: PlaybookAskContext) => void
+  /** The Playbook question Ask is looking at, until the chip is closed, another question is asked from elsewhere, or the page changes. */
+  askContext: PlaybookAskContext | null
+  clearAskContext: () => void
   pending: { text: string; send: boolean; n: number } | null
   takePending: () => void
   /** A new event waiting for its plan check (M2b). Kept here so it survives the Ask panel closing on a phone. */
@@ -109,11 +118,20 @@ export function RailProvider({ children }: { children: ReactNode }) {
     // must not reopen a rail the person just hid (for example after autosave).
     setWorkflowDetailState(content)
   }, [])
+  const [askContext, setAskContext] = useState<PlaybookAskContext | null>(null)
   const ask = useCallback((text: string, send = false) => {
+    setAskContext(null)
     setPending(p => ({ text, send, n: (p?.n ?? 0) + 1 }))
     setTab("ask")
     setOpenState(true)
   }, [])
+  const askAbout = useCallback((context: PlaybookAskContext) => {
+    setAskContext(context)
+    setPending(p => ({ text: context.question, send: false, n: (p?.n ?? 0) + 1 }))
+    setTab("ask")
+    setOpenState(true)
+  }, [])
+  const clearAskContext = useCallback(() => setAskContext(null), [])
   const takePending = useCallback(() => setPending(null), [])
   const [reviewEventId, setReviewEventId] = useState<string | null>(null)
   const requestReview = useCallback((eventId: string) => { setReviewEventId(eventId); setTab("ask"); setOpenState(true) }, [])
@@ -139,7 +157,7 @@ export function RailProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("keydown", onKey)
   }, [])
 
-  const value = useMemo(() => ({ open, setOpen, tab, setTab, detail, show, closeDetail, setWorkflowDetail, workflowDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview, newEvent, formRequest, takeFormRequest }), [open, setOpen, tab, detail, show, closeDetail, setWorkflowDetail, workflowDetail, ask, pending, takePending, reviewEventId, requestReview, takeReview, newEvent, formRequest, takeFormRequest])
+  const value = useMemo(() => ({ open, setOpen, tab, setTab, detail, show, closeDetail, setWorkflowDetail, workflowDetail, ask, askAbout, askContext, clearAskContext, pending, takePending, reviewEventId, requestReview, takeReview, newEvent, formRequest, takeFormRequest }), [open, setOpen, tab, detail, show, closeDetail, setWorkflowDetail, workflowDetail, ask, askAbout, askContext, clearAskContext, pending, takePending, reviewEventId, requestReview, takeReview, newEvent, formRequest, takeFormRequest])
   return <RailCtx.Provider value={value}>{children}</RailCtx.Provider>
 }
 

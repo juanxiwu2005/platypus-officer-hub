@@ -1,33 +1,78 @@
-/* Playbook phase 1 (P1-U, docs/feedback-fix/PLAYBOOK_P1_CONTRACT.md §3). Imported by src/pages/Playbook.tsx, so it loads with the
-   lazy Playbook chunk only. Tokens only; answer kinds are told apart by the label's text colour alone (no fills, borders or blocks). */
+/* Playbook (P1-U, docs/feedback-fix/PLAYBOOK_P1_CONTRACT.md §3; redesigned 2026-11-26, §6). Imported by src/pages/Playbook.tsx, so it
+   loads with the lazy Playbook chunk only. Tokens only. A compact Q&A list: one row per question (category tag, question, Ask AI
+   icon, chevron); an open row shows short answers with little chrome. Answer kinds are told apart by the label's text colour alone. */
+
+.pb-list {
+  /* The tag column is fixed so every question starts at the same x; the Ask AI icon is 32px (44px under a finger, below). */
+  --pb-tag-w: 6.5rem;
+  --pb-ask-w: 32px;
+  --pb-gap: var(--s5);
+  padding: var(--s5) var(--s6) var(--s4);
+}
 
 .pb-handoff { margin: calc(-1 * var(--s5)) 0 var(--s4); font-size: var(--fs-md); }
 .pb-handoff a { display: inline-flex; align-items: center; min-height: 32px; color: var(--muted); text-underline-offset: 2px; }
 .pb-handoff a:hover { color: var(--accent-ink); }
 
-.pb-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s5); margin-bottom: var(--s5); }
-.pb-filters .field-inline { font-size: var(--fs-md); }
-.pb-cats { min-width: 0; }
+/* Category chips. The selected chip changes background and colour only, never its weight or size, so no chip moves. */
+.pb-cats { min-width: 0; margin-bottom: var(--s4); }
+.pb-cats button { font-weight: 400; }
+.pb-cats button[aria-pressed="true"] { font-weight: 400; background: var(--surface); color: var(--accent-ink); box-shadow: inset 0 -2px 0 var(--accent); }
 
-.pb-questions { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
-.pb-q { border-bottom: 1px solid var(--line); }
+.pb-questions { list-style: none; margin: 0; padding: 0; }
+.pb-q { border-top: 1px solid var(--line); }
+.pb-q:first-child { border-top: 0; }
+
+/* The row: the toggle fills it; the Ask AI icon sits in the toggle's empty "ask" cell, just before the chevron. */
+.pb-q-head { display: grid; grid-template-columns: minmax(0, 1fr); align-items: center; }
 .pb-q-btn {
-  display: flex; align-items: baseline; gap: var(--s4); width: 100%; min-height: 44px; padding: var(--s5) var(--s2);
+  grid-area: 1 / 1;
+  display: grid; grid-template-columns: var(--pb-tag-w) minmax(0, 1fr) auto var(--pb-ask-w) 16px;
+  grid-template-areas: "tag text new ask chev"; align-items: center; column-gap: var(--pb-gap);
+  width: 100%; min-height: 44px; padding: var(--s3) var(--s2);
   border: 0; background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
 }
 .pb-q-btn:hover .pb-q-text { color: var(--accent-ink); }
-.pb-q-text { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.pb-q-text { grid-area: text; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
 .pb-q.is-read .pb-q-text { color: var(--muted); font-weight: 400; }
 .pb-q.is-open .pb-q-text { color: var(--ink); font-weight: 600; }
-.pb-new { color: var(--accent-ink); font-size: var(--fs-md); font-weight: 600; white-space: nowrap; }
-.pb-q-cat { color: var(--muted); font-size: var(--fs-md); white-space: nowrap; }
-.pb-chev { flex: none; align-self: center; width: 16px; height: 16px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform var(--dur-fast) var(--ease-out); }
+.pb-new { grid-area: new; color: var(--accent-ink); font-size: var(--fs-md); font-weight: 600; white-space: nowrap; }
+.pb-chev { grid-area: chev; width: 16px; height: 16px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform var(--dur-fast) var(--ease-out); }
 .pb-q.is-open .pb-chev { transform: rotate(90deg); }
+.pb-ask {
+  grid-area: 1 / 1; justify-self: end; position: relative; z-index: var(--z-raised);
+  display: inline-flex; align-items: center; justify-content: center;
+  width: var(--pb-ask-w); height: var(--pb-ask-w); margin-right: calc(var(--s2) + 16px + var(--pb-gap)); padding: 0;
+  border-color: transparent; background: transparent; color: var(--muted);
+}
+.pb-ask:hover { color: var(--accent-ink); background: var(--surface-2); }
+.pb-ask svg { width: 16px; height: 16px; fill: currentColor; }
 
-.pb-answers { display: grid; gap: var(--s6); padding: 0 var(--s2) var(--s6) calc(16px + var(--s4) + var(--s2)); animation: pb-in var(--dur-fast) var(--ease-out); }
+/* Category tag: a small pill with a light tint of its category's colour; the text is that colour mixed toward the ink. */
+.pb-tag {
+  grid-area: tag; justify-self: stretch; min-width: 0; padding: 0 var(--s4); border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--pb-c) 14%, transparent); color: color-mix(in srgb, var(--pb-c) 55%, var(--ink));
+  font-size: var(--fs-md); line-height: 1.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pb-tag-funding { --pb-c: var(--good); }
+.pb-tag-venues { --pb-c: var(--info); }
+.pb-tag-food { --pb-c: var(--warn); }
+.pb-tag-promotion { --pb-c: var(--late); }
+.pb-tag-people { --pb-c: var(--accent); }
+.pb-tag-timeline { --pb-c: color-mix(in srgb, var(--info) 55%, var(--late)); }
+.pb-tag-tools { --pb-c: var(--risk-yellow); }
+.pb-tag-club { --pb-c: var(--muted); }
+
+/* An open row: answers line up under the question text. */
+.pb-answers {
+  display: grid; gap: var(--s3); padding: 0 var(--s2) var(--s4) calc(var(--s2) + var(--pb-tag-w) + var(--pb-gap));
+  animation: pb-in var(--dur-fast) var(--ease-out);
+}
 @keyframes pb-in { from { opacity: 0; transform: translateY(-4px); } }
-.pb-ans { display: grid; gap: var(--s2); min-width: 0; }
-.pb-ans-meta { margin: 0; color: var(--muted); font-size: var(--fs-md); overflow-wrap: anywhere; }
+.pb-ans { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; column-gap: var(--s5); min-width: 0; }
+.pb-ans-main { display: grid; min-width: 0; font-size: var(--fs-md); line-height: 1.45; }
+/* "Label · meta" stays on one line; a long source name ends with an ellipsis (its link keeps the full name). */
+.pb-ans-meta { margin: 0; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pb-ans-meta a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .pb-ans-meta a:hover { color: var(--accent-ink); }
 .pb-label { font-weight: 600; }
@@ -38,23 +83,34 @@
 .pb-ans-text { margin: 0; overflow-wrap: anywhere; }
 .pb-none { margin: 0; font-size: var(--fs-md); }
 
-.pb-ans-actions, .pb-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
-.pb-vote {
-  display: inline-flex; align-items: center; gap: var(--s2); min-height: 32px; min-width: 44px; padding: var(--s2) var(--s4);
-  border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--muted); font-size: var(--fs-md); cursor: pointer;
+/* Small icon controls on the right of an answer: like, dislike (with counts) and the ⋯ menu. */
+.pb-ans-tools { display: flex; align-items: center; gap: var(--s1); margin-top: calc(-1 * var(--s2)); }
+.pb-icon {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); min-width: 32px; min-height: 32px; padding: 0 var(--s3);
+  border: 0; border-radius: var(--r-sm); background: transparent; color: var(--muted); font-size: var(--fs-md); cursor: pointer;
 }
-.pb-vote svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.pb-vote[aria-pressed="true"] { color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
-.pb-vote:not(:disabled):hover { background: var(--surface-2); }
-.pb-vote:disabled { cursor: default; }
-.pb-ask svg { width: 16px; height: 16px; fill: currentColor; }
-.pb-more-answers { justify-self: start; font-size: var(--fs-md); min-height: 24px; }
-.pb-show-more { margin-top: var(--s5); }
+.pb-icon:hover { background: var(--surface-2); color: var(--ink); }
+.pb-icon svg { width: 16px; height: 16px; }
+.pb-vote svg { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pb-vote[aria-pressed="true"] { color: var(--accent-ink); }
+.pb-vote[aria-pressed="true"] svg { fill: color-mix(in srgb, var(--accent) 22%, transparent); }
+.pb-dots { fill: currentColor; }
+.pb-more .mb-caret { display: none; }
+.pb-more[aria-expanded="true"] { background: var(--surface-2); color: var(--ink); }
+
+.pb-more-answers { font-size: var(--fs-md); min-height: 24px; }
+.pb-row-foot { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--s6); row-gap: var(--s2); min-height: 32px; }
+.pb-add-answer { font-size: var(--fs-md); min-height: 24px; }
+.pb-show-more { margin-top: var(--s4); }
+
+/* Inline delete confirmation (no dialog). */
+.pb-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); font-size: var(--fs-md); }
+.pb-delete { color: var(--late); border-color: color-mix(in srgb, var(--late) 45%, var(--line)); }
 
 .pb-form { display: grid; gap: var(--s5); min-width: 0; }
 .pb-form .field, .pb-add .field { font-size: var(--fs-md); }
 .pb-radios { display: flex; flex-wrap: wrap; gap: var(--s6); }
-.pb-radio { display: inline-flex; align-items: center; gap: var(--s3); min-height: 24px; color: var(--ink); font-size: var(--fs-md); cursor: pointer; }
+.pb-radio { display: inline-flex; align-items: center; gap: var(--s3); min-height: 24px; color: var(--ink); font-size: var(--fs-md); white-space: nowrap; cursor: pointer; }
 .pb-note { margin: 0; }
 
 .pb-add { display: grid; gap: var(--s5); margin-bottom: var(--s6); }
@@ -68,20 +124,26 @@
 .pb-empty p { margin: 0 0 var(--s5); }
 .pb-error { margin: 0; }
 
-/* "Hidden questions (N)": president or VP only, quiet and closed until asked for. */
-.pb-hidden-qs { display: grid; gap: var(--s3); margin-top: var(--s5); }
-.pb-hidden-qs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
-.pb-hidden-qs li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s4); }
-.pb-hidden-qs li span { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; font-size: var(--fs-md); }
+@media (pointer: coarse) {
+  .pb-list { --pb-ask-w: 44px; }
+}
 
 @media (max-width: 560px) {
+  .pb-list { --pb-gap: var(--s4); padding: var(--s4) var(--s5) var(--s3); }
   /* One row of category chips that scrolls sideways inside itself, so the list starts near the top of a phone. */
-  .pb-filters .field-inline { flex: 1 1 100%; }
   .pb-cats { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
   .pb-cats button { flex: none; white-space: nowrap; }
-  .pb-q-btn { flex-wrap: wrap; row-gap: var(--s1); }
-  .pb-q-text { flex-basis: calc(100% - 16px - var(--s4)); }
-  .pb-new, .pb-q-cat { margin-left: calc(16px + var(--s4)); }
-  .pb-new + .pb-q-cat { margin-left: 0; }
+  /* The tag sits above the question, with "New" beside it, so the question gets the full width. */
+  .pb-q-btn { grid-template-columns: auto minmax(0, 1fr) var(--pb-ask-w) 16px; grid-template-areas: "tag new ask chev" "text text ask chev"; row-gap: var(--s1); }
+  .pb-tag { justify-self: start; max-width: 100%; }
+  .pb-new { justify-self: start; }
   .pb-answers { padding-left: var(--s2); }
+  /* An answer: like, dislike and ⋯ on the label's line, the text across the full width under them. */
+  .pb-ans { grid-template-areas: "meta tools" "body body"; align-items: center; }
+  .pb-ans-main { display: contents; }
+  .pb-ans-meta { grid-area: meta; white-space: normal; overflow-wrap: anywhere; }
+  /* A school rule has no controls beside it: its source name keeps one line, ending with an ellipsis. */
+  .pb-ans-rule .pb-ans-meta { grid-column: 1 / -1; white-space: nowrap; }
+  .pb-ans-main > :not(.pb-ans-meta) { grid-column: 1 / -1; }
+  .pb-ans-tools { grid-area: tools; margin-top: 0; }
 }

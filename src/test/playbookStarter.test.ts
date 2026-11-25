@@ -21,7 +21,7 @@ describe("Playbook starter questions (contract item 5)", () => {
     const fin = playbookOf(next).answers.filter(a => a.questionId === "pq-start-r-fin")
     expect(fin.map(a => a.text)).toEqual(SAMPLE_INTERVIEWS.finance)
     expect(fin.every(a => a.kind === "experience" && a.authorId === "maya" && a.on === s.today && a.status === "active")).toBe(true)
-    expect(questionsFor(next, { roleId: "r-fin", category: "timeline" }).map(q => q.id)).toContain("pq-start-r-fin")
+    expect(questionsFor(next, { category: "timeline" }).map(q => q.id)).toContain("pq-start-r-fin")
     expect(answerSet(next, "pq-start-r-fin").experience).toBeDefined()
   })
 
@@ -75,15 +75,17 @@ describe("Playbook starter questions (contract item 5)", () => {
     expect(starterQuestionText("")).toBe("What did the last officer want the next one to know?")
   })
 
-  it("does not bring back a line the president hid, skips a hidden starter question, and follows a merged one", () => {
+  it("does not bring back a line that was edited, adds a deleted one again only on a new import, and follows a merged question", () => {
     const once = imp(base())
     const firstFin = playbookOf(once).answers.find(a => a.questionId === "pq-start-r-fin")!
-    const hidden = act(once, { kind: "hideAnswer", answerId: firstFin.id, hidden: true })
-    expect(imp(hidden)).toBe(hidden)
+    const edited = act(once, { kind: "editAnswer", answerId: firstFin.id, text: "Edited by the president." })
+    expect(imp(edited)).toBe(edited)
+    // Deleting is final for the list; an explicit import later (offered only while the Playbook is empty) may add the line again.
+    const deleted = act(once, { kind: "deleteAnswer", answerId: firstFin.id })
+    expect(playbookOf(deleted).answers.some(a => a.id === firstFin.id)).toBe(false)
+    expect(playbookOf(imp(deleted)).answers.some(a => a.id === firstFin.id)).toBe(true)
 
     const more = (s: DemoState): DemoState => ({ ...s, handoffRoles: s.handoffRoles.map(h => h.roleId === "r-fin" ? { ...h, interview: [...h.interview, "A new line."] } : h) })
-    const hiddenQ = act(once, { kind: "hideQuestion", questionId: "pq-start-r-fin", hidden: true })
-    expect(imp(more(hiddenQ)).playbook).toBe(more(hiddenQ).playbook)
 
     const merged = act(once, { kind: "mergeQuestion", fromId: "pq-start-r-fin", intoId: "pq-9" })
     const next = imp(more(merged))

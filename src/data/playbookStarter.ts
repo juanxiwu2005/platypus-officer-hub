@@ -10,7 +10,7 @@ import { isPlaybookId, MAX_ANSWER_TEXT, MAX_QUESTION_TEXT, starterAnswerId, star
  * startup bundle; the reducer in playbook.ts checks whatever the page sends.
  *
  * Idempotent: the question id is stable per role and each answer id is stable per role, round and line
- * (`starterAnswerId`), so an answer that is already there (even edited, hidden or merged elsewhere) is never added again.
+ * (`starterAnswerId`), so an answer that is already there (even edited or merged elsewhere) is never added again.
  * Lines that name a contact marked "leads only" (a first or last name, the email or the phone number) are left out, as are
  * the new officer's read-back lines.
  */
@@ -88,12 +88,11 @@ export function starterPlaybook(s: DemoState, p: Playbook): { questions: Playboo
     const fresh = lines.filter(l => !takenA.has(l.id))
     if (!fresh.length) continue
 
-    // The role's question: an existing one (followed through merges; skipped when the president or VP hid it) or a new one.
+    // The role's question: an existing one (followed through merges) or a new one.
     const id = starterQuestionId(role.id)
     if (!isPlaybookId(id)) continue
     let target = p.questions.find(q => q.id === id)
     for (let hops = 0; target?.mergedInto && hops <= p.questions.length; hops++) target = p.questions.find(q => q.id === target!.mergedInto)
-    if (target?.hidden) continue
     if (!target && takenQ.has(id)) continue
     const questionId = target?.id ?? id
     if (!target) {

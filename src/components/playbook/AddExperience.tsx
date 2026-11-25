@@ -10,12 +10,12 @@ import type { PlaybookViewer } from "./shared"
 
 /**
  * "+ Add experience": a question (new, or an existing one picked from the live suggestions) and its answer. The duplicate check
- * comes first so the library grows by answers rather than by near-identical questions.
+ * comes first so the library grows by answers rather than by near-identical questions. New questions are for every role (`roleIds: "all"`);
+ * every viewer sees every question.
  */
-export function AddExperience({ viewer, defaultCategory, roleIds, onSaved, onCancel }: {
+export function AddExperience({ viewer, defaultCategory, onSaved, onCancel }: {
   viewer: PlaybookViewer
   defaultCategory: string
-  roleIds: string[] | "all"
   /** Called after a save the model accepted, with the state it leads to (so the page can place the list around the question). */
   onSaved: (questionId: string, category: string, next: DemoState) => void
   onCancel: () => void
@@ -37,7 +37,7 @@ export function AddExperience({ viewer, defaultCategory, roleIds, onSaved, onCan
     const cat = existing?.category ?? category
     const questionId = existing?.id ?? newPlaybookId(state, "pq-")
     const actions: PlaybookAction[] = [
-      ...(existing ? [] : [{ kind: "addQuestion", id: questionId, text: question, category: cat, roleIds } as const]),
+      ...(existing ? [] : [{ kind: "addQuestion", id: questionId, text: question, category: cat, roleIds: "all" } as const]),
       { kind: "addAnswer", id: newPlaybookId(state, "pa-"), questionId, answerKind: viewer.lead ? kind : "experience", text },
     ]
     // The model is pure: try the save first, and when it would be refused keep the form open (with the text) and say why.

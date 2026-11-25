@@ -21,6 +21,7 @@ import { readAiBudget } from "../../lib/api"
 import { AiWait } from "../AiWait"
 import { EVENT_CHECKLIST } from "../../data/eventChecklist"
 import { findWorkflowTemplateVersion } from "../../data/workflowTemplates"
+import { playbookAskContext } from "../../lib/playbookAsk"
 import { initialWorkflowChoice, WorkflowTemplatePicker, type WorkflowChoice } from "./WorkflowTemplatePicker"
 
 const CHAT_KEY = "platypus.v1.chat"
@@ -106,7 +107,16 @@ export function AskPanel() {
     })
   }, [toReview, state])
 
+  // A Playbook question's context lasts while its page is shown (Ask stays open across pages on a computer).
+  const askContext = rail.askContext
+  useEffect(() => { if (askContext && location.pathname !== "/playbook") rail.clearAskContext() }, [location.pathname, askContext])
   const focus: Focus | null = useMemo(() => {
+    // Ask AI on a Playbook question: recomputed from the current state, so votes and edits since the click count; a question
+    // deleted since then has no context.
+    if (askContext && location.pathname === "/playbook") {
+      const now = playbookAskContext(state, askContext.questionId)
+      if (now) return { kind: "playbook-question", id: now.questionId, title: now.question, playbookQuestion: now }
+    }
     const d = rail.detail
     if (d && (d.kind === "node" || d.kind === "task" || d.kind === "nudge")) { const n = state.nodes.find(x => x.id === d.id); if (n) return { kind: "node", id: n.id, title: n.title } }
     if (d?.kind === "funding") { const e = state.events.find(x => x.id === d.eventId); if (e) return { kind: "event", id: e.id, title: `${e.name} funding` } }
@@ -116,7 +126,7 @@ export function AskPanel() {
     }
     const page = PAGES.find(p => p.path === location.pathname)
     return page ? { kind: "page", id: page.path, title: page.label } : null
-  }, [rail.detail, location.pathname, location.search, state.nodes, state.events])
+  }, [askContext, rail.detail, location.pathname, location.search, state.nodes, state.events, state.playbook, state.people])
   const activeFocus = focus && focusOff !== `${focus.kind}:${focus.id}` ? focus : null
 
   /** `via`: typed in the box, a suggestion chip, or a question sent from elsewhere ("Ask about this rule"). */
@@ -244,7 +254,7 @@ export function AskPanel() {
       <b>Ask Platypus</b>
       {messages.length > 0 && <button type="button" className="btn btn-quiet small" onClick={() => setMessages([])}>New chat</button>}
     </header>
-    {activeFocus && <div className="focus-chip" data-testid="focus-chip"><span>Looking at: {activeFocus.title}</span><button type="button" aria-label="Stop using this context" onClick={() => setFocusOff(`${activeFocus.kind}:${activeFocus.id}`)}>×</button></div>}
+    {activeFocus && <div className="focus-chip" data-testid="focus-chip"><span>Looking at: {activeFocus.title}</span><button type="button" aria-label="Stop using this context" onClick={() => { if (activeFocus.kind === "playbook-question") rail.clearAskContext(); else setFocusOff(`${activeFocus.kind}:${activeFocus.id}`) }}>×</button></div>}
     {!messages.length && <div className="ask-welcome" data-testid="ask-welcome">
       <p className="ask-hello">Hi {person.name.split(" ")[0]}. What do you need?</p>
       {suggestionRow}
