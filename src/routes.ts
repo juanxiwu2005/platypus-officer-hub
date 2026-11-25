@@ -12,8 +12,9 @@ export interface PageDef {
   /**
    * main = the side navigation; more = inside the collapsible "More" (FB-8); footer = Settings at the bottom;
    * plan = reached from Plan's "Events | Tasks" switch, not a navigation item of its own.
+   * sub = reached from another page (the handoff workspace is opened from Playbook during Playbook phase 1).
    */
-  group: "main" | "more" | "footer" | "plan"
+  group: "main" | "more" | "footer" | "plan" | "sub"
   /** Other paths that make this item the current one (FB-8: Plan is current on /tasks too). */
   also?: string[]
 }
@@ -26,7 +27,8 @@ export const PAGES: PageDef[] = [
   { path: "/", label: "Reminders", icon: "reminders", question: "Who needs a reminder, and who hasn't answered?", group: "main" },
   { path: "/events", label: "Plan", title: "Events", icon: "events", question: "What has to happen, and who owns it?", group: "main", also: ["/tasks"] },
   { path: "/team", label: "Team", icon: "team", question: "Who is overloaded, who deserves credit, and when can we meet?", group: "main" },
-  { path: "/handoff", label: "Handoff", icon: "handoff", question: "How do we hand over without starting from zero?", group: "main" },
+  { path: "/playbook", label: "Playbook", icon: "playbook", question: "What has this club learned, and what does the school require?", group: "main", also: ["/handoff"] },
+  { path: "/handoff", label: "Handoff", icon: "handoff", question: "How do we hand over without starting from zero?", group: "sub" },
   { path: "/rules", label: "Rules", icon: "rules", question: "What does ASU require?", group: "main" },
   { path: "/tasks", label: "Tasks", icon: "tasks", question: "What has to happen, and who owns it?", group: "plan" },
   { path: "/settings", label: "Settings", icon: "settings", question: "How should Platypus work for this club?", group: "footer" },

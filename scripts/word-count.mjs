@@ -18,7 +18,7 @@ const args = process.argv.slice(2)
 const enforce = !args.includes("--report-only")
 const out = args.find(a => !a.startsWith("--"))
 // /funding redirects to /events; its content is counted once under /events.
-const LIMITS = { "/": [200, 500], "/events": [180, 420], "/rules": [340, 1700], "/tasks": [130, 130], "/team": [130, 290], "/handoff": [120, 120], "/settings": [150, 150] }
+const LIMITS = { "/": [200, 500], "/events": [180, 420], "/rules": [340, 1700], "/tasks": [130, 130], "/team": [130, 290], "/handoff": [120, 120], "/playbook": [200, 600], "/settings": [150, 150] }
 const PORT = Number(process.env.WORDS_PORT) || 4177
 const base = `http://localhost:${PORT}`
 

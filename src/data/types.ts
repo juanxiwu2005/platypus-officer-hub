@@ -692,6 +692,8 @@ export interface DemoState {
   handoffRoles: RoleHandoff[]
   /** Earlier rounds of role handoffs, kept when a role is handed over again or a new season starts (never erased). Optional: absent in older saves. */
   handoffHistory?: (RoleHandoff & { season: string | null })[]
+  /** The club's Playbook: question-first experience library (Playbook phase 1, 2026-11-25). Optional: absent in older saves, read as empty. */
+  playbook?: Playbook
   /** Who held which role, and when (Handoff stage 3). Maintained by normalizeTerms. */
   roleTerms: RoleTerm[]
   /** Roles the club closed (Handoff stage 6). */
@@ -741,4 +743,56 @@ export interface LogEntry {
   applied: boolean
   /** The study session it was written in (src/lib/studySession.ts); missing when no session had begun in this browser. */
   session?: string
+}
+
+/**
+ * Playbook (phase 1, 2026-11-25; docs/feedback-fix/PLAYBOOK_P1_CONTRACT.md). A question-first experience library.
+ * One question = one card. Each card shows at most one primary answer per kind: "rule" (read-only, from the school pack),
+ * "club" (club practice, written by the president or VP) and "experience" (any current officer); other answers of the same kind collapse.
+ */
+export type PlaybookCategory = "funding" | "venues" | "food" | "promotion" | "people" | "timeline" | "tools"
+export interface PlaybookQuestion {
+  id: string
+  /** The reader-facing question, 1–140 characters. */
+  text: string
+  /** One of the seven universal categories, or the id of a club category (`cat:…`). */
+  category: PlaybookCategory | string
+  /** "all" or the role IDs this question is for (like checklist rows). */
+  roleIds: string[] | "all"
+  /** Policy record IDs (internal; the interface shows source names). */
+  policyIds: string[]
+  /** Checklist item IDs the question belongs to (phase 2 shows "related questions" there). */
+  checklistItemIds: string[]
+  origin: "seed" | "handoff" | "club" | "asked" | "records" | "community"
+  /** Set when merged into another question; old links follow it. */
+  mergedInto?: string
+  createdOn: string
+  createdBy: string | null
+}
+export interface PlaybookAnswer {
+  id: string
+  questionId: string
+  kind: "rule" | "club" | "experience"
+  /** 1–400 characters. Rule answers come only from the school pack and are never edited by a club. */
+  text: string
+  authorId: string | null
+  /** For rule answers: the policy record ID it quotes (shown as the source name). */
+  policyId?: string
+  on: string
+  verifiedOn?: string
+  status: "active" | "stale" | "hidden"
+  votes: { up: string[]; down: string[] }
+  /** Phase 4 interface only. */
+  share?: "none" | "pending" | "shared"
+}
+export interface PlaybookAsked { id: string; questionText: string; askedBy: string; askedOn: string; status: "open" | "answered"; questionId?: string }
+export interface Playbook {
+  questions: PlaybookQuestion[]
+  answers: PlaybookAnswer[]
+  /** Club-added categories (the seven universal ones are in code). */
+  categories?: { id: string; label: string }[]
+  /** Questions a person sent to "ask a person" (phase 3). Never read from the research log. */
+  asked?: PlaybookAsked[]
+  /** Per person: question IDs they have opened (only shown to that person). */
+  reads?: Record<string, string[]>
 }

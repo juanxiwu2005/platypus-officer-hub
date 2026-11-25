@@ -1,4 +1,5 @@
 import { changeHandoff, repairLegacyHandoff, type HandoffAction } from "./handoff"
+import { changePlaybook, playbookOf, type PlaybookAction } from "./playbook"
 import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
@@ -193,6 +194,7 @@ export type Action =
   | { type: "saveWorkflowTeams"; teams: WorkflowTeam[]; roleTeams: Record<string, string> }
   /** Settings → Onboarding: the whole checklist template, sanitized against the current roles. Null removes it (start over). */
   | { type: "saveOnboardingChecklist"; checklist: OnboardingChecklist | null }
+  | { type: "playbookAction"; action: PlaybookAction }
 
 const NODE_FIELDS: (keyof NodePatch)[] = ["externalLinks", "title", "instructions", "completionCriteria", "tags", "ownerId", "clubDeadlineOverride", "estDays", "startPolicy", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
@@ -401,7 +403,7 @@ export function reducer(state: DemoState, action: Action): DemoState {
  * What someone who is not a current officer may do while viewed as (D-3a): a next officer who has not taken the role yet (or a former officer)
  * reads, works through their own handoff steps and switches view, but cannot claim, create or change tasks, contacts, events or settings.
  */
-const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction", "recordReminderBatch", "recordReminderDigests", "saveTaskWork", "updateTaskTarget"])
+const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "playbookAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction", "recordReminderBatch", "recordReminderDigests", "saveTaskWork", "updateTaskTarget"])
 function baseReducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
     case "handoffAction": return changeHandoff(state,action.action)
@@ -645,6 +647,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "restoreWorkflowPreset": return restoreWorkflowPreset(state, action.id)
     case "saveWorkflowTeams": return saveWorkflowTeams(state, action.teams, action.roleTeams)
     case "saveOnboardingChecklist": return saveOnboardingChecklist(state, action.checklist)
+    case "playbookAction": return changePlaybook(state, action.action)
     case "saveWorkflow": return saveWorkflow(state, action.steps, action.branches)
     case "resetWorkflow": return resetWorkflow(state)
   }
@@ -848,6 +851,8 @@ function payloadOf(a: Action): unknown {
     case "confirmNudgeSent": return a.message ? { nodeId: a.nodeId, channel: a.channel, via: a.via, message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
     case "replace": return { nodes: a.state.nodes.length, events: a.state.events.length }
     // Counts only, like its "before" value: the default would copy (truncated) checklist titles on every debounced save.
+    // Counts and IDs only: question and answer text never enters the log.
+    case "playbookAction": { const x = a.action; return { kind: x.kind, ...("questionId" in x ? { questionId: x.questionId } : {}), ...("answerId" in x ? { answerId: x.answerId } : {}), ...("vote" in x ? { vote: x.vote } : {}), ...(x.kind === "addQuestion" ? { category: x.category } : {}), ...(x.kind === "addAnswer" ? { answerKind: x.answerKind } : {}) } }
     case "saveOnboardingChecklist": { const modules = Array.isArray(a.checklist?.modules) ? a.checklist.modules : []; return { cleared: a.checklist === null, modules: modules.length, items: modules.reduce((n, m) => n + (Array.isArray(m?.items) ? m.items.length : 0), 0) } }
     case "officerAction": return { reply: a.reply, input: slim(a.input) }
     case "issueOfficerGrant": return { nodeId: a.grant.nodeId, ownerId: a.grant.ownerId, issuedOn: a.grant.issuedOn }
@@ -897,6 +902,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "newWorkflowTemplate": case "saveWorkflowTemplateDraft": case "publishWorkflowTemplate": case "duplicateWorkflowTemplate": case "setDefaultWorkflowTemplate": case "discardWorkflowTemplateDraft": case "restoreWorkflowPreset": out = { templateIds: s.org.workflowTemplates?.map(template => template.id), defaultWorkflowTemplateId: s.org.defaultWorkflowTemplateId }; break
     case "saveWorkflowTeams": out = { workflowTeams: s.org.workflowTeams, workflowRoleTeams: s.org.workflowRoleTeams }; break
     // Counts only: checklist titles are club text the log does not need. Guarded: an imported state may hold a damaged checklist.
+    case "playbookAction": { const p = playbookOf(s); out = { playbookQuestions: p.questions.length, playbookAnswers: p.answers.length }; break }
     case "saveOnboardingChecklist": { const c = s.org.onboardingChecklist, ok = Array.isArray(c?.modules) && c!.modules.every(m => Array.isArray(m?.items)); out = { onboardingModules: ok ? c!.modules.length : 0, onboardingItems: ok ? countItems(c!) : 0 }; break }
     case "saveWorkflow": case "resetWorkflow": out = { eventWorkflow: s.org.eventWorkflow }; break
     case "saveClubSettings": out = { name: s.org.name, mission: s.org.mission, settings: s.org.settings }; break
