@@ -68,6 +68,7 @@ Before UI work, read `docs/DESIGN_TOKENS.md` and any applicable package plan. Ex
 
 - Left navigation, central content, and the shared right rail. Ask is the main AI entry; Details shows the selected item.
 - Reuse `src/components/ui/` primitives, status pills, dependency chains, tables, hover/help, and rail details. Keep routine copy short; put explanations in the appropriate help surface and respect measured page word budgets.
+- Playbook exception (Juanxi, 2026-11-25): Playbook question rows may expand in place to show their answers, with a small Ask AI button that opens the right-rail Ask with the question; answers stay out of the DOM until a row opens so page word totals stay bounded. Plan: `docs/feedback-fix/PLAYBOOK_INTEGRATION_PLAN.md`.
 - Use design tokens for type, color, spacing, radii, layers, duration, and easing. Follow the current CSS/lint scope; do not exempt new code to avoid a guard.
 - Motion supports reduced motion, responds immediately to interruption, and uses transform/opacity; avoid layout-property transitions, `transition: all`, and `!important`. Routine actions need at most press feedback; desktop hover opens without delay.
 - Preserve desktop/mobile navigation, keyboard access, touch behavior, and status meanings. The six task statuses (Not claimed gray, To do blue, Working on it orange, Waiting purple, Stuck red, Done green) and their names and colors are fixed (S3, 2026-11-23). Check the current scripts/tests for effective budgets rather than trusting a historical number.
