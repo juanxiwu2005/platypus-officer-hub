@@ -16,6 +16,7 @@ import { WEEK_ONE } from "./handbook"
 import { daysBetween } from "./dates"
 import { RULES, ruleSourceName } from "../data/rules"
 import { officers } from "../data/permissions"
+import type { PlaybookAskContext } from "./playbookAsk"
 
 interface PolicyAnswer { inScope: boolean; answer: string; citations: string[]; model: string | null; provider?: string }
 
@@ -36,7 +37,13 @@ export type ChatCard =
   /** The event review (M2b): risks for one new event; its suggested steps follow as a changes card. */
   | { kind: "review"; eventId: string; risks: ReviewRisk[]; label: string }
 export interface ChatMsg { id: string; role: "user" | "assistant"; text?: string; cards?: ChatCard[]; source?: string }
-export interface Focus { kind: "node" | "event" | "page"; id: string; title: string }
+/**
+ * What Ask is looking at (the "Looking at: …" chip). A Playbook question (Ask AI on its row) also carries its structured context,
+ * sent to /api/chat as `playbookQuestion` (docs/feedback-fix/PLAYBOOK_ASK_INTERFACE.md); `focus` itself stays kind, id and title.
+ */
+export type Focus =
+  | { kind: "node" | "event" | "page"; id: string; title: string }
+  | { kind: "playbook-question"; id: string; title: string; playbookQuestion: PlaybookAskContext }
 /**
  * `refine`: the assistant's reading of the same message, still on its way. The panel shows the reply at once and
  * lets the assistant fill in the form when it answers (ASU AIR can take tens of seconds; Juanxi wants speed).
@@ -263,7 +270,9 @@ async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus |
   const data = opts.purpose === "form" ? formSnapshot(snap) : snap
   try {
     const r = await callApi<{ cards: unknown; source: string; model?: string; provider?: string }>("/chat", {
-      message: t, page, focus, context: commandContext(s), data, ...(opts.purpose ? { purpose: opts.purpose } : {}),
+      message: t, page, focus: focus && { kind: focus.kind, id: focus.id, title: focus.title }, context: commandContext(s), data, ...(opts.purpose ? { purpose: opts.purpose } : {}),
+      // The Playbook question's context, as data for the assistant (a future AI harness answers from it; see PLAYBOOK_ASK_INTERFACE.md).
+      ...(focus?.kind === "playbook-question" && opts.purpose !== "form" ? { playbookQuestion: focus.playbookQuestion } : {}),
       history: history.slice(-6).map(m => ({ role: m.role, text: m.text ?? m.cards?.map(c => c.kind === "text" ? c.text : c.kind).join(" ") ?? "" })),
     }, aiWaitMs(), opts.signal)
     const cards = sanitizeCards(r.cards, commandContext(s), knownDates(data))
@@ -326,6 +335,17 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
     const up = s.nodes.filter(n => focusNode.dependsOn.includes(n.id) && n.status !== "done")
     const lines = [focusNode.why || "This step supports the club plan.", up.length ? `It waits for: ${up.map(n => n.title).join("; ")}.` : "Nothing upstream is blocking it.", p?.issues.find(i => i.severity !== "info")?.text].filter(Boolean)
     return { cards: [textCard(lines.join(" ")), { kind: "tasks", title: "This step", nodeIds: [focusNode.id], remind: canLeadAs(s, viewerId) && focusNode.status !== "done" }], source: "Platypus" }
+  }
+  // Asked from a Playbook question (Ask AI on its row): the message goes to /api/chat first, with the question's context as
+  // `playbookQuestion`, so the assistant sees the club's answers. With AI off, or when the AI has nothing, the usual answers below
+  // apply unchanged (a rule question still gets the rule book's keyword answer).
+  if (focus?.kind === "playbook-question" && s.aiEnabled) {
+    try {
+      const ai = await aiReply(t, s, viewerId, focus, page, history, { rethrow: true, signal })
+      if (ai?.cards.length) return ai
+    } catch (e) {
+      if (wasStopped(e)) return { cards: [textCard(`Stopped. ${HELP}`)], source: STOPPED_SOURCE }
+    }
   }
   // A policy/source question has precedence over shortcuts. This prevents "top three rules" from
   // incorrectly becoming the user's top-five task table.

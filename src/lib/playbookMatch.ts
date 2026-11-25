@@ -1,5 +1,5 @@
 import type { DemoState, PlaybookQuestion } from "../data/types"
-import { isQuestionHidden, playbookOf } from "../data/playbook"
+import { playbookOf } from "../data/playbook"
 
 /**
  * Similar Playbook questions (phase 1, contract item 6): rules only, no AI. Used by "Add experience" to suggest answering an
@@ -54,13 +54,13 @@ export function similarityScore(words: Set<string>, q: PlaybookQuestion, opts: S
   return Math.round((overlap + category + policy) * 1e6) / 1e6
 }
 
-/** Up to three live questions (not merged, not hidden) most like `text`, best first; ties keep the Playbook's order. */
+/** Up to three live questions (not merged) most like `text`, best first; ties keep the Playbook's order. */
 export function similarQuestions(s: DemoState, text: string, opts: SimilarOptions = {}): PlaybookQuestion[] {
   const words = questionWords(text)
   if (!words.size) return []
   const limit = Math.max(0, Math.min(MAX_SIMILAR, opts.limit ?? MAX_SIMILAR))
   return playbookOf(s).questions
-    .filter(q => !q.mergedInto && !isQuestionHidden(q) && q.id !== opts.excludeId)
+    .filter(q => !q.mergedInto && q.id !== opts.excludeId)
     .map((q, i) => ({ q, i, score: similarityScore(words, q, opts) }))
     .filter(x => x.score >= MIN_SIMILARITY)
     .sort((a, b) => b.score - a.score || a.i - b.i)

@@ -1,7 +1,7 @@
 import { useId } from "react"
 import { MAX_ANSWER_TEXT } from "../../data/playbook"
 
-/** The answer part shared by "Add an answer" (in a row) and "Add experience" (toolbar): kind (president/VP only), text, demo note. */
+/** The answer part shared by "Add an answer" (in a row) and "Add experience" (toolbar): kind (Tip or Club rule, president/VP only), text, demo note. */
 export function AnswerFields({ lead, kind, setKind, text, setText, autoFocus }: {
   lead: boolean
   kind: "club" | "experience"
@@ -17,7 +17,7 @@ export function AnswerFields({ lead, kind, setKind, text, setText, autoFocus }: 
       <div className="pb-radios">
         {(["experience", "club"] as const).map(k => <label key={k} className="pb-radio">
           <input type="radio" name={`${id}-kind`} value={k} checked={kind === k} onChange={() => setKind(k)} />
-          {k === "club" ? "Club practice" : "Experience"}
+          {k === "club" ? "Club rule" : "Tip"}
         </label>)}
       </div>
     </fieldset>}

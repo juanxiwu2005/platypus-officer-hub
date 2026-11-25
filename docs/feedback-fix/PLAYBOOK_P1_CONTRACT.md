@@ -58,3 +58,15 @@ Frozen exports of `src/data/playbook.ts`: `PLAYBOOK_CATEGORIES`, `MAX_QUESTION_T
 
 - `MAX_QUESTION_TEXT` is now **100** (was 140), so eight rows stay within the page's word budget; the sanitizer cuts longer stored questions.
 - `importStarter` now carries `{ questions, answers }`, computed by the lazily loaded page with `starterPlaybook`; the reducer keeps every check (president/VP, starter id scheme, sanitizer, idempotent, limits), so `playbookStarter.ts` stays out of the startup bundle.
+
+## 6. Redesign (2026-11-26)
+
+Juanxi's feedback on `docs/prototypes/playbook/p1-desktop.png` ("too heavy"). These changes replace the matching parts of §2 and §3.
+
+- **Compact Q&A rows.** Each row, left to right: a category tag (short label, light tint of a per-category colour, fixed width so questions line up; above the question on a phone), the question, an Ask AI icon button, the chevron. An open row shows each answer as one block: `Label · meta` on one line (school rule: source name linked ↗; others: full name · month), the text, and on the right like/dislike icon buttons with counts and a ⋯ menu when allowed. One quiet line ends the open row: "N more answers", "Add an answer" (current officers) and the question's ⋯ menu. An open question with three answers is about 265px tall at 1440×900.
+- **Answer kinds renamed** (labels only; stored kinds unchanged): `rule` → **School rule**, `club` → **Club rule** (the club's own standard, president/VP only), `experience` → **Tip**.
+- **Delete instead of hide.** Removed: `hideAnswer`, `hideQuestion`, `hiddenAnswers`, `isQuestionHidden`, `PlaybookQuestion.hidden`, the answer status `hidden`, `HiddenQuestions.tsx` and every Hide/Unhide/"N hidden" control. Added actions `deleteAnswer` (president/VP; never a school rule) and `deleteQuestion` (president/VP; removes the question, all its answers including its school rule answers, the questions merged into it, and reads of them), with `canDeleteAnswer` and `canDeleteQuestion`. Confirmation is inline, not a dialog. Edit and Delete sit in the ⋯ menu (`MenuButton`). Old saves: the sanitizer drops hidden questions (with their answers and the questions merged into them) and hidden answers. A deleted starter line may come back only through an explicit new import (offered while the Playbook is empty).
+- **No role filter.** Every viewer sees every question; the role select is gone and `questionsFor` no longer takes `roleId` (`roleIds` stays in the data; new questions get `"all"`). Write permissions are unchanged: incoming officers read and vote, former officers only read.
+- **Full names** (`Person.name`) on club rules and tips.
+- **Ask AI context.** `src/lib/playbookAsk.ts` (`PlaybookAskContext`, `playbookAskContext`), `rail.askAbout(context)`, the "Looking at: <question>" chip, and the `/api/chat` field `playbookQuestion` (checked by `src/lib/playbookAskWire.ts`). Interface and harness rules: `PLAYBOOK_ASK_INTERFACE.md`.
+- **Chips do not move.** The selected chip changes background, colour and an inset underline only, never its weight or size; `e2e/playbook.spec.ts` compares every chip's place and width before and after clicking each one.

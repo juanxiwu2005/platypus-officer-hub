@@ -757,7 +757,7 @@ export interface PlaybookQuestion {
   text: string
   /** One of the seven universal categories, or the id of a club category (`cat:…`). */
   category: PlaybookCategory | string
-  /** "all" or the role IDs this question is for (like checklist rows). */
+  /** "all" or the role IDs this question is for. Kept for later use: since 2026-11-26 every viewer sees every question (no role filter). */
   roleIds: string[] | "all"
   /** Policy record IDs (internal; the interface shows source names). */
   policyIds: string[]
@@ -766,8 +766,6 @@ export interface PlaybookQuestion {
   origin: "seed" | "handoff" | "club" | "asked" | "records" | "community"
   /** Set when merged into another question; old links follow it. */
   mergedInto?: string
-  /** Set by the president or VP; hidden questions leave the lists. */
-  hidden?: boolean
   createdOn: string
   createdBy: string | null
 }
@@ -782,7 +780,8 @@ export interface PlaybookAnswer {
   policyId?: string
   on: string
   verifiedOn?: string
-  status: "active" | "stale" | "hidden"
+  /** Hiding was removed on 2026-11-26 (delete instead); an old save's "hidden" answers are dropped when read (src/data/playbook.ts). */
+  status: "active" | "stale"
   votes: { up: string[]; down: string[] }
   /** Phase 4 interface only. */
   share?: "none" | "pending" | "shared"

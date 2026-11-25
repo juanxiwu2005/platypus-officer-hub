@@ -108,6 +108,8 @@ describe("the log stays out of the handoff data and the AI (hard rule: no resear
     "netlify/functions/handbook-draft.mts",
     // Playbook (phase 1): the library is stored club data and later feeds Ask, so it never reads the log either.
     "src/data/playbook.ts", "src/data/playbookStarter.ts", "src/lib/playbookMatch.ts", "src/data/playbookSeed.ts", "src/pages/Playbook.tsx",
+    // The Ask AI context (2026-11-26) is sent to the AI as `playbookQuestion`.
+    "src/lib/playbookAsk.ts", "src/lib/playbookAskWire.ts",
     ...filesIn("src/components/playbook"),
   ]
   it.each(FILES)("%s does not use the log", file => {
