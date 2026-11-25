@@ -1,0 +1,80 @@
+/* Playbook phase 1 (P1-U, docs/feedback-fix/PLAYBOOK_P1_CONTRACT.md §3). Imported by src/pages/Playbook.tsx, so it loads with the
+   lazy Playbook chunk only. Tokens only; answer kinds are told apart by the label's text colour alone (no fills, borders or blocks). */
+
+.pb-handoff { margin: calc(-1 * var(--s5)) 0 var(--s4); font-size: var(--fs-md); }
+.pb-handoff a { display: inline-flex; align-items: center; min-height: 32px; color: var(--muted); text-underline-offset: 2px; }
+.pb-handoff a:hover { color: var(--accent-ink); }
+
+.pb-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s5); margin-bottom: var(--s5); }
+.pb-filters .field-inline { font-size: var(--fs-md); }
+.pb-cats { min-width: 0; }
+
+.pb-questions { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+.pb-q { border-bottom: 1px solid var(--line); }
+.pb-q-btn {
+  display: flex; align-items: baseline; gap: var(--s4); width: 100%; min-height: 44px; padding: var(--s5) var(--s2);
+  border: 0; background: transparent; color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+}
+.pb-q-btn:hover .pb-q-text { color: var(--accent-ink); }
+.pb-q-text { flex: 1 1 auto; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.pb-q.is-read .pb-q-text { color: var(--muted); font-weight: 400; }
+.pb-q.is-open .pb-q-text { color: var(--ink); font-weight: 600; }
+.pb-new { color: var(--accent-ink); font-size: var(--fs-md); font-weight: 600; white-space: nowrap; }
+.pb-q-cat { color: var(--muted); font-size: var(--fs-md); white-space: nowrap; }
+.pb-chev { flex: none; align-self: center; width: 16px; height: 16px; fill: none; stroke: var(--muted); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform var(--dur-fast) var(--ease-out); }
+.pb-q.is-open .pb-chev { transform: rotate(90deg); }
+
+.pb-answers { display: grid; gap: var(--s6); padding: 0 var(--s2) var(--s6) calc(16px + var(--s4) + var(--s2)); animation: pb-in var(--dur-fast) var(--ease-out); }
+@keyframes pb-in { from { opacity: 0; transform: translateY(-4px); } }
+.pb-ans { display: grid; gap: var(--s2); min-width: 0; }
+.pb-ans-meta { margin: 0; color: var(--muted); font-size: var(--fs-md); overflow-wrap: anywhere; }
+.pb-ans-meta a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.pb-ans-meta a:hover { color: var(--accent-ink); }
+.pb-label { font-weight: 600; }
+/* --info alone is 3.96:1 on the dark background; mixed a quarter toward --ink it is at least 5.3:1 on every background in both themes. */
+.pb-ans-rule .pb-label { color: color-mix(in srgb, var(--info) 75%, var(--ink)); }
+.pb-ans-club .pb-label { color: var(--accent-ink); }
+.pb-ans-experience .pb-label { color: var(--warn); }
+.pb-ans-text { margin: 0; overflow-wrap: anywhere; }
+.pb-none { margin: 0; font-size: var(--fs-md); }
+
+.pb-ans-actions, .pb-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
+.pb-vote {
+  display: inline-flex; align-items: center; gap: var(--s2); min-height: 32px; min-width: 44px; padding: var(--s2) var(--s4);
+  border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--muted); font-size: var(--fs-md); cursor: pointer;
+}
+.pb-vote svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.pb-vote[aria-pressed="true"] { color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.pb-vote:not(:disabled):hover { background: var(--surface-2); }
+.pb-vote:disabled { cursor: default; }
+.pb-ask svg { width: 16px; height: 16px; fill: currentColor; }
+.pb-more-answers { justify-self: start; font-size: var(--fs-md); min-height: 24px; }
+.pb-show-more { margin-top: var(--s5); }
+
+.pb-form { display: grid; gap: var(--s5); min-width: 0; }
+.pb-form .field, .pb-add .field { font-size: var(--fs-md); }
+.pb-radios { display: flex; flex-wrap: wrap; gap: var(--s6); }
+.pb-radio { display: inline-flex; align-items: center; gap: var(--s3); min-height: 24px; color: var(--ink); font-size: var(--fs-md); cursor: pointer; }
+.pb-note { margin: 0; }
+
+.pb-add { display: grid; gap: var(--s5); margin-bottom: var(--s6); }
+.pb-add-title { margin: 0; font-size: var(--fs-lg); }
+.pb-existing { margin: 0; overflow-wrap: anywhere; }
+.pb-similar p { margin: 0 0 var(--s3); }
+.pb-similar ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s4); }
+.pb-similar li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s4); }
+.pb-similar li span { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
+
+.pb-empty p { margin: 0 0 var(--s5); }
+
+@media (max-width: 560px) {
+  /* One row of category chips that scrolls sideways inside itself, so the list starts near the top of a phone. */
+  .pb-filters .field-inline { flex: 1 1 100%; }
+  .pb-cats { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; }
+  .pb-cats button { flex: none; white-space: nowrap; }
+  .pb-q-btn { flex-wrap: wrap; row-gap: var(--s1); }
+  .pb-q-text { flex-basis: calc(100% - 16px - var(--s4)); }
+  .pb-new, .pb-q-cat { margin-left: calc(16px + var(--s4)); }
+  .pb-new + .pb-q-cat { margin-left: 0; }
+  .pb-answers { padding-left: var(--s2); }
+}

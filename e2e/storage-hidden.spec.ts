@@ -8,7 +8,7 @@ test("no screen requests the removed server storage, and old /phase1 links retur
   const storageRequests: string[] = []
   page.on("request", r => { if (STORAGE.test(r.url())) storageRequests.push(r.url()) })
 
-  for (const path of ["/", "/events", "/tasks", "/team", "/funding", "/handoff", "/partners", "/rules", "/settings", "/help", "/setup"]) {
+  for (const path of ["/", "/events", "/tasks", "/team", "/funding", "/handoff", "/playbook", "/partners", "/rules", "/settings", "/help", "/setup"]) {
     await page.goto(`/#${path}`)
     await expect(page.locator("main").first()).toBeVisible()
     await expect(page.locator('a[href*="phase1"]')).toHaveCount(0)
