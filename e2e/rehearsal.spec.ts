@@ -35,7 +35,7 @@ test("participant path: clean browser → shared setup → task → event → ru
   await page.getByTestId("change-item").getByRole("button", { name: "Apply this change" }).click()
   // a rule question (the answer is built from the rule book, so it works with the AI off)
   await ask(page, "What do outside caterers need?")
-  await expect(page.getByTestId("rule-answer").last()).toContainText("R06")
+  await expect(page.getByTestId("rule-answer").last()).toContainText("Student Organization Handbook 2025–26")
   // a few more small actions, so the log has plenty of lines
   for (const path of ["/tasks", "/team", "/funding", "/rules", "/settings"]) { await page.goto(`/#${path}`); await expect(page.getByRole("heading", { level: 1 })).toBeVisible() }
   await closeRail(page)

@@ -1,4 +1,5 @@
 import type { Anchor } from "../data/types"
+import { ruleSourceNames } from "../data/rules"
 
 /** Organization lifecycle steps already required by the event generator. */
 export const CORE_EVENT_STEP_KEYS = [
@@ -27,7 +28,7 @@ export const isAsuStep = (item: PolicyItem): boolean => !!item.ruleIds?.length |
 /** One deletion rule for the menu, template validator and event reducer. */
 export function deletionReason(item: PolicyItem): string | null {
   if (virtual.has(item.id ?? item.key ?? "")) return "This is a workflow station, not a removable task."
-  if (isAsuStep(item)) return `ASU rule${(item.ruleIds?.length ?? 0) > 1 ? "s" : ""} ${item.ruleIds?.join(", ") || "on its deadline"} require this step.`
+  if (isAsuStep(item)) return `An ASU rule requires this step${item.ruleIds?.length ? ` (${ruleSourceNames(item.ruleIds).join("; ")})` : ""}.`
   if (isCoreStep(item)) return structure.has(keyOf(item)) ? "This step connects the event workflow and must stay." : "This step is part of the required organization event workflow."
   if (item.status === "done") return "It is already done and counts toward the contribution board."
   return null

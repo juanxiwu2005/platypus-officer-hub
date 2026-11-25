@@ -15,6 +15,7 @@ import { Bts, BtsRow } from "../Bts"
 import { OwnerPicker, ownersToPeople, TaskDueFields } from "./TaskFields"
 import { canChangeEvent, canLead, eventBlocked } from "../../data/changeReview"
 import { policySourceById } from "../../data/policyCatalog"
+import { distinctSources, sourceName, withSourceNames } from "../../lib/sourceNames"
 import { answerSummary, emitUi } from "../../lib/uiLog"
 import { readAiBudget } from "../../lib/api"
 import { AiWait } from "../AiWait"
@@ -290,15 +291,19 @@ function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (
       if (!n || !owner) return <p className="small muted">That task is no longer open.</p>
       return <div className="mini-card"><b>Reminder for {owner.name.split(" ")[0]}</b><span className="small">{n.title}</span><button type="button" className="btn btn-primary small" onClick={() => rail.show({ kind: "nudge", id: n.id })}>Open the draft</button></div>
     }
-    case "rule": return <div className="mini-card" data-testid="rule-answer">
-      <p className="pre-line">{card.answer}</p>
-      {card.citations.length > 0 && <div className="action-row">{card.citations.map(id => {
-        const policy = policySourceById(id), rule = ruleById(id), url = policy?.sourceUrl ?? rule?.sources[0].url
-        return url ? <a key={id} className="btn small" href={url} target="_blank" rel="noreferrer">{id} source ↗</a> : <span key={id} className="small muted">{id} source saved</span>
-      })}</div>}
-      <span className="ask-source">{card.label}{card.citations.length ? ` · checked ${policySourceById(card.citations[0])?.extractedAt ?? ruleById(card.citations[0])?.checkedOn}` : ""}</span>
-      <Feedback id={`ask:${card.question}:${card.answer}`} text={card.answer} />
-    </div>
+    case "rule": {
+      // Rule-book answers are written by the app, so their "[R06]" tags become names; AI-written archive answers stay as written.
+      const sources = distinctSources(card.citations), ruleBook = card.citations.every(id => ruleById(id))
+      return <div className="mini-card" data-testid="rule-answer">
+        <p className="pre-line">{ruleBook ? withSourceNames(card.answer) : card.answer}</p>
+        {sources.length > 0 && <div className="action-row">{sources.map(({ id, name }) => {
+          const policy = policySourceById(id), rule = ruleById(id), url = policy?.sourceUrl ?? rule?.sources[0].url
+          return url ? <a key={id} className="btn small" data-source-id={id} href={url} target="_blank" rel="noreferrer">{name} ↗</a> : <span key={id} className="small muted" data-source-id={id}>{name} · source saved</span>
+        })}</div>}
+        <span className="ask-source">{card.label}{sources.length ? ` · ${sources[0].name} checked ${policySourceById(sources[0].id)?.extractedAt ?? ruleById(sources[0].id)?.checkedOn}` : ""}</span>
+        <Feedback id={`ask:${card.question}:${card.answer}`} text={card.answer} />
+      </div>
+    }
     case "changes": return <ChangeCard id={card.changeSetId} />
     case "applied": return <AppliedCard id={card.changeSetId} />
     case "form": return <PlanForm card={card} onDone={onPlan} />
@@ -306,7 +311,7 @@ function CardView({ card, onPlan, onTask, onMoved }: { card: ChatCard; onPlan: (
       const ev = state.events.find(e => e.id === card.eventId)
       return <div className="mini-card" data-testid="event-review">
         <b>Plan check{ev ? `: ${ev.name}` : ""}</b>
-        {card.risks.length ? <ul className="review-risks">{card.risks.map((r, i) => <li key={i}>{r.text}{r.rules.map(id => { const rule = ruleById(id); return rule && <a key={id} className="small" href={rule.sources[0].url} target="_blank" rel="noreferrer"> {id} ↗</a> })}</li>)}</ul> : <p className="small">Nothing stands out beyond the playbook's steps.</p>}
+        {card.risks.length ? <ul className="review-risks">{card.risks.map((r, i) => <li key={i}>{r.text}{distinctSources(r.rules).map(({ id, name }) => { const rule = ruleById(id); return rule && <a key={id} className="small" data-source-id={id} href={rule.sources[0].url} target="_blank" rel="noreferrer"> {name} ↗</a> })}</li>)}</ul> : <p className="small">Nothing stands out beyond the playbook's steps.</p>}
         <BtsRow>
           {card.label.startsWith("AI") ? <Bts kind="ai" label={card.label}>The AI suggested these risks from the playbook plus what you wrote. Only rules in the rule book and dates the app already knows are kept.</Bts> : <Bts label={card.label}>No AI wrote this list. These are the rule engine's own warnings for the event, each tied to its rule where there is one.</Bts>}
           <Bts label="Rule engine">Every step date is computed by the rule engine; the AI never sets a date.</Bts>
@@ -373,7 +378,7 @@ export function PlanForm({ card, onDone }: { card: Extract<ChatCard, { kind: "fo
       <label>People<input type="number" min={1} max={5000} value={f.headcount} onChange={e => edit({ headcount: Number(e.target.value) })} /></label>
       <label>Food<select aria-label="Food" value={hasFood ? "yes" : "no"} onChange={e => { const yes = e.target.value === "yes"; edit({ food: yes ? (card.prefill.food && card.prefill.food !== "none" ? card.prefill.food : "tbd") : "none", checks: { ...f.checks, food: yes } }) }}><option value="no">No</option><option value="yes">Yes</option></select></label>
     </div>
-    {finals && <p className="small late-text" role="alert" data-testid="finals-warning">{fmtLong(date)} is during {finals.label}. ASU does not allow events then (R13).</p>}
+    {finals && <p className="small late-text" role="alert" data-testid="finals-warning">{fmtLong(date)} is during {finals.label}. ASU does not allow events then ({sourceName("R13")}).</p>}
     <label className="check-label"><input type="checkbox" checked={f.speaker} onChange={e => edit({ speaker: e.target.checked, checks: { ...f.checks, speaker: e.target.checked } })} />Guest speaker or performer</label>
     <fieldset className="checklist"><legend>Situation-based checklist</legend>{EVENT_CHECKLIST.filter(x => x.key !== "food" && x.key !== "speaker").map(item => <label key={item.key} className="check-label"><input type="checkbox" checked={f.checks[item.key] === true} onChange={e => toggleCheck(item.key, e.target.checked)} />{item.label}</label>)}</fieldset>
     <label>Details<textarea rows={3} maxLength={500} autoComplete="off" value={f.details} onChange={e => edit({ details: e.target.value })} placeholder="Anything unusual: a stage build, a company visit, flying out of state, a competition…" /></label>
@@ -447,7 +452,7 @@ function EventDateCard({ card, onDone }: { card: Extract<ChatCard, { kind: "even
     <label>Event<select aria-label="Event" value={eventId} onChange={e => setEventId(e.target.value)}>{state.events.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
     {ev && <p className="small muted">Now {fmtLong(ev.date)}.</p>}
     <label>New date<input type="date" aria-label="New date" value={date} min={state.today} onChange={e => setDate(e.target.value)} /></label>
-    {finals && <p className="small late-text" role="alert">{fmtLong(date)} is during {finals.label}. ASU does not allow events then (R13).</p>}
+    {finals && <p className="small late-text" role="alert">{fmtLong(date)} is during {finals.label}. ASU does not allow events then ({sourceName("R13")}).</p>}
     {!allowed && <p className="small muted">{eventBlocked(state, "change")}</p>}
     {error && <p className="small late-text" role="alert">{error}</p>}
     <button className="btn btn-primary" type="submit" disabled={!allowed}>Move event</button>

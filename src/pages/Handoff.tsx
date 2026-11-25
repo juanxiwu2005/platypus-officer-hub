@@ -17,6 +17,7 @@ import { Feedback } from "../components/Feedback"
 import { Avatar, Chain, Empty, Hover, Info, Ring, RISK_SHAPE, useStatusStyles, useTouch, type Stop } from "../components/ui"
 import { Bts, BtsRow } from "../components/Bts"
 import { fmtShort } from "../lib/dates"
+import { withSourceNames } from "../lib/sourceNames"
 import type { HandbookSource, RoleHandoff } from "../data/types"
 
 const DOSSIER_BLOCKS: { key: DossierBlock; label: string }[] = [
@@ -111,8 +112,9 @@ function Dossier({ roleId, open = false }: { roleId: string; open?: boolean }) {
   const d = roleDossier(state, roleId)
   const role = state.roles.find(r => r.id === roleId)
   const total = Object.values(d.blocks).flat().length
-  const openRow = (row: DossierRow) => row.contactId ? <button type="button" className="row-btn" onClick={() => rail.show({ kind: "partner", id: row.contactId! })}>{row.text}</button>
-    : row.nodeId ? <Link to={`/tasks?node=${encodeURIComponent(row.nodeId)}`}>{row.text}</Link> : <span>{row.text}</span>
+  // Dossier text names rule sources by ID ("(R03, R16)") because handbooks quote it word for word; the screen shows names.
+  const openRow = (row: DossierRow) => row.contactId ? <button type="button" className="row-btn" onClick={() => rail.show({ kind: "partner", id: row.contactId! })}>{withSourceNames(row.text)}</button>
+    : row.nodeId ? <Link to={`/tasks?node=${encodeURIComponent(row.nodeId)}`}>{withSourceNames(row.text)}</Link> : <span>{withSourceNames(row.text)}</span>
   // A role with no history yet opens its dossier: the starter questions are the one thing to do there.
   const fresh = !d.blocks.inFlight.length && !d.blocks.people.length
   return <details className="step-card dossier" open={open || fresh} data-testid="role-dossier">
@@ -205,7 +207,7 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
           return HANDBOOK_SECTIONS.map(name => {
             const rows = r.entries.filter(e => sectionOf(sourceOf(e.sourceId, e.text)) === name)
             if (!rows.length) return null
-            return <div key={name}><p className="small"><b>{name}</b></p><ol className="entries" start={n + 1}>{rows.map(entry => { n++; const source = sources.find(s => s.id === entry.sourceId); return <li key={entry.sourceId}><span>{entry.text}</span> <details className="src"><summary>Source {n}: {entry.sourceId}</summary><blockquote>{source?.text ?? entry.text}</blockquote>{source?.nodeId && <Link to={`/tasks?node=${encodeURIComponent(source.nodeId)}`}>Open task record</Link>}</details></li> })}</ol></div>
+            return <div key={name}><p className="small"><b>{name}</b></p><ol className="entries" start={n + 1}>{rows.map(entry => { n++; const source = sources.find(s => s.id === entry.sourceId); return <li key={entry.sourceId}><span>{withSourceNames(entry.text)}</span> <details className="src"><summary>Source {n}: {entry.sourceId}</summary><blockquote>{withSourceNames(source?.text ?? entry.text)}</blockquote>{source?.nodeId && <Link to={`/tasks?node=${encodeURIComponent(source.nodeId)}`}>Open task record</Link>}</details></li> })}</ol></div>
           })
         })()}
         <Feedback id={`handbook:${r.roleId}:${r.fingerprint}`} text={r.entries.map(e => e.text).join("\n")} />
@@ -245,7 +247,7 @@ function RolePanel({ record: r, title }: { record: RoleHandoff; title: string })
       <header><span className="step-n">5</span><b>First week</b><span className="small muted">{r.checks.length}/{WEEK_ONE.length}</span></header>
       {WEEK_ONE.map(item => <label key={item.id} className="check-label"><input type="checkbox" disabled={!r.completed || (!canNudge && state.viewerId !== r.incomingId)} checked={r.checks.includes(item.id)} onChange={() => act({ kind: "check", roleId: r.roleId, itemId: item.id })} />{touch ? <><span className="small">{item.text}</span><Info label={`Where "${item.text}" comes from`}>{item.source}</Info></> : <Hover card={item.source}><span className="small">{item.text}</span></Hover>}</label>)}
       {!r.completed && <p className="small muted">Opens after handover.</p>}
-      {upcoming.length > 0 && <div data-testid="first-30-days"><p className="small"><b>Next 30 days</b></p><ul className="small">{upcoming.slice(0, 5).map(row => <li key={row.id}><Link to={`/tasks?node=${encodeURIComponent(row.nodeId!)}`}>{row.text}</Link></li>)}</ul></div>}
+      {upcoming.length > 0 && <div data-testid="first-30-days"><p className="small"><b>Next 30 days</b></p><ul className="small">{upcoming.slice(0, 5).map(row => <li key={row.id}><Link to={`/tasks?node=${encodeURIComponent(row.nodeId!)}`}>{withSourceNames(row.text)}</Link></li>)}</ul></div>}
       <BtsRow><Bts label="Source">{[...new Set(WEEK_ONE.map(item => item.source))].join(" · ")}</Bts></BtsRow>
       <ReviewsPanel record={r} start={start} />
     </article>

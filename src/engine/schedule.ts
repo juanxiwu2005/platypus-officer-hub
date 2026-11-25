@@ -1,5 +1,5 @@
 import type { DemoState, Event, Node, Person, StepTiming } from "../data/types"
-import { RULES } from "../data/rules"
+import { RULES, ruleSourceName } from "../data/rules"
 import { addDays, daysBetween, fmtLong } from "../lib/dates"
 import { workflowMilestoneDates, workflowMilestoneGraphError, workflowMilestoneTaskDate } from "./workflowMilestones"
 import {
@@ -131,11 +131,11 @@ export function officialDeadline(n: Node, ev: Event): { date: string; why: strin
   let why: string
   if (a.unit === "business") {
     date = shiftWork(ev.date, -a.days)
-    why = `${a.ruleId}: ${plural(a.days, "business day")} before the event`
+    why = `${ruleSourceName(a.ruleId)}: ${plural(a.days, "business day")} before the event`
   } else {
     const raw = addDays(ev.date, -a.days)
     date = onOrBefore(raw)
-    why = `${a.ruleId}: ${plural(a.days, "day")} before the event`
+    why = `${ruleSourceName(a.ruleId)}: ${plural(a.days, "day")} before the event`
     if (date !== raw) why += `; ${fmtLong(raw)} is a ${closedReason(raw)}, so the business day before`
   }
   if (rule?.note) why += `. ${rule.note}`
@@ -681,7 +681,7 @@ function nodeIssues(
   const stray = [ev?.date, d.official, d.club, d.start].filter((x): x is string => !!x && outsideCalendar(x))
   if (stray.length) out.push({ code: "calendar_range", severity: "error", text: `This step involves ${fmtLong(stray.sort()[0])}, outside the ASU calendar Platypus knows (${calendarSpan()}). Its dates cannot be trusted.` })
   if (d.official && d.club > d.official)
-    out.push({ code: "official_missed", severity: "error", ruleId, text: `Planned finish ${fmtLong(d.club)} is after the ASU deadline ${fmtLong(d.official)}${ruleId ? ` (${ruleId})` : ""}.` })
+    out.push({ code: "official_missed", severity: "error", ruleId, text: `Planned finish ${fmtLong(d.club)} is after the ASU deadline ${fmtLong(d.official)}${ruleId ? ` (${ruleSourceName(ruleId)})` : ""}.` })
   // Check-in materials are intentionally allowed to be completed up to the event day.
   // They become an event-level warning only if they remain open on that day.
   const isCheckin = n.stepKey === "checkin"
@@ -719,7 +719,7 @@ function eventIssues(ctx: Ctx, ev: Event, nodes: Node[], out: Schedule, looped: 
   const issues: Issue[] = []
   const today = ctx.state.today
   const finals = findPeriod(ev.date, FINALS)
-  if (finals) issues.push({ code: "finals", severity: "error", ruleId: "R13", text: `${fmtLong(ev.date)} is during ${finals.label}. ASU does not allow events then (R13).` })
+  if (finals) issues.push({ code: "finals", severity: "error", ruleId: "R13", text: `${fmtLong(ev.date)} is during ${finals.label}. ASU does not allow events then (${ruleSourceName("R13")}).` })
   if (ev.date in HOLIDAYS) issues.push({ code: "holiday", severity: "warn", text: `ASU is closed on ${fmtLong(ev.date)} (${HOLIDAYS[ev.date]}).` })
   const brk = findPeriod(ev.date, BREAKS)
   if (brk) issues.push({ code: "break", severity: "warn", text: `${fmtLong(ev.date)} is during ${brk.label}. Classes are excused, so many members may be away.` })

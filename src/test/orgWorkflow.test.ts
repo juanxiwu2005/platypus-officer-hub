@@ -32,7 +32,7 @@ describe("org workflow · applying changes", () => {
       ch({ op: "update", key: "nope", patch: { estDays: 2 } }), ch({ op: "update", key: "plan", patch: { dependsOn: ["backup"] } }),
     ], base.roles)
     expect(r.applied).toEqual([])
-    expect(r.refused.map(x => x.reason)).toEqual([expect.stringMatching(/ASU rule R06/), expect.stringMatching(/R01/), expect.stringMatching(/R09/), "That step is not in the workflow.", "That would make a step wait for itself."])
+    expect(r.refused.map(x => x.reason)).toEqual([expect.stringMatching(/ASU rule requires this step \(Student Organization Handbook 2025–26\)/), expect.stringMatching(/Event Registry guidelines/), expect.stringMatching(/USG Spending Guidelines/), "That step is not in the workflow.", "That would make a step wait for itself."])
     expect(r.steps).toEqual(presetSteps())
   })
   it("removing a step the club does not use lets later steps wait for what it waited for; locked steps are never removed", () => {
@@ -61,8 +61,8 @@ describe("org workflow · checks against ASU rules (the engine's, not the AI's)"
   })
   it("blocks a missing rule step, a changed rule deadline, a lost rule order, a loop and a dangling link", () => {
     const steps = presetSteps()
-    expect(checkWorkflow(steps.filter(s => s.key !== "foodCompliance"), base.roles).map(i => i.text).join("\n")).toMatch(/Food Exception Permit” is missing.*R06/)
-    expect(checkWorkflow(steps.map(s => s.key === "purchaseRequest" ? { ...s, anchor: { kind: "target" as const, days: 3, unit: "calendar" as const, label: "x" } } : s), base.roles).some(i => i.level === "blocked" && /R09/.test(i.text))).toBe(true)
+    expect(checkWorkflow(steps.filter(s => s.key !== "foodCompliance"), base.roles).map(i => i.text).join("\n")).toMatch(/Food Exception Permit” is missing.*Student Organization Handbook 2025–26/)
+    expect(checkWorkflow(steps.map(s => s.key === "purchaseRequest" ? { ...s, anchor: { kind: "target" as const, days: 3, unit: "calendar" as const, label: "x" } } : s), base.roles).some(i => i.level === "blocked" && /USG Spending Guidelines/.test(i.text) && !/\bR09\b/.test(i.text))).toBe(true)
     expect(checkWorkflow(steps.map(s => s.key === "purchaseRequest" ? { ...s, dependsOn: ["budget"] } : s), base.roles).some(i => i.level === "blocked" && /Budget Approval/.test(i.text))).toBe(true)
     expect(checkWorkflow(steps.map(s => s.key === "plan" ? { ...s, dependsOn: ["backup"] } : s), base.roles).some(i => i.level === "blocked" && /waits for itself/.test(i.text))).toBe(true)
     expect(checkWorkflow(steps.map(s => s.key === "contentCreation" ? { ...s, dependsOn: ["ghost"] } : s), base.roles).some(i => i.level === "blocked" && /not in the workflow/.test(i.text))).toBe(true)

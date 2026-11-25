@@ -14,7 +14,7 @@ import { visibleContacts } from "../data/crm"
 import { checkPreflight, EMPTY_PACKAGE } from "./preflight"
 import { WEEK_ONE } from "./handbook"
 import { daysBetween } from "./dates"
-import { RULES } from "../data/rules"
+import { RULES, ruleSourceName } from "../data/rules"
 import { officers } from "../data/permissions"
 
 interface PolicyAnswer { inScope: boolean; answer: string; citations: string[]; model: string | null; provider?: string }
@@ -351,7 +351,7 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
       return { cards: [textCard(r.ready ? `${e?.name}: the checklist is complete. The office still reviews it.` : `${e?.name} still needs: ${r.issues.map(i => i.text).join(" ")}`)], source: "Pre-submission check" }
     }
   }
-  if (WEEKONE_RE.test(t)) return { cards: [textCard(WEEK_ONE.map((w, i) => `${i + 1}. ${w.text}`).join("\n"))], source: "SEO onboarding + R16" }
+  if (WEEKONE_RE.test(t)) return { cards: [textCard(WEEK_ONE.map((w, i) => `${i + 1}. ${w.text}`).join("\n"))], source: `SEO onboarding + ${ruleSourceName("R16")}` }
   if (DATES_RE.test(t)) return { cards: [textCard(`Dates work back from the ASU deadline: ${s.org.settings.clubBufferBusinessDays} days early for the club, each officer's extra days and busy weeks, and ASU holidays.`)], source: "Rule engine" }
   if (REMIND_RE.test(t)) {
     const lower = t.toLowerCase()

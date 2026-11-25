@@ -33,6 +33,16 @@ export const RULES: Rule[] = [
   { id: "R16", category: "transition", short: "Officer transition checklist; re-register every spring", timing: "Spring", text: "Officer transition: contact the advisor; new officers complete training and read the handbook and constitution; tell the Campus Liaisons; update Sun Devil Central and bank access; re-register every spring.", limit: "Spring", sources: [SRC.hb], checkedOn },
 ]
 
+/** Shown when an ID names no known source. */
+export const UNKNOWN_SOURCE_NAME = "School policy source"
+/**
+ * A rule's source as people read it ("R06" → its first source's label). Rule-book only, so the shared workflow-rules
+ * chunk stays free of the policy catalog; screens use src/lib/sourceNames.ts, which also knows "ASU-R-NNN".
+ */
+export const ruleSourceName = (id: string): string => RULES.find(rule => rule.id === id.trim().toUpperCase())?.sources[0]?.label ?? UNKNOWN_SOURCE_NAME
+/** Distinct source names for rule IDs, in order: two rules from one handbook name it once. */
+export const ruleSourceNames = (ids: readonly string[]): string[] => [...new Set(ids.map(ruleSourceName))]
+
 export const RULE_CATEGORIES: { id: Rule["category"]; label: string }[] = [
   { id: "venue", label: "Venues & events" },
   { id: "food", label: "Food" },
