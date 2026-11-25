@@ -6,6 +6,8 @@ import {
   answerSet, canEditAnswer, canEditQuestion, changePlaybook, compareAnswers, hiddenAnswers, isQuestionHidden, isRead, liveQuestion, MAX_ANSWER_TEXT, MAX_ANSWERS,
   MAX_QUESTION_TEXT, MAX_QUESTIONS, newPlaybookId, playbookOf, playbookRights, questionsFor, type PlaybookAction,
 } from "../data/playbook"
+import { starterPlaybook } from "../data/playbookStarter"
+import { playbookViewer } from "../components/playbook/shared"
 
 const base = () => seedDemo(undefined, "v2")
 const as = (s: DemoState, viewerId: string): DemoState => ({ ...s, viewerId })
@@ -22,6 +24,8 @@ const incoming = (s = base()): DemoState => as({ ...s, people: [...s.people, { .
 const addQ = (id = "pq-50", text = "Where do we store the banner?"): PlaybookAction => ({ kind: "addQuestion", id, text, category: "tools", roleIds: "all" })
 const addA = (id: string, questionId: string, answerKind: "club" | "experience" = "experience", text = "In the storage room, shelf two."): PlaybookAction => ({ kind: "addAnswer", id, questionId, answerKind, text })
 const withPlaybook = (s: DemoState, patch: Partial<Playbook>): DemoState => ({ ...s, playbook: { ...pb(s), ...patch } })
+/** The import action as the page sends it: the starter computed from the state by the lazily loaded page. */
+const starter = (s: DemoState): Extract<PlaybookAction, { kind: "importStarter" }> => ({ kind: "importStarter", ...starterPlaybook(s, playbookOf(s)) })
 
 describe("Playbook model: basics", () => {
   it("keeps SCHEMA_VERSION 23 and reads an old save without a Playbook as empty", () => {
@@ -122,7 +126,7 @@ describe("Playbook model: permissions (contract item 2)", () => {
       { kind: "hideAnswer", answerId: "pa-3", hidden: true },
       { kind: "hideQuestion", questionId: "pq-9", hidden: true },
       { kind: "mergeQuestion", fromId: "pq-5", intoId: "pq-4" },
-      { kind: "importStarter" },
+      starter(s),
     ] as PlaybookAction[]) expect(act(officer, a)).toBe(officer)
     const hidden = act(s, { kind: "hideAnswer", answerId: "pa-3", hidden: true })
     expect(ans(hidden, "pa-3").status).toBe("hidden")
@@ -140,7 +144,7 @@ describe("Playbook model: permissions (contract item 2)", () => {
     expect(ans(voted, "pa-3").votes.down).toEqual(["riley"])
     for (const a of [addQ(), addA("pa-50", "pq-1"), { kind: "editAnswer", answerId: "pa-3", text: "x" }, { kind: "hideAnswer", answerId: "pa-3", hidden: true },
       { kind: "editQuestion", questionId: "pq-1", text: "x?", category: "funding", roleIds: "all" }, { kind: "hideQuestion", questionId: "pq-1", hidden: true },
-      { kind: "mergeQuestion", fromId: "pq-5", intoId: "pq-4" }, { kind: "importStarter" }] as PlaybookAction[]) expect(act(s, a)).toBe(s)
+      { kind: "mergeQuestion", fromId: "pq-5", intoId: "pq-4" }, starter(s)] as PlaybookAction[]) expect(act(s, a)).toBe(s)
   })
 
   it("a former officer may only read", () => {
@@ -299,12 +303,12 @@ describe("Playbook model: merge following", () => {
     let s = base()
     s = act(s, { kind: "mergeQuestion", fromId: "pq-5", intoId: "pq-4" })
     expect(q(s, "pq-5").mergedInto).toBe("pq-4")
-    expect(ans(s, "pa-10").questionId).toBe("pq-4")
     expect(questionsFor(s).map(x => x.id)).not.toContain("pq-5")
     expect(answerSet(s, "pq-5")).toEqual(answerSet(s, "pq-4"))
-    // pq-4 has two rule answers now: the older one becomes an alternate.
-    expect(answerSet(s, "pq-4").rule?.id).toBe("pa-10")
-    expect(answerSet(s, "pq-4").alternates.map(a => a.id)).toEqual(["pa-8"])
+    // pq-4 already had a rule answer, so pq-5's rule answer (pa-10, newer, so it would have outranked pa-8) is dropped.
+    expect(answerSet(s, "pq-4").rule?.id).toBe("pa-8")
+    expect(answerSet(s, "pq-4").alternates.map(a => a.id)).toEqual([])
+    expect(pb(s).answers.some(a => a.id === "pa-10")).toBe(false)
     // A chain: pq-4 into pq-6; pq-5 follows two hops.
     s = act(s, { kind: "mergeQuestion", fromId: "pq-4", intoId: "pq-6" })
     expect(liveQuestion(pb(s), "pq-5")?.id).toBe("pq-6")
@@ -315,6 +319,93 @@ describe("Playbook model: merge following", () => {
     expect(act(s, { kind: "mergeQuestion", fromId: "pq-6", intoId: "pq-5" })).toBe(s)
     const hidden = act(s, { kind: "hideQuestion", questionId: "pq-1", hidden: true })
     expect(act(hidden, { kind: "mergeQuestion", fromId: "pq-2", intoId: "pq-1" })).toBe(hidden)
+  })
+})
+
+describe("Playbook model: review fixes (2026-11-25)", () => {
+  it("merging keeps the target's own rule answer: the merged question's rule answers are dropped, club and experience answers move", () => {
+    // pq-1 (rule pa-1) into pq-2 (rule pa-5): pa-1 sorts before pa-5 on every tie, so moving it would have replaced pq-2's rule.
+    const s = act(base(), { kind: "mergeQuestion", fromId: "pq-1", intoId: "pq-2" })
+    const set = answerSet(s, "pq-2")
+    expect(set.rule?.id).toBe("pa-5")
+    expect(set.alternates.filter(a => a.kind === "rule")).toEqual([])
+    expect(pb(s).answers.some(a => a.id === "pa-1")).toBe(false)
+    expect(["pa-2", "pa-3", "pa-4"].map(id => ans(s, id).questionId)).toEqual(["pq-2", "pq-2", "pq-2"])
+    // A target without a rule answer takes the merged question's one.
+    const into9 = act(base(), { kind: "mergeQuestion", fromId: "pq-3", intoId: "pq-9" })
+    expect(answerSet(into9, "pq-9").rule?.id).toBe("pa-7")
+  })
+
+  it("isRead counts a read of a question that was merged later for the question it was merged into", () => {
+    let s = as(base(), "maya")
+    s = act(s, { kind: "markRead", questionId: "pq-5" })
+    // Then the president merges pq-5 into pq-4: Maya's read of pq-5 is a read of pq-4.
+    s = act(as(s, "alex"), { kind: "mergeQuestion", fromId: "pq-5", intoId: "pq-4" })
+    expect(pb(s).reads?.maya).toEqual(["pq-5"])
+    expect(isRead(s, "maya", "pq-4")).toBe(true)
+    expect(isRead(s, "maya", "pq-5")).toBe(true)
+    expect(isRead(s, "maya", "pq-6")).toBe(false)
+    // Through a chain as well.
+    const chain = act(as(s, "alex"), { kind: "mergeQuestion", fromId: "pq-4", intoId: "pq-6" })
+    expect(isRead(chain, "maya", "pq-6")).toBe(true)
+  })
+
+  it("votes and new answers are refused on a hidden question's answers, for everyone; unhiding allows them again", () => {
+    const hidden = act(base(), { kind: "hideQuestion", questionId: "pq-1", hidden: true })
+    for (const viewer of ["alex", "maya", "sam"]) {
+      const s = as(hidden, viewer)
+      expect(act(s, { kind: "vote", answerId: "pa-3", vote: -1 })).toBe(s)
+      expect(act(s, addA("pa-50", "pq-1"))).toBe(s)
+    }
+    const back = act(hidden, { kind: "hideQuestion", questionId: "pq-1", hidden: false })
+    expect(ans(act(as(back, "sam"), { kind: "vote", answerId: "pa-3", vote: -1 }), "pa-3").votes.down).toEqual(["sam"])
+  })
+
+  it("importStarter takes the page's computed starter and keeps every check", () => {
+    const s = base(), payload = starter(s) as Extract<PlaybookAction, { kind: "importStarter" }>
+    const next = act(s, payload)
+    expect(pb(next).questions.filter(x => x.origin === "handoff").map(x => x.id)).toEqual(["pq-start-r-fin", "pq-start-r-events", "pq-start-r-sec"])
+    // Idempotent: the same payload again changes nothing.
+    expect(act(next, payload)).toBe(next)
+    // President or VP only.
+    const maya = as(s, "maya")
+    expect(act(maya, payload)).toBe(maya)
+    expect(pb(act(as(withVp(s), "jordan"), payload)).questions.length).toBe(pb(next).questions.length)
+    // Ids must be in the starter scheme: a plain id, an unknown role, or an answer aimed at another question refuses the whole import.
+    const [q0] = payload.questions, [a0] = payload.answers
+    for (const bad of [
+      { ...payload, questions: [{ ...q0, id: "pq-77" }] },
+      { ...payload, questions: [{ ...q0, id: "pq-start-r-nope" }] },
+      { ...payload, answers: [{ ...a0, id: "pa-77" }] },
+      { ...payload, answers: [{ ...a0, questionId: "pq-1" }] },
+      { ...payload, answers: [{ ...a0, authorId: "jordan" }] },
+      { kind: "importStarter" } as unknown as PlaybookAction,
+      { kind: "importStarter", questions: "x", answers: [] } as unknown as PlaybookAction,
+    ]) expect(act(s, bad)).toBe(s)
+    // Whatever the page sends is normalized as a starter item and sanitized: no rule answers, no votes, today's date, capped text.
+    const forged = act(s, { ...payload, questions: [{ ...q0, text: `${"Long ".repeat(40)}?`, category: "funding", origin: "seed", hidden: true, createdBy: "alex" } as never],
+      answers: [{ ...a0, kind: "rule", status: "hidden", votes: { up: ["alex"], down: [] }, text: "z".repeat(900), on: "2020-01-01" } as never] })
+    const fq = pb(forged).questions.find(x => x.id === q0.id)!, fa = pb(forged).answers.find(x => x.id === a0.id)!
+    expect(fq).toMatchObject({ category: "timeline", origin: "handoff", createdBy: null, createdOn: s.today, roleIds: ["r-fin"] })
+    expect(fq.text.length).toBeLessThanOrEqual(MAX_QUESTION_TEXT)
+    expect(isQuestionHidden(fq)).toBe(false)
+    expect(fa).toMatchObject({ kind: "experience", status: "active", votes: { up: [], down: [] }, on: s.today })
+    expect(fa.text).toHaveLength(MAX_ANSWER_TEXT)
+  })
+
+  it("the page's viewer rights are the model's: a former officer neither votes nor marks read, also when named incoming", () => {
+    expect(playbookViewer(former(base()))).toMatchObject({ officer: false, lead: false, canVote: false, canMarkRead: false })
+    const leftIncoming = as({ ...base(), people: base().people.map(p => p.id === "sam" ? { ...p, leftOn: "2026-11-01", incomingFor: "r-fin" } : p) }, "sam")
+    expect(playbookViewer(leftIncoming)).toMatchObject({ canVote: playbookRights(leftIncoming).vote, canMarkRead: playbookRights(leftIncoming).markRead })
+    expect(playbookViewer(leftIncoming).canVote).toBe(false)
+    expect(playbookViewer(incoming())).toMatchObject({ officer: false, canVote: true, canMarkRead: true, roleId: "r-fin" })
+    expect(playbookViewer(base())).toMatchObject({ officer: true, lead: true, canVote: true, canMarkRead: true })
+  })
+
+  it("MAX_QUESTION_TEXT is 100, and a longer stored question is cut when read", () => {
+    expect(MAX_QUESTION_TEXT).toBe(100)
+    const s = withPlaybook(base(), { questions: pb(base()).questions.map(x => x.id === "pq-1" ? { ...x, text: "w".repeat(140) } : x) })
+    expect(q(s, "pq-1").text).toHaveLength(100)
   })
 })
 
@@ -466,7 +557,8 @@ describe("Playbook model: limits (contract item 7)", () => {
 
   it("refuses a starter import that would go past the limits", () => {
     const full = filled(MAX_QUESTIONS, 0)
-    expect(act(full, { kind: "importStarter" })).toBe(full)
+    expect(starter(full).questions.length).toBeGreaterThan(0)
+    expect(act(full, starter(full))).toBe(full)
   })
 })
 
@@ -483,10 +575,12 @@ describe("Playbook model: the research log never holds question or answer text",
       { kind: "hideAnswer", answerId: "pa-50", hidden: true },
       { kind: "hideQuestion", questionId: "pq-50", hidden: true },
       { kind: "mergeQuestion", fromId: "pq-5", intoId: "pq-4" },
-      { kind: "importStarter" },
+      { kind: "importStarter", questions: [], answers: [] },
     ]
     let s = base(), log: ReturnType<typeof appendLog> = []
-    for (const a of actions) {
+    for (const a0 of actions) {
+      // The import carries the starter's questions and answers (with their text); the log must still hold kinds and IDs only.
+      const a = a0.kind === "importStarter" ? starter(s) : a0
       const next = act(s, a)
       expect(next).not.toBe(s)
       log = appendLog(log, s, next, { type: "playbookAction", action: a }, 1_800_000_000_000)

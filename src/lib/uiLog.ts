@@ -141,8 +141,18 @@ export function linkTarget(href: string, origin: string): { to: string } | { ext
   return { external: true, href: clip(`${url.host}${url.pathname}`, 120) }
 }
 
+/**
+ * The name the log records for a control: its `data-log-name` when it has one, otherwise its accessible name (nameOf).
+ * `data-log-name` is for controls whose visible name is text a club wrote (a Playbook question, say): the log gets a fixed
+ * label instead, and what a screen reader announces is unchanged. Only the control's own attribute counts, not a wrapper's.
+ */
+export function logNameOf(el: Element): string {
+  const fixed = el.getAttribute("data-log-name")
+  return fixed ? clip(fixed, 60) : nameOf(el)
+}
+
 const common = (el: Element, route: string): UiPayload => {
-  const payload: UiPayload = { route, role: roleOf(el), name: nameOf(el) }
+  const payload: UiPayload = { route, role: roleOf(el), name: logNameOf(el) }
   const testid = el.getAttribute("data-testid")
   if (testid) payload.testid = clip(testid, 60)
   const area = areaOf(el)
@@ -444,7 +454,7 @@ const GENERIC_NAME = /^(more information|info|details)$/i
 export function describeHover(box: Element, ms: number, via: "mouse" | "focus" | "tap", route: string): UiEvent | null {
   if (ms < HOVER_MIN_MS) return null
   const trigger = [...box.querySelectorAll("button, a[href], input, select, textarea, [tabindex]")].find(el => !el.closest("[role='tooltip']")) ?? box
-  const name = nameOf(trigger)
+  const name = logNameOf(trigger)
   const payload: UiPayload = { route, name, ms: Math.round(ms), via }
   if (!name || GENERIC_NAME.test(name)) {
     const heading = box.closest("h1, h2, h3, h4") ?? box.closest("header")?.querySelector("h1, h2, h3, h4, b")

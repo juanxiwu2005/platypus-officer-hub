@@ -1,6 +1,5 @@
 import type { DemoState, Person, Playbook, PlaybookAnswer, PlaybookAsked, PlaybookCategory, PlaybookQuestion } from "./types"
 import { canLead, isOfficer } from "./permissions"
-import { starterPlaybook } from "./playbookStarter"
 
 /**
  * Playbook (phase 1; docs/feedback-fix/PLAYBOOK_P1_CONTRACT.md). Pure model: sanitized reading, permissions, ranking and the reducer.
@@ -17,7 +16,8 @@ export const PLAYBOOK_CATEGORIES: readonly { id: PlaybookCategory; label: string
   { id: "timeline", label: "Timeline" },
   { id: "tools", label: "Tools & accounts" },
 ]
-export const MAX_QUESTION_TEXT = 140
+/** Lowered from 140 to 100 on 2026-11-25 so a full page of rows stays within its word budget; longer stored questions are cut when read. */
+export const MAX_QUESTION_TEXT = 100
 export const MAX_ANSWER_TEXT = 400
 /** At most this many questions show per category (or in "For your role") before "Show N more". */
 export const QUESTIONS_PER_VIEW = 8
@@ -36,7 +36,19 @@ export type PlaybookAction =
   /** Fields left out keep their current values. */
   | { kind: "editQuestion"; questionId: string; text?: string; category?: string; roleIds?: string[] | "all" }
   | { kind: "hideQuestion"; questionId: string; hidden: boolean }
-  | { kind: "importStarter" }
+  /**
+   * Starter questions from the handoff notes (president or VP). The lazily loaded page computes them with `starterPlaybook`
+   * (src/data/playbookStarter.ts, kept out of the startup bundle); the reducer still checks them (see `checkedStarter`).
+   */
+  | { kind: "importStarter"; questions: PlaybookQuestion[]; answers: PlaybookAnswer[] }
+
+/** The stable id of a role's starter question. */
+export const starterQuestionId = (roleId: string) => `pq-start-${roleId}`
+/**
+ * The stable id of one starter answer: the role, the handoff round it came from and the line's place in that round's interview.
+ * Re-importing compares these ids, never the text, so a line that was edited or hidden does not come back.
+ */
+export const starterAnswerId = (roleId: string, round: string, line: number) => `pa-start-${roleId}-${round}-${line}`
 
 /**
  * A hidden question. `PlaybookQuestion` in types.ts has no field for it yet, so the model stores an optional `hidden: true`
@@ -241,9 +253,13 @@ export function hiddenAnswers(s: DemoState, questionId: string): PlaybookAnswer[
   return p.answers.filter(a => a.questionId === id && a.status === "hidden").sort(compareAnswers)
 }
 
+/** Has the viewer opened this question? A read of a question that was merged later counts for the question it was merged into. */
 export const isRead = (s: DemoState, viewerId: string, questionId: string) => {
-  const reads = playbookOf(s).reads?.[viewerId]
-  return !!reads && (reads.includes(questionId) || reads.includes(liveQuestion(playbookOf(s), questionId)?.id ?? questionId))
+  const p = playbookOf(s), reads = p.reads?.[viewerId]
+  if (!reads?.length) return false
+  if (reads.includes(questionId)) return true
+  const target = liveQuestion(p, questionId)?.id ?? questionId
+  return reads.some(id => id === target || liveQuestion(p, id)?.id === target)
 }
 
 const nextId = (prefix: string, taken: string[]) => { let n = taken.length + 1; while (taken.includes(`${prefix}${n}`)) n++; return `${prefix}${n}` }
@@ -273,12 +289,51 @@ export function canEditAnswer(s: DemoState, a: PlaybookAnswer): boolean {
 /** May the viewer edit this question? Its creator (a current officer) or the president or VP. */
 export const canEditQuestion = (s: DemoState, q: PlaybookQuestion): boolean => { const r = playbookRights(s); return r.lead || (r.write && !!q.createdBy && q.createdBy === s.viewerId) }
 
-const validId = (v: unknown): v is string => typeof v === "string" && ID.test(v)
+/** A Playbook id the sanitizer keeps: letters, digits and `:_.-`, at most 120 characters. */
+export const isPlaybookId = (v: unknown): v is string => typeof v === "string" && ID.test(v)
+const validId = isPlaybookId
 const categoryOf = (p: Playbook, v: unknown) => typeof v === "string" && (UNIVERSAL.has(v) || !!p.categories?.some(c => c.id === v)) ? v : null
 const rolesOf = (s: DemoState, v: unknown): string[] | "all" | null => {
   if (v === "all") return "all"
   const ids = idList(v, id => s.roles.some(r => r.id === id))
   return ids.length ? ids : null
+}
+
+/**
+ * The starter items an import may add (ids already taken are skipped, so a repeated import adds nothing), or null when any item is
+ * not a starter item: a question id must be `starterQuestionId(role)` for a current role; an answer id must start with that role's
+ * `pa-start-<role>-` prefix, point at the role's starter question (or the question it was merged into) while that question is
+ * listed, and name an outgoing officer of that role's handoff records (or nobody) as author. Every item is rebuilt as a starter
+ * item (experience answers only, no votes, today's date), so nothing else the caller sends is kept.
+ */
+function checkedStarter(s: DemoState, p: Playbook, rawQuestions: unknown, rawAnswers: unknown): { questions: PlaybookQuestion[]; answers: PlaybookAnswer[] } | null {
+  if (!Array.isArray(rawQuestions) || !Array.isArray(rawAnswers) || rawQuestions.length > MAX_QUESTIONS || rawAnswers.length > MAX_ANSWERS) return null
+  const roles = Array.isArray(s.roles) ? s.roles : []
+  const records = [...(s.handoffHistory ?? []), ...(s.handoffRoles ?? [])]
+  const questions: PlaybookQuestion[] = [], answers: PlaybookAnswer[] = []
+  const takenQ = new Set(p.questions.map(q => q.id)), takenA = new Set(p.answers.map(x => x.id))
+  for (const v of rawQuestions as unknown[]) {
+    const q = v as Partial<PlaybookQuestion> | null
+    const role = roles.find(x => q?.id === starterQuestionId(x.id))
+    if (!q || !role || !validId(q.id)) return null
+    if (takenQ.has(q.id)) continue
+    takenQ.add(q.id)
+    questions.push({ id: q.id, text: oneLine(q.text, MAX_QUESTION_TEXT), category: "timeline", roleIds: [role.id], policyIds: [], checklistItemIds: [], origin: "handoff", createdOn: s.today, createdBy: null })
+  }
+  const after: Playbook = { ...p, questions: [...p.questions, ...questions] }
+  for (const v of rawAnswers as unknown[]) {
+    const x = v as Partial<PlaybookAnswer> | null
+    if (!x || !validId(x.id)) return null
+    const id = x.id
+    const role = roles.find(r => id.startsWith(`pa-start-${r.id}-`) && x.questionId === liveQuestion(after, starterQuestionId(r.id))?.id)
+    const target = role && liveQuestion(after, starterQuestionId(role.id))
+    const author = x.authorId === null || (typeof x.authorId === "string" && records.some(h => h?.roleId === role?.id && h.outgoingId === x.authorId))
+    if (!role || !target || target.mergedInto || isQuestionHidden(target) || !author) return null
+    if (takenA.has(id)) continue
+    takenA.add(id)
+    answers.push({ id, questionId: target.id, kind: "experience", text: str(x.text, MAX_ANSWER_TEXT), authorId: x.authorId ?? null, on: s.today, status: "active", votes: { up: [], down: [] } })
+  }
+  return { questions, answers }
 }
 
 /** The Playbook reducer. Returns the same state when the action is not allowed or changes nothing. */
@@ -291,6 +346,8 @@ export function changePlaybook(s: DemoState, a: PlaybookAction): DemoState {
   const answer = (id: unknown) => typeof id === "string" ? p.answers.find(x => x.id === id) : undefined
   const question = (id: unknown) => typeof id === "string" ? p.questions.find(x => x.id === id) : undefined
   const open = (q: PlaybookQuestion | undefined) => !!q && !q.mergedInto && (!isQuestionHidden(q) || r.lead)
+  /** Votes and new answers need a listed question: not hidden (whoever asks) and not merged away. */
+  const listed = (q: PlaybookQuestion | undefined) => !!q && !q.mergedInto && !isQuestionHidden(q)
   switch (a.kind) {
     case "markRead": {
       const q = question(a.questionId), target = q && liveQuestion(p, q.id)
@@ -299,7 +356,7 @@ export function changePlaybook(s: DemoState, a: PlaybookAction): DemoState {
     }
     case "vote": {
       const ans = answer(a.answerId)
-      if (!r.vote || !ans || ans.status === "hidden" || (a.vote !== 1 && a.vote !== -1 && a.vote !== 0)) return s
+      if (!r.vote || !ans || ans.status === "hidden" || !listed(question(ans.questionId)) || (a.vote !== 1 && a.vote !== -1 && a.vote !== 0)) return s
       const was = ans.votes.up.includes(me) ? 1 : ans.votes.down.includes(me) ? -1 : 0
       if (was === a.vote) return s
       const up = ans.votes.up.filter(id => id !== me), down = ans.votes.down.filter(id => id !== me)
@@ -329,7 +386,7 @@ export function changePlaybook(s: DemoState, a: PlaybookAction): DemoState {
     case "addAnswer": {
       const text = str(a.text, MAX_ANSWER_TEXT), target = question(a.questionId) && liveQuestion(p, a.questionId)
       if (!r.write || !text || (a.answerKind !== "club" && a.answerKind !== "experience") || (a.answerKind === "club" && !r.lead)) return s
-      if (!target || !open(target) || !validId(a.id) || answer(a.id) || p.answers.length >= MAX_ANSWERS) return s
+      if (!target || !listed(target) || !validId(a.id) || answer(a.id) || p.answers.length >= MAX_ANSWERS) return s
       const ans: PlaybookAnswer = { id: a.id, questionId: target.id, kind: a.answerKind, text, authorId: me, on: s.today, status: "active", votes: { up: [], down: [] } }
       return put({ ...p, answers: [...p.answers, ans] })
     }
@@ -347,14 +404,20 @@ export function changePlaybook(s: DemoState, a: PlaybookAction): DemoState {
     case "mergeQuestion": {
       const from = question(a.fromId), into = question(a.intoId) && liveQuestion(p, a.intoId)
       if (!r.lead || !from || !into || from.id === into.id || from.mergedInto || isQuestionHidden(into)) return s
-      return put({ ...p, questions: p.questions.map(q => q === from ? { ...q, mergedInto: into.id } : q), answers: p.answers.map(x => x.questionId === from.id ? { ...x, questionId: into.id } : x) })
+      // Rule answers come only from the school pack and can be regenerated. When the target already has one, the merged question's
+      // rule answers are dropped, so they never compete with (or outrank) the target's own.
+      const dropRules = p.answers.some(x => x.questionId === into.id && x.kind === "rule")
+      const answers = p.answers.filter(x => !(dropRules && x.questionId === from.id && x.kind === "rule")).map(x => x.questionId === from.id ? { ...x, questionId: into.id } : x)
+      return put({ ...p, questions: p.questions.map(q => q === from ? { ...q, mergedInto: into.id } : q), answers })
     }
     case "importStarter": {
       if (!r.lead) return s
-      const add = starterPlaybook(s, p)
-      if (!add.questions.length && !add.answers.length) return s
+      const add = checkedStarter(s, p, a.questions, a.answers)
+      if (!add || (!add.questions.length && !add.answers.length)) return s
       if (p.questions.length + add.questions.length > MAX_QUESTIONS || p.answers.length + add.answers.length > MAX_ANSWERS) return s
-      return put({ ...p, questions: [...p.questions, ...add.questions], answers: [...p.answers, ...add.answers] })
+      // Read through the same sanitizer as a stored Playbook; anything it would drop is not imported.
+      const next = sanitize({ ...p, questions: [...p.questions, ...add.questions], answers: [...p.answers, ...add.answers] }, s.people)
+      return next.questions.length === p.questions.length && next.answers.length === p.answers.length ? s : put(next)
     }
   }
   // Anything else (an unknown kind from an old or damaged caller) changes nothing.

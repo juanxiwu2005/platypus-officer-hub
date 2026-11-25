@@ -66,6 +66,13 @@
 .pb-similar li span { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; }
 
 .pb-empty p { margin: 0 0 var(--s5); }
+.pb-error { margin: 0; }
+
+/* "Hidden questions (N)": president or VP only, quiet and closed until asked for. */
+.pb-hidden-qs { display: grid; gap: var(--s3); margin-top: var(--s5); }
+.pb-hidden-qs ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s3); }
+.pb-hidden-qs li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--s4); }
+.pb-hidden-qs li span { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere; font-size: var(--fs-md); }
 
 @media (max-width: 560px) {
   /* One row of category chips that scrolls sideways inside itself, so the list starts near the top of a phone. */

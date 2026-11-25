@@ -13,7 +13,7 @@ Branch `claude/fervent-thompson-e2j5u2`, draft PR #20. Never `main`.
 - **Routes**: nav item **Playbook** at `/playbook` (`also: ["/handoff"]`, icon `playbook`); `/handoff` keeps rendering the existing Handoff page as a `sub` page (not in the navigation) until phase 2; lazy `src/pages/Playbook.tsx` placeholder.
 - **Word limits**: `/playbook` visible 200 / total 600 in `scripts/word-count.mjs`.
 
-Frozen exports of `src/data/playbook.ts`: `PLAYBOOK_CATEGORIES`, `MAX_QUESTION_TEXT` (140), `MAX_ANSWER_TEXT` (400), `QUESTIONS_PER_VIEW` (8), `PlaybookAction`, `emptyPlaybook`, `playbookOf`, `liveQuestion`, `questionsFor`, `answerSet`, `isRead`, `newPlaybookId`, `changePlaybook`. P1-M may add exports and add new `PlaybookAction` members; it may not rename or remove these.
+Frozen exports of `src/data/playbook.ts`: `PLAYBOOK_CATEGORIES`, `MAX_QUESTION_TEXT` (100 since §5; was 140), `MAX_ANSWER_TEXT` (400), `QUESTIONS_PER_VIEW` (8), `PlaybookAction`, `emptyPlaybook`, `playbookOf`, `liveQuestion`, `questionsFor`, `answerSet`, `isRead`, `newPlaybookId`, `changePlaybook`. P1-M may add exports and add new `PlaybookAction` members; it may not rename or remove these.
 
 ## 2. P1-M: model agent
 
@@ -53,3 +53,8 @@ Frozen exports of `src/data/playbook.ts`: `PLAYBOOK_CATEGORIES`, `MAX_QUESTION_T
 ## 4. Gates (main agent, after merging both)
 
 `npm run lint`, `npm run build` (entry ≤ 550,000; report it), `npm run typecheck:netlify`, `CI=1 npx vitest run` (full), browser specs for Playbook, navigation, Handoff, a11y, smoke on desktop and mobile with `--trace off`, `npm run words`. Then an independent read-only review and a fix agent.
+
+## 5. Amendments (fix agent, 2026-11-25)
+
+- `MAX_QUESTION_TEXT` is now **100** (was 140), so eight rows stay within the page's word budget; the sanitizer cuts longer stored questions.
+- `importStarter` now carries `{ questions, answers }`, computed by the lazily loaded page with `starterPlaybook`; the reducer keeps every check (president/VP, starter id scheme, sanitizer, idempotent, limits), so `playbookStarter.ts` stays out of the startup bundle.

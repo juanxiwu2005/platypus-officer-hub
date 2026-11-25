@@ -216,3 +216,231 @@ test("no horizontal overflow with rows open and the add form shown", async ({ pa
   await page.getByTestId("pb-add").getByLabel("Question").fill("How far ahead must a funding request be submitted?")
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
 })
+
+// ───────────── Review fixes (2026-11-25): focus, logging names, hidden items, roles, bounded lists and words ─────────────
+
+const logOf = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.log") ?? "[]") as { type: string; payload: Record<string, unknown>; applied?: boolean }[])
+const focusedId = (page: Page) => page.evaluate(() => document.activeElement?.id ?? "")
+const focusedText = (page: Page) => page.evaluate(() => (document.activeElement?.textContent ?? "").trim())
+const focusedAnswer = (page: Page) => page.evaluate(() => document.activeElement?.closest("[data-answer-id]")?.getAttribute("data-answer-id") ?? "")
+const rowIds = (page: Page) => page.getByTestId("pb-question").evaluateAll(els => els.map(e => e.getAttribute("data-question-id") ?? ""))
+/** Counts the words in <main> exactly as scripts/word-count.mjs does. */
+const words = (page: Page) => page.evaluate(() => {
+  const m = document.querySelector("main")!
+  const shown = (el: Element) => { for (let e: Element | null = el; e && e !== m.parentElement; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") return false } return true }
+  const all: string[] = [], visible: string[] = []
+  const walk = document.createTreeWalker(m, NodeFilter.SHOW_TEXT)
+  for (let n = walk.nextNode(); n; n = walk.nextNode()) { const el = n.parentElement; if (!el || el.closest("option, script, style")) continue; all.push(n.textContent ?? ""); if (shown(el) && el.getClientRects().length) visible.push(n.textContent ?? "") }
+  for (const sel of m.querySelectorAll("select")) { const t = sel.selectedOptions[0]?.textContent ?? ""; all.push(t); if (shown(sel)) visible.push(t) }
+  const count = (parts: string[]) => parts.join(" ").split(/\s+/).filter(w => /[A-Za-z0-9$]/.test(w)).length
+  return { all: count(all), visible: count(visible) }
+})
+
+const LARGE_Q = (i: number) => `How should the treasurer handle vendor quotes, receipts and a funding calendar for events, case ${String(i).padStart(4, "0")}`
+/**
+ * Worst case for the page's words: the most questions allowed (500), each exactly 100 characters of ordinary English, and 20 club
+ * categories with 40-character labels. Club categories come first, so every row shown by default carries a long club label.
+ */
+function largePlaybook(s: DemoState): DemoState {
+  const categories = Array.from({ length: 20 }, (_, i) => ({ id: `cat:c${i}`, label: `Spring gala sponsors and vendor list ${String(i).padStart(3, "0")}` }))
+  const ids = [...categories.map(c => c.id), "funding", "venues", "food", "promotion", "people", "timeline", "tools"]
+  const questions = Array.from({ length: 500 }, (_, i) => ({ id: `pq-x${i}`, text: LARGE_Q(i), category: ids[i % ids.length], roleIds: "all" as const, policyIds: [], checklistItemIds: [], origin: "club" as const, createdOn: "2026-11-01", createdBy: "maya" }))
+  const answers = questions.slice(0, 50).flatMap((q, i) => [0, 1, 2].map(j => ({ id: `pa-x${i}-${j}`, questionId: q.id, kind: j ? "experience" as const : "club" as const, text: "An answer of ordinary length. ".repeat(12).trim(), authorId: "maya", on: "2026-11-01", status: "active" as const, votes: { up: [], down: [] } })))
+  return { ...s, playbook: { questions, answers, categories } }
+}
+
+test("Ask AI only fills Ask: no request to an AI endpoint and no ui.ask entry", async ({ page }) => {
+  const calls: string[] = []
+  page.on("request", r => { if (/\/api\/(ask|chat|policy-answer)\b/.test(r.url())) calls.push(r.url()) })
+  await openPlaybook(page)
+  const r = row(page, FUNDING_Q)
+  await r.getByRole("button", { name: FUNDING_Q }).click()
+  await r.getByRole("button", { name: "Ask AI" }).click()
+  await openAsk(page)
+  await expect(page.locator("#ask-input")).toHaveValue(FUNDING_Q)
+  await page.waitForTimeout(500)
+  expect(calls).toEqual([])
+  expect((await logOf(page)).filter(e => e.type === "ui.ask")).toEqual([])
+})
+
+test("opening a row logs a fixed name, never the question text; the screen-reader name stays the question", async ({ page }) => {
+  await openPlaybook(page)
+  const head = row(page, FUNDING_Q).getByRole("button", { name: FUNDING_Q })
+  await expect(head).toHaveAccessibleName(new RegExp(`^${FUNDING_Q.replace(/[?$]/g, "\\$&")}`))
+  await head.click()
+  await row(page, FUNDING_Q).getByRole("button", { name: "1 more answer" }).click()
+  await expect.poll(async () => (await logOf(page)).filter(e => e.type === "ui.click").map(e => e.payload.name)).toContain("Playbook question")
+  const log = JSON.stringify(await logOf(page))
+  expect(log).not.toContain("How far ahead")
+  expect(log).not.toContain("vendor quote")
+})
+
+test("empty Playbook: Add experience, and the president starts from the handoff notes", async ({ page }) => {
+  await openPlaybook(page)
+  await rewrite(page, s => ({ ...s, playbook: undefined }))
+  await closeRail(page)
+  const empty = page.getByTestId("pb-empty")
+  await expect(empty).toContainText("No questions yet.")
+  await expect(empty.getByTestId("pb-add-open")).toBeVisible()
+  await empty.getByRole("button", { name: "Start from your handoff notes" }).click()
+  await page.getByTestId("pb-role").selectOption("all")
+  await expect(row(page, "What did the last Treasurer want the next one to know?")).toBeVisible()
+  const saved = await savedDemo(page)
+  expect(saved.playbook!.questions.map(q => q.id)).toEqual(["pq-start-r-fin", "pq-start-r-events", "pq-start-r-sec"])
+  // An officer who is not the president or VP gets Add experience only.
+  await rewrite(page, s => ({ ...s, playbook: undefined, viewerId: "maya" }))
+  await closeRail(page)
+  await expect(page.getByTestId("pb-empty").getByTestId("pb-add-open")).toBeVisible()
+  await expect(page.getByRole("button", { name: "Start from your handoff notes" })).toHaveCount(0)
+})
+
+test("hide and unhide an answer, edit an answer, and where the focus goes after each action", async ({ page }) => {
+  await openPlaybook(page)
+  const r = row(page, FUNDING_Q)
+  await r.getByRole("button", { name: FUNDING_Q }).click()
+  // Hide the club answer: the focus moves to the next answer's first action (Like on the experience answer).
+  await r.locator("[data-kind=club]").getByRole("button", { name: "Hide", exact: true }).click()
+  await expect(r.locator("[data-kind=club]")).toHaveCount(0)
+  await expect.poll(() => focusedAnswer(page)).toBe("pa-3")
+  expect(await focusedText(page)).toMatch(/^Like/)
+  // Unhide it from the quiet "1 hidden answer" list.
+  await r.getByRole("button", { name: "1 hidden answer" }).click()
+  await r.getByTestId("pb-hidden-answer").getByRole("button", { name: "Unhide" }).click()
+  await expect(r.locator("[data-kind=club]")).toHaveCount(1)
+  // Hide the last answer that has actions: there is no next one, so the row's own button gets the focus.
+  await r.locator("[data-kind=experience]").getByRole("button", { name: "Hide", exact: true }).click()
+  await expect.poll(() => focusedId(page)).toBe("pb-q-pq-1")
+  // Save an answer: back to the row's button.
+  await r.getByRole("button", { name: "Add an answer" }).click()
+  await r.getByLabel("Answer", { exact: true }).fill("Keep a copy of the confirmation email.")
+  await r.getByRole("button", { name: "Save answer" }).click()
+  await expect.poll(() => focusedId(page)).toBe("pb-q-pq-1")
+  // Edit an answer: the new text shows and persists, and the focus returns to the row's button.
+  const club = r.locator("[data-kind=club]")
+  await club.getByRole("button", { name: "Edit", exact: true }).click()
+  await club.getByLabel("Edit answer").fill("We submit six weeks ahead so there is time to fix a returned request.")
+  await club.getByRole("button", { name: "Save", exact: true }).click()
+  await expect(club).toContainText("We submit six weeks ahead")
+  await expect.poll(() => focusedId(page)).toBe("pb-q-pq-1")
+  const saved = await savedDemo(page)
+  expect(saved.playbook!.answers.find(a => a.id === "pa-2")!.text).toBe("We submit six weeks ahead so there is time to fix a returned request.")
+})
+
+test("hide a question: the focus moves to the next row (or the previous), and the president unhides it from Hidden questions", async ({ page }) => {
+  await openPlaybook(page)
+  const [first, second] = await rowIds(page)
+  expect(first).toBe("pq-1")
+  await page.locator(`#pb-q-${first}`).click()
+  await page.locator(`[data-question-id="${first}"]`).getByRole("button", { name: "Hide question" }).click()
+  await expect(page.locator(`[data-question-id="${first}"]`)).toHaveCount(0)
+  await expect.poll(() => focusedId(page)).toBe(`pb-q-${second}`)
+  // The last row: the focus goes to the previous one.
+  const rest = await rowIds(page)
+  await page.locator(`#pb-q-${rest.at(-1)}`).click()
+  await page.locator(`[data-question-id="${rest.at(-1)}"]`).getByRole("button", { name: "Hide question" }).click()
+  await expect.poll(() => focusedId(page)).toBe(`pb-q-${rest.at(-2)}`)
+  await page.getByRole("button", { name: "Hidden questions (2)" }).click()
+  const list = page.getByTestId("pb-hidden-questions")
+  await expect(list).toContainText(FUNDING_Q)
+  await list.locator("li").filter({ hasText: FUNDING_Q }).getByRole("button", { name: "Unhide" }).click()
+  await expect(row(page, FUNDING_Q)).toBeVisible()
+  await expect(page.getByRole("button", { name: "Hidden questions (1)" })).toBeVisible()
+  const saved = await savedDemo(page)
+  expect(saved.playbook!.questions.find(q => q.id === "pq-1")!.hidden).toBeUndefined()
+  // Nobody else sees the hidden-questions control.
+  await rewrite(page, s => ({ ...s, viewerId: "maya" }))
+  await closeRail(page)
+  await expect(page.getByRole("button", { name: /^Hidden questions/ })).toHaveCount(0)
+})
+
+test("when every question is hidden, the page shows the empty state and the president can still unhide them", async ({ page }) => {
+  await openPlaybook(page)
+  await rewrite(page, s => ({ ...s, playbook: { ...s.playbook!, questions: s.playbook!.questions.map(q => ({ ...q, hidden: true })) } }))
+  await closeRail(page)
+  await expect(page.getByTestId("pb-empty")).toContainText("No questions yet.")
+  await page.getByRole("button", { name: "Hidden questions (12)" }).click()
+  await page.getByTestId("pb-hidden-questions").locator("li").first().getByRole("button", { name: "Unhide" }).click()
+  await expect(page.getByTestId("pb-question")).toHaveCount(1)
+})
+
+test("a former officer only reads: no like or dislike, no add, and opening a row writes nothing to the Playbook", async ({ page }) => {
+  await openPlaybook(page)
+  await rewrite(page, s => ({ ...s, viewerId: "maya", people: s.people.map(p => p.id === "maya" ? { ...p, leftOn: "2026-11-01" } : p) }))
+  await closeRail(page)
+  await expect(page.getByTestId("pb-add-open")).toHaveCount(0)
+  await page.getByTestId("pb-role").selectOption("all")
+  const r = row(page, FUNDING_Q)
+  await r.getByRole("button", { name: FUNDING_Q }).click()
+  await expect(r.getByTestId("pb-answer")).toHaveCount(3)
+  await expect(r.getByRole("button", { name: /^(Like|Dislike)/ })).toHaveCount(0)
+  await expect(r.getByRole("button", { name: "Add an answer" })).toHaveCount(0)
+  await expect(r.getByRole("button", { name: "Ask AI" })).toBeVisible()
+  expect((await logOf(page)).filter(e => e.type === "playbookAction")).toEqual([])
+})
+
+test("a vice president who is not the president leads the Playbook too", async ({ page }) => {
+  await openPlaybook(page)
+  await rewrite(page, s => ({ ...s, roles: s.roles.map(r => r.id === "r-events" ? { ...r, fn: "vice_president" } : r) }))
+  await viewAs(page, "jordan")
+  await closeRail(page)
+  await expect(page.getByTestId("pb-role")).toHaveValue("r-events")
+  const text = "When must the RITM number reach Student Unions?"
+  const r = row(page, text)
+  await r.getByRole("button", { name: text }).click()
+  await expect(r.getByRole("button", { name: "Hide", exact: true })).toHaveCount(1)
+  await r.getByRole("button", { name: "Add an answer" }).click()
+  await r.getByRole("group", { name: "Answer type" }).getByLabel("Club practice").check()
+  await r.getByLabel("Answer", { exact: true }).fill("The events lead sends the number the day it arrives.")
+  await r.getByRole("button", { name: "Save answer" }).click()
+  await expect(r.locator("[data-kind=club]")).toContainText("The events lead sends the number")
+  await r.getByRole("button", { name: "Hide question" }).click()
+  await page.getByRole("button", { name: "Hidden questions (1)" }).click()
+  await expect(page.getByTestId("pb-hidden-questions")).toContainText(text)
+  const saved = await savedDemo(page)
+  expect(saved.playbook!.answers.find(a => a.text.startsWith("The events lead sends"))).toMatchObject({ kind: "club", authorId: "jordan" })
+})
+
+test("a full Playbook stays within the word budget, shows seven categories plus More, and keeps lists bounded after saving", async ({ page }) => {
+  await openPlaybook(page)
+  await rewrite(page, largePlaybook)
+  await closeRail(page)
+  await expect(page.getByTestId("pb-question")).toHaveCount(8)
+  const counted = await words(page)
+  expect(counted.visible).toBeLessThanOrEqual(200)
+  expect(counted.all).toBeLessThanOrEqual(600)
+  // Category chips: All, the seven universal categories and one More control that reveals the club's own.
+  const chips = page.getByRole("group", { name: "Category" })
+  await expect(chips.getByRole("button")).toHaveCount(9)
+  const more = chips.getByRole("button", { name: "More", exact: true })
+  await expect(more).toHaveAttribute("aria-expanded", "false")
+  await more.click()
+  await expect(more).toHaveAttribute("aria-expanded", "true")
+  await expect(chips.getByRole("button")).toHaveCount(29)
+  await chips.getByRole("button", { name: "Spring gala sponsors and vendor list 003" }).click()
+  await expect(page.getByTestId("pb-question")).toHaveCount(8)
+  await chips.getByRole("button", { name: "All", exact: true }).click()
+  expect(await noOverflow(page)).toBeLessThanOrEqual(1)
+
+  // Answering an existing question near the top of a long category shows the list only down to that question (at least eight rows).
+  await page.getByTestId("pb-add-open").click()
+  const form = page.getByTestId("pb-add")
+  await form.getByLabel("Question").fill(LARGE_Q(20))
+  await form.getByTestId("pb-similar").locator("li").filter({ hasText: LARGE_Q(20) }).getByRole("button", { name: "Answer this existing question instead" }).click()
+  await form.getByLabel("Answer", { exact: true }).fill("Collect every quote before the request goes in.")
+  await form.getByRole("button", { name: "Save" }).click()
+  await expect(form).toHaveCount(0)
+  await expect(page.getByRole("group", { name: "Category" }).getByRole("button", { name: "Funding", exact: true })).toHaveAttribute("aria-pressed", "true")
+  await expect(page.getByTestId("pb-question")).toHaveCount(8)
+  await expect(page.getByRole("button", { name: /^Show \d+ more$/ })).toBeVisible()
+  await expect(page.locator("#pb-q-pq-x20")).toBeFocused()
+
+  // The Playbook is full (500 questions): a new question is refused, and the form stays open with the text and a short reason.
+  await page.getByTestId("pb-add-open").click()
+  await form.getByLabel("Question").fill("Where do we keep the zebra costume?")
+  await form.getByLabel("Answer", { exact: true }).fill("In the storage room.")
+  await form.getByRole("button", { name: "Save" }).click()
+  await expect(form.getByRole("alert")).toHaveText("Not saved: the Playbook is full.")
+  await expect(form).toBeVisible()
+  // (The label wraps the field, so its accessible name now includes the typed text: find it by tag.)
+  await expect(form.locator("textarea")).toHaveValue("In the storage room.")
+})
