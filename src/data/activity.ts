@@ -65,11 +65,19 @@ export function deriveActivity(prev: DemoState, next: DemoState, action: { type:
 
   // Tasks.
   const before = new Map(prevNodes.map(n => [n.id, n]))
+  // Tasks the record saw removed: one that appears again (the chart's Undo) is marked restored, so counts of created tasks can skip it.
+  let removedBefore: Set<string> | undefined
+  const wasRemoved = (nodeId: string) => (removedBefore ??= new Set(list(prev.activity).flatMap(e => {
+    const x = e as Partial<ActivityEvent> | null
+    return x && typeof x === "object" && x.kind === "task.removed" && typeof x.nodeId === "string" ? [x.nodeId] : []
+  }))).has(nodeId)
   for (const n of nextNodes) {
     const old = before.get(n.id), at = { nodeId: n.id, eventId: n.eventId }
-    if (!old) { add("task.created", people(n.ownerId), { ...at, facts: { status: n.status, eventId: n.eventId } }); continue }
+    if (!old) { add("task.created", people(n.ownerId), { ...at, facts: { status: n.status, eventId: n.eventId, ...(wasRemoved(n.id) ? { restored: true } : {}) } }); continue }
     if (n.ownerId && n.ownerId !== old.ownerId) add("task.assigned", people(n.ownerId), { ...at, facts: { from: old.ownerId } })
-    if (old.status === "unclaimed" && n.status !== "unclaimed" && n.acceptedOn && n.acceptedOn !== old.acceptedOn) add("task.claimed", people(n.ownerId), at)
+    // A claim is the owner accepting the task (in the app or through their task link). A lead giving an unclaimed task to someone
+    // also sets acceptedOn, but that is an assignment, recorded above and as the status change below (contract §3, amended).
+    if (old.status === "unclaimed" && n.status !== "unclaimed" && n.acceptedOn && n.acceptedOn !== old.acceptedOn && n.ownerId && actor === n.ownerId) add("task.claimed", people(n.ownerId), at)
     if (n.status !== old.status) add("task.status", people(n.ownerId), { ...at, facts: { from: old.status, to: n.status } })
     if (n.waitingOnPersonId && n.waitingOnPersonId !== old.waitingOnPersonId) add("task.waiting_on", people(n.waitingOnPersonId), { ...at, facts: { ownerId: n.ownerId } })
     if ((n.clubDeadlineOverride ?? null) !== (old.clubDeadlineOverride ?? null) || targetChanges(n) > targetChanges(old))
@@ -93,14 +101,16 @@ export function deriveActivity(prev: DemoState, next: DemoState, action: { type:
   for (const old of prevNodes) if (!nodeIndex.has(old.id)) add("task.removed", people(old.ownerId), { nodeId: old.id, eventId: old.eventId, facts: { status: old.status } })
 
   // Reminders: legacy nudges, and deliveries of the versioned reminder plan (which records reminders there instead of in nudges).
+  // `recipientId` tells a reminder to the owner from one to the person the owner waits on (src/lib/activityQuery.ts firstResponse).
   const nodeOf = (nodeId: unknown) => typeof nodeId === "string" ? nextNodes[nodeIndex.get(nodeId) ?? -1] ?? before.get(nodeId) : undefined
   const ownerOf = (nodeId: unknown) => nodeOf(nodeId)?.ownerId ?? null, eventOf = (nodeId: unknown) => nodeOf(nodeId)?.eventId ?? null
   const oldNudges = new Set(keyed<Nudge>(prev.nudges).map(x => x.id))
+  // A legacy nudge always went to the task's owner.
   for (const x of keyed<Nudge>(next.nudges)) if (!oldNudges.has(x.id))
-    add("reminder.recorded", people(ownerOf(x.nodeId)), { nodeId: x.nodeId, eventId: eventOf(x.nodeId), facts: { via: x.via ?? null, channel: x.channel } })
+    add("reminder.recorded", people(ownerOf(x.nodeId)), { nodeId: x.nodeId, eventId: eventOf(x.nodeId), facts: { via: x.via ?? null, channel: x.channel, recipientId: ownerOf(x.nodeId) } })
   const oldDeliveries = new Set(deliveriesOf(prev).map(d => d.id))
   for (const d of deliveriesOf(next)) if (!oldDeliveries.has(d.id))
-    add("reminder.recorded", people(d.ownerId, d.recipientId), { nodeId: d.nodeId, eventId: eventOf(d.nodeId), facts: { via: d.via, channel: d.message?.channel ?? null } })
+    add("reminder.recorded", people(d.ownerId, d.recipientId), { nodeId: d.nodeId, eventId: eventOf(d.nodeId), facts: { via: d.via, channel: d.message?.channel ?? null, recipientId: d.recipientId } })
 
   // Events.
   const oldEvents = new Set(keyed<Event>(prev.events).map(e => e.id))

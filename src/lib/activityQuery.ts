@@ -20,8 +20,18 @@ export function eventsForTask(s: Pick<DemoState, "activity">, nodeId: string): A
   return record(s).filter(e => e.nodeId === nodeId)
 }
 
+/**
+ * A reminder that asked the task's owner for an update. A reminder to someone else (the person the owner waits on) asks that
+ * person for input, so it does not start a new wait for the owner. The owner comes first in `personIds`; an event recorded
+ * before reminders named their recipient counts as a reminder to the owner.
+ */
+const remindedOwner = (e: ActivityEvent) => {
+  const recipient = e.facts?.recipientId
+  return typeof recipient !== "string" || (Array.isArray(e.personIds) && e.personIds[0] === recipient)
+}
+
 export interface FirstResponse {
-  /** The task's latest `task.assigned` or `reminder.recorded` event. */
+  /** The task's latest `task.assigned` event, or `reminder.recorded` event sent to its owner. */
   trigger: ActivityEvent
   /** The first `task.claimed` or `task.status` event after it by a person the trigger was about, or null while there is none. */
   response: ActivityEvent | null
@@ -32,11 +42,11 @@ export interface FirstResponse {
 /**
  * How quickly a task's person answered its latest assignment or reminder. Only an answer by someone the trigger is about
  * (the new owner, or the reminded owner) counts, so a status change written by the same assignment action is not mistaken for
- * the owner's reply. Null when the task was never assigned or reminded.
+ * the owner's reply. Null when the task was never assigned or its owner never reminded.
  */
 export function firstResponse(s: Pick<DemoState, "activity">, nodeId: string): FirstResponse | null {
   const events = eventsForTask(s, nodeId)
-  const trigger = events.filter(e => e.kind === "task.assigned" || e.kind === "reminder.recorded").at(-1)
+  const trigger = events.filter(e => e.kind === "task.assigned" || (e.kind === "reminder.recorded" && remindedOwner(e))).at(-1)
   if (!trigger) return null
   const response = events.find(e => e.seq > trigger.seq && (e.kind === "task.claimed" || e.kind === "task.status")
     && e.actorId !== null && Array.isArray(trigger.personIds) && trigger.personIds.includes(e.actorId)) ?? null

@@ -8,6 +8,12 @@ import type { ActivityEvent, DemoState } from "../data/types"
 import type { TaskAttachment } from "../taskDetails/contracts"
 import { taskTargetKey } from "../taskDetails/targetDates"
 import { planReminderDigests, sendReminderDigests } from "../reminders/digest"
+import { withActivityBackfill } from "../data/activityBackfill"
+import { firstResponse } from "../lib/activityQuery"
+import { applySchedule } from "../engine/schedule"
+import { addDays } from "../lib/dates"
+import { cannotDelete } from "../lib/flowEdit"
+import { makeTaskAccessGrant, taskAccessToken } from "../reminders/taskAccess"
 
 /** Free text typed in these tests: none of it may ever reach the activity record. */
 const DETAILS = "Booked the fictional photographer and shared the shot list"
@@ -29,6 +35,16 @@ const PHOTO_TITLE = "Take fictional club photos"
 /** The president creates a task for Jordan; it waits in Not claimed until Jordan accepts it. */
 const photoId = (s: DemoState) => s.nodes.find(n => n.title === PHOTO_TITLE)!.id
 const createdForJordan = () => run(seed(), { type: "createTasks", id: "photos", sentence: PHOTO_TITLE, tasks: [{ title: PHOTO_TITLE, ownerId: "jordan", eventId: null }], date: "2026-11-06", buffered: false }, { type: "setViewer", viewerId: "jordan" })
+const withoutActivity = (s: DemoState): DemoState => { const { activity: _drop, ...rest } = s; void _drop; return rest }
+/** The same state with its record thrown away and rebuilt from the other records (what an older save gets on load). */
+const rebuilt = (s: DemoState) => withActivityBackfill(withoutActivity(s))
+/** What `firstResponse` says, without the event IDs (live and rebuilt events have different IDs). */
+const responseOf = (s: DemoState, nodeId: string) => {
+  const r = firstResponse(s, nodeId)
+  return r && { trigger: [r.trigger.kind, r.trigger.on, r.trigger.personIds], response: r.response && [r.response.kind, r.response.on, r.response.actorId], days: r.days }
+}
+/** Jordan's t-room, given to him on 2026-10-28 and still waiting in Not claimed for him to accept it. */
+const proposedRoom = (s: DemoState): DemoState => ({ ...s, nodes: s.nodes.map(n => n.id === "t-room" ? { ...n, status: "unclaimed" as const, acceptedOn: null, assignedOn: "2026-10-28" } : n) })
 
 beforeEach(() => { localStorage.clear(); vi.stubGlobal("crypto", webcrypto) })
 afterEach(() => { vi.unstubAllGlobals(); localStorage.clear() })
@@ -146,7 +162,7 @@ describe("live activity through the real reducer", () => {
       const d = deliveries.find(x => x.nodeId === e.nodeId)!
       expect(e.personIds[0]).toBe(d.ownerId)
       expect(e.personIds).toContain(d.recipientId)
-      expect(e.facts).toEqual({ via: "automatic", channel: "email" })
+      expect(e.facts).toEqual({ via: "automatic", channel: "email", recipientId: d.recipientId })
     }
   })
 
@@ -156,7 +172,131 @@ describe("live activity through the real reducer", () => {
     const events = added(s, sent)
     expect(kinds(events)).toEqual(["reminder.recorded"])
     expect(events[0]).toMatchObject({ nodeId: "t-room", actorId: "alex", personIds: ["jordan"], facts: { via: "president", channel: "whatsapp" } })
+    // A legacy reminder goes to the task's owner (contract §3: recipientId).
+    expect(events[0].facts).toEqual({ via: "president", channel: "whatsapp", recipientId: "jordan" })
     expect(JSON.stringify(sent.activity)).not.toContain("Fictional reminder text")
+  })
+
+  it("a lead's assignment is not a claim; the owner's acceptance is, in the app and through a task link", async () => {
+    // The lead gives an unclaimed task to Sam: updateNode moves it to To do and sets acceptedOn, but Sam accepted nothing.
+    const s = seed(), assigned = reducer(s, { type: "updateNode", id: "t-tabling", patch: { ownerId: "sam" } })
+    expect(node(assigned, "t-tabling")).toMatchObject({ ownerId: "sam", status: "accepted", acceptedOn: s.today })
+    expect(kinds(added(s, assigned))).toEqual(["task.assigned", "task.status"])
+    expect(added(s, assigned)[1].facts).toEqual({ from: "unclaimed", to: "accepted" })
+
+    // The owner accepts a task waiting for him, in the app (claimTask as Jordan).
+    const proposed = run(withActivityBackfill(proposedRoom(seed())), { type: "setViewer", viewerId: "jordan" })
+    const claimed = reducer(proposed, { type: "claimTask", nodeId: "t-room" })
+    expect(kinds(added(proposed, claimed))).toEqual(["task.claimed", "task.status"])
+    expect(added(proposed, claimed)[0]).toMatchObject({ actorId: "jordan", personIds: ["jordan"], nodeId: "t-room", on: "2026-10-31" })
+
+    // The same acceptance through the task link in a reminder email: the link holder is the actor, not the viewer (Alex).
+    const s0 = seed(), room = node(s0, "t-room")
+    const fixed = applySchedule({ ...s0, org: { ...s0.org, settings: { ...s0.org.settings, reminderMode: "review_then_self" } }, nodes: [{ ...room, anchor: { kind: "fixed", official: null, club: "2026-11-05" }, clubDeadlineOverride: null, ownerVersion: 0, dependsOn: [], status: "unclaimed", acceptedOn: null, waitingOn: null, waitingOnPersonId: null }], events: [], funding: [], nudges: [], protocolLog: [], silenceCases: [], notifications: [] })
+    const today = fixed.nodes[0].latestStart!
+    const linked = withActivityBackfill({ ...fixed, today, nodes: fixed.nodes.map(n => ({ ...n, assignedOn: addDays(today, -2) })) })
+    const grant = await makeTaskAccessGrant(linked, "t-room")
+    const issued = reducer(linked, { type: "issueTaskAccessGrant", grant })
+    const viaLink = reducer(issued, { type: "taskAccessAction", token: taskAccessToken(grant), update: { kind: "claim" } })
+    expect(viaLink.viewerId).toBe("alex")
+    expect(kinds(added(issued, viaLink))).toEqual(["task.claimed", "task.status"])
+    expect(added(issued, viaLink)[0]).toMatchObject({ actorId: "jordan", personIds: ["jordan"], on: today })
+
+    // firstResponse reads the same before and after the record is rebuilt from the other records.
+    expect(responseOf(assigned, "t-tabling")).toEqual({ trigger: ["task.assigned", s.today, ["sam"]], response: null, days: null })
+    expect(responseOf(rebuilt(assigned), "t-tabling")).toEqual(responseOf(assigned, "t-tabling"))
+    expect(responseOf(claimed, "t-room")).toEqual({ trigger: ["task.assigned", "2026-10-28", ["jordan"]], response: ["task.claimed", "2026-10-31", "jordan"], days: 3 })
+    expect(responseOf(rebuilt(claimed), "t-room")).toEqual(responseOf(claimed, "t-room"))
+    expect(responseOf(viaLink, "t-room")).toEqual({ trigger: ["task.assigned", addDays(today, -2), ["jordan"]], response: ["task.claimed", today, "jordan"], days: 2 })
+    expect(responseOf(rebuilt(viaLink), "t-room")).toEqual(responseOf(viaLink, "t-room"))
+  })
+
+  it("restoring a removed step (the chart's Undo) records its creation again, marked as restored", () => {
+    const s = seed(), eventId = s.events[0].id
+    const snapshot = structuredClone(s.nodes.filter(n => n.eventId === eventId))
+    const step = snapshot.find(n => !cannotDelete(n) && reducer(s, { type: "removeEventStep", eventId, nodeId: n.id }) !== s)!
+    expect(step).toBeDefined()
+    const gone = reducer(s, { type: "removeEventStep", eventId, nodeId: step.id })
+    const removal = added(s, gone).filter(e => e.nodeId === step.id)
+    expect(kinds(removal)).toEqual(["task.removed"])
+    const back = reducer(gone, { type: "restoreEventNodes", eventId, nodes: snapshot })
+    expect(back.nodes.some(n => n.id === step.id)).toBe(true)
+    const restored = added(gone, back).filter(e => e.kind === "task.created")
+    expect(restored).toHaveLength(1)
+    expect(restored[0]).toMatchObject({ nodeId: step.id, eventId, actorId: "alex", facts: { status: step.status, eventId, restored: true } })
+    // Earlier events are untouched, and a task created for the first time carries no restored fact.
+    expect(back.activity!.slice(0, gone.activity!.length)).toEqual(gone.activity)
+    const fresh = added(seed(), createdForJordan())[0]
+    expect(fresh.facts).toEqual({ status: "unclaimed", eventId: null })
+  })
+
+  it("undoing an AI change that applied at once records the reversal as new events", () => {
+    const s = seed()
+    const applied = reducer(s, { type: "aiAutoApply", changeSet: { id: "auto-1", sentence: "Fictional request", ops: [{ op: "set_status", nodeId: "t-room", status: "in_progress" }] as never, status: "pending", source: "AI draft" } })
+    expect(node(applied, "t-room").status).toBe("in_progress")
+    expect(kinds(added(s, applied))).toEqual(["task.status"])
+    expect(added(s, applied)[0]).toMatchObject({ actorId: "alex", nodeId: "t-room", facts: { from: "accepted", to: "in_progress" } })
+    const undone = reducer(applied, { type: "undoAuto", id: "auto-1" })
+    expect(node(undone, "t-room").status).toBe("accepted")
+    expect(kinds(added(applied, undone))).toEqual(["task.status"])
+    expect(added(applied, undone)[0]).toMatchObject({ actorId: "alex", nodeId: "t-room", personIds: ["jordan"], facts: { from: "in_progress", to: "accepted" } })
+    expect(undone.activity!.slice(0, applied.activity!.length)).toEqual(applied.activity)
+    expect(reducer(undone, { type: "undoAuto", id: "auto-1" })).toBe(undone)
+
+    // Undoing a created task removes it: recorded as task.removed about its owner.
+    const created = reducer(s, { type: "createTasks", id: "photos", sentence: PHOTO_TITLE, tasks: [{ title: PHOTO_TITLE, ownerId: "jordan", eventId: null }], date: "2026-11-06", buffered: false })
+    const removed = reducer(created, { type: "undoAuto", id: "photos" })
+    expect(kinds(added(created, removed))).toEqual(["task.removed"])
+    expect(added(created, removed)[0]).toMatchObject({ nodeId: "photos:0", actorId: "alex", personIds: ["jordan"], facts: { status: "unclaimed" } })
+  })
+
+  it("live events and the record rebuilt from the same end state agree on what the rebuild can know", async () => {
+    // A realistic stretch on the reminder plan: assignments, a task created for Jordan, two days pass, Jordan accepts and
+    // delivers it, a late completion, then the automatic reminder emails. The rebuild reads only the end state.
+    const base = seed()
+    const upgraded = reducer({ ...base, org: { ...base.org, settings: { ...base.org.settings, reminderMode: "auto_email" } } }, { type: "upgradeReminderPlan" })
+    const start = withActivityBackfill(withoutActivity(upgraded))
+    let state = run(start,
+      { type: "updateNode", id: "t-tabling", patch: { ownerId: "sam" } },
+      { type: "updateNode", id: "t-news", patch: { ownerId: "jordan" } },
+      { type: "createTasks", id: "photos", sentence: PHOTO_TITLE, tasks: [{ title: PHOTO_TITLE, ownerId: "jordan", eventId: null }], date: "2026-11-06", buffered: false },
+      { type: "advanceClock", days: 2 },
+      { type: "setViewer", viewerId: "jordan" },
+      { type: "claimTask", nodeId: "photos:0" },
+    )
+    state = run(state, submit(state, "photos:0", DETAILS, [file("shot-list", "fictional shot list")]), { type: "replyTask", nodeId: "t-news", reply: "done" }, { type: "setViewer", viewerId: "alex" })
+    const store = { getState: () => state, tryDispatch: (a: Action) => { const next = reducer(state, a); if (next === state) return false; state = next; return true } }
+    const ids = planReminderDigests(state).groups.map(g => g.id)
+    expect(ids.length).toBeGreaterThan(0)
+    expect((await sendReminderDigests(store, ids, "https://demo.example.org", "automatic")).error).toBeNull()
+
+    const KNOWN = ["task.assigned", "task.claimed", "task.submitted", "task.done", "reminder.recorded"]
+    // The rebuild cannot know whom a task was taken from, so an assignment is compared without its `from` fact.
+    const shape = (e: ActivityEvent) => JSON.stringify([e.kind, e.nodeId ?? null, e.eventId ?? null, e.on, e.personIds, e.kind === "task.assigned" ? null : e.facts ?? null])
+    const record = state.activity!.filter(e => e.source === "live")
+    // Tasks created in this stretch (Jordan's photos task, and the retro tasks the clock opened for stalled handovers) are recorded
+    // live as task.created about their owner. The rebuild reads the assignment the task holds, dated as stored (a retro task keeps
+    // its stalled case's date), so for these only the owner compares.
+    const created = new Map(record.filter(e => e.kind === "task.created").map(e => [e.nodeId!, e]))
+    expect(created.has("photos:0")).toBe(true)
+    const liveEvents = record.filter(e => KNOWN.includes(e.kind))
+    // What the rebuild adds to the rebuild of the starting state is exactly what was recorded live.
+    const before = new Set(rebuilt(start).activity!.map(shape))
+    const rebuiltAll = rebuilt(state).activity!.filter(e => KNOWN.includes(e.kind) && !before.has(shape(e)))
+    const ofCreated = (e: ActivityEvent) => e.kind === "task.assigned" && created.has(e.nodeId!)
+    for (const e of rebuiltAll.filter(ofCreated)) expect(e.personIds, e.nodeId).toEqual(created.get(e.nodeId!)!.personIds)
+    expect(rebuiltAll.filter(ofCreated).map(e => e.nodeId).sort()).toEqual([...created.values()].filter(e => e.personIds.length).map(e => e.nodeId).sort())
+    const rebuiltEvents = rebuiltAll.filter(e => !ofCreated(e))
+    expect(new Set(liveEvents.map(e => e.kind))).toEqual(new Set(KNOWN))
+    expect(rebuiltEvents.map(shape).sort()).toEqual(liveEvents.map(shape).sort())
+    // Where the rebuild knows who acted, it names the same person as the live record.
+    for (const e of rebuiltEvents) if (e.actorId !== null) {
+      const match = liveEvents.find(x => shape(x) === shape(e))!
+      expect(match.actorId, shape(e)).toBe(e.actorId)
+    }
+    // A lead's assignment has no claim to answer it, live or rebuilt (status replies are not rebuilt, so only claims compare).
+    expect(responseOf(state, "t-tabling")?.response).toBeNull()
+    expect(responseOf(rebuilt(state), "t-tabling")).toEqual(responseOf(state, "t-tabling"))
   })
 
   it("moving the demo clock records what it triggered as system:clock, on the new demo date", () => {
@@ -220,6 +360,12 @@ describe("live activity through the real reducer", () => {
       for (const value of Object.values(event.facts ?? {})) {
         expect(isActivityFact(value)).toBe(true)
         if (typeof value === "string") for (const text of forbidden) expect(value.includes(text), `${event.kind} fact "${value}" contains "${text}"`).toBe(false)
+      }
+      // The ID fields hold IDs only: no title, name or email, no spaces, and none longer than the sanitizer keeps.
+      for (const value of [event.id, event.actorId, event.nodeId, event.eventId, ...event.personIds]) {
+        if (value === null || value === undefined) continue
+        expect(value, `${event.kind} ID field`).toMatch(/^[\w:.-]{1,128}$/)
+        for (const text of forbidden) expect(value.includes(text), `${event.kind} ID "${value}" contains "${text}"`).toBe(false)
       }
       expect(Object.keys(event).every(k => ["id", "seq", "on", "actorId", "kind", "personIds", "nodeId", "eventId", "facts", "source"].includes(k))).toBe(true)
       expect(event.personIds.every(id => s0.people.some(p => p.id === id))).toBe(true)
