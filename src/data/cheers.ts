@@ -111,7 +111,8 @@ export const weeklyLine = (s: DemoState, viewerId: string): { personIds: string[
   const { monday, sunday } = weekOf(s.today)
   if (cheersOf(s).weeklyLineDismissed?.[viewerId] === monday) return null
   const personIds = s.people
-    .filter(p => p.id !== viewerId && canReceiveCheers(s, p.id) && deliveredWithDetails(s, p.id, monday, sunday).length > 0)
+    // On time and with details, as the approved screen F7 says (a late completion with details does not count).
+    .filter(p => p.id !== viewerId && canReceiveCheers(s, p.id) && deliveredWithDetails(s, p.id, monday, sunday).some(e => e.facts?.onTime !== false))
     .sort(byName).slice(0, MAX_RECIPIENTS).map(p => p.id)
   return personIds.length ? { personIds } : null
 }

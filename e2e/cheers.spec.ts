@@ -265,7 +265,7 @@ test("[model] the president's weekly line opens Give points with those people, a
   await seed(page, { cheers: [], viewerId: "alex", today: "2026-11-02", activity: [done("maya", "e-night:budget"), done("jordan", "e-night:venue")] })
   await page.goto("/#/")
   const line = page.getByTestId("cheer-weekly")
-  await expect(line).toContainText("This week: Jordan and Maya delivered with details.")
+  await expect(line).toContainText("This week: Jordan and Maya delivered on time with details.")
   await line.getByRole("button", { name: "Thank them" }).click()
   const form = page.getByTestId("give-cheer")
   await expect(form.getByTestId("cheer-recipients").getByRole("listitem").filter({ hasText: /Jordan|Maya/ })).toHaveCount(2)

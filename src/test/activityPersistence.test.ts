@@ -65,7 +65,8 @@ describe("backfill from existing records", () => {
 
   it("writes only the kinds the contract lists for backfill", () => {
     const kinds = new Set(record(withActivityBackfill(seed())).map(e => e.kind))
-    expect([...kinds].sort()).toEqual(["event.created", "playbook.answer_added", "task.assigned", "task.claimed", "task.done"])
+    // R1: the v2 seed has cheers, rebuilt as cheer.sent.
+    expect([...kinds].sort()).toEqual(["cheer.sent", "event.created", "playbook.answer_added", "task.assigned", "task.claimed", "task.done"])
   })
 
   it("dates and attributes the seed's records as the contract describes", () => {
@@ -187,7 +188,7 @@ describe("backfill from existing records", () => {
   })
 
   it("gives an empty record when there is nothing to rebuild", () => {
-    const s = withoutActivity({ ...seed(), nodes: [], events: [], nudges: [], contributions: [], playbook: undefined })
+    const s = withoutActivity({ ...seed(), nodes: [], events: [], nudges: [], contributions: [], playbook: undefined, cheers: undefined })
     const next = withActivityBackfill(s)
     expect(next).not.toBe(s)
     expect(next.activity).toEqual([])
@@ -428,3 +429,28 @@ describe("record size", () => {
     expect(bytes).toBeLessThan(700 * 1024)
   })
 })
+
+describe("activity backfill: cheers (R1)", () => {
+  it("rebuilds the seed's cheers as cheer.sent with the live facts and without the note", () => {
+    const s = withActivityBackfill(withoutActivityForCheers(seedDemo(undefined, "v2")))
+    const cheers = s.cheers?.cheers ?? []
+    expect(cheers.length).toBeGreaterThan(0)
+    const sent = (s.activity ?? []).filter(e => e.kind === "cheer.sent")
+    expect(sent.map(e => e.facts?.cheerId).sort()).toEqual(cheers.map(c => c.id).sort())
+    for (const c of cheers) {
+      const e = sent.find(x => x.facts?.cheerId === c.id)!
+      expect(e).toMatchObject({ on: c.on, actorId: c.fromId, personIds: c.toIds, source: "backfill" })
+      expect(e.facts).toEqual({ cheerId: c.id, points: c.points, recipients: c.toIds.length, noteChars: c.note.length, card: c.card, email: c.email === true })
+      expect(JSON.stringify(s.activity)).not.toContain(c.note)
+    }
+  })
+  it("records a withdrawn cheer as sent, then withdrawn", () => {
+    const base = withoutActivityForCheers(seedDemo(undefined, "v2"))
+    const [first, ...rest] = base.cheers!.cheers
+    const s = withActivityBackfill({ ...base, cheers: { ...base.cheers!, cheers: [{ ...first, withdrawnOn: first.on }, ...rest] } })
+    const kinds = (s.activity ?? []).filter(e => e.facts?.cheerId === first.id).map(e => e.kind)
+    expect(kinds).toEqual(["cheer.sent", "cheer.withdrawn"])
+  })
+})
+
+function withoutActivityForCheers(s: ReturnType<typeof seedDemo>) { const { activity: _a, ...rest } = s; void _a; return rest }

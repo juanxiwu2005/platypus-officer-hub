@@ -333,13 +333,14 @@ describe("Cheers: activity record", () => {
 })
 
 describe("Cheers: weekly line", () => {
-  /** Monday Nov 2: Jordan and Priya delivered with details this week, Sam without, Maya last week. */
+  /** Monday Nov 2: Jordan and Priya delivered with details this week, Sam without and then late with details, Maya last week. */
   const week = (today = "2026-11-02"): DemoState => ({ ...on(blank(), today), activity: [
     doneEvent(1, "maya", "2026-10-30", { detailsChars: 30, files: 0 }),
     doneEvent(2, "sam", "2026-11-02", { detailsChars: 0, files: 0 }),
     doneEvent(3, "priya", "2026-11-02", { detailsChars: 0, files: 1 }),
     doneEvent(4, "jordan", "2026-11-02", { detailsChars: 48, files: 0 }),
     doneEvent(5, "alex", "2026-11-02", { detailsChars: 48, files: 0 }),
+    doneEvent(6, "sam", "2026-11-03", { detailsChars: 52, files: 1, onTime: false }),
   ] })
 
   it("shows the president, Monday to Wednesday, the others who delivered with details, in name order", () => {

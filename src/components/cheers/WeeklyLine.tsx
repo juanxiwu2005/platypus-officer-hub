@@ -17,7 +17,7 @@ export function WeeklyLine() {
   const dismiss = () => tryDispatch({ type: "cheerAction", action: { kind: "dismissWeeklyLine" } })
   return <section className="card ch-strip" aria-label="This week" data-testid="cheer-weekly">
     <span className="ch-banner-icon" aria-hidden="true">🙌</span>
-    <p><b>This week:</b> {joinNames(line.personIds.map(id => firstName(fullName(state, id))))} delivered with details.</p>
+    <p><b>This week:</b> {joinNames(line.personIds.map(id => firstName(fullName(state, id))))} delivered on time with details.</p>
     <span className="ch-strip-act">
       <button type="button" className="btn small" data-testid="cheer-weekly-thank" onClick={() => { rail.show({ kind: "cheer", toIds: line.personIds }); dismiss() }}>Thank them</button>
       <button type="button" className="btn btn-quiet icon-btn" aria-label="Close this week's line" data-testid="cheer-weekly-close" onClick={dismiss}>✕</button>
