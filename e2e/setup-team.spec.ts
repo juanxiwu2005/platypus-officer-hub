@@ -103,7 +103,7 @@ test("meeting finder uses shared slots and opens only an Arizona calendar draft"
   expect(params.get("ctz")).toBe("America/Phoenix"); expect(params.has("add")).toBe(false)
   for (const checkbox of await finder.getByRole("checkbox").all()) await checkbox.uncheck()
   await expect(finder).toContainText("No shared time in the next two weeks")
-  await expect(page.getByTestId("contribution-board")).toBeVisible()
+  await expect(page.getByTestId("your-cheers")).toBeVisible()   // Cheers R1: Your cheers replaces the Contributions board
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
 })
 
@@ -170,6 +170,8 @@ test("task dates remain visible while another officer's buffer explanation stays
 
 /** Audit §5.1: buttons inside a hover card can be clicked (fixed in S3: styles.css restores pointer-events). */
 test("the contribution board drills down from its hover card", async ({ page }, info) => {
+  // Cheers R1 (docs/feedback-fix/CHEERS_R1_CONTRACT.md §5): the board is not rendered until it returns for the president.
+  test.skip(true, "The Contributions board is not rendered since Cheers R1")
   await page.goto("/#/team")
   const row = page.getByTestId("contribution-board").locator("tbody tr").filter({ has: page.locator(".hover") }).first()
   const trigger = row.locator("[tabindex]")

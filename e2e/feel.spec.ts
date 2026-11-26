@@ -30,6 +30,9 @@ test("hover cards and flow-chart cards start showing with no delay", async ({ pa
 })
 
 test("a button inside a hover card can be clicked (Team contributions)", async ({ page }, info) => {
+  // Cheers R1 (docs/feedback-fix/CHEERS_R1_CONTRACT.md §5): the Contributions board, the only hover card with buttons, is not
+  // rendered until it returns for the president; re-enable this test with it.
+  test.skip(true, "The Contributions board is not rendered since Cheers R1")
   await page.goto("/#/team")
   const cell = page.getByTestId("contribution-board").locator(".hover").filter({ has: page.locator(".hover-card button") }).first()
   const trigger = cell.locator("[tabindex]")
