@@ -73,7 +73,12 @@ export function deriveActivity(prev: DemoState, next: DemoState, action: { type:
   }))).has(nodeId)
   for (const n of nextNodes) {
     const old = before.get(n.id), at = { nodeId: n.id, eventId: n.eventId }
-    if (!old) { add("task.created", people(n.ownerId), { ...at, facts: { status: n.status, eventId: n.eventId, ...(wasRemoved(n.id) ? { restored: true } : {}) } }); continue }
+    if (!old) {
+      add("task.created", people(n.ownerId), { ...at, facts: { status: n.status, eventId: n.eventId, ...(wasRemoved(n.id) ? { restored: true } : {}) } })
+      // A task created for someone is also an assignment, as the backfill reads it from assignedOn (contract §3, amended at integration).
+      if (n.ownerId && !wasRemoved(n.id)) add("task.assigned", people(n.ownerId), { ...at, facts: { from: null } })
+      continue
+    }
     if (n.ownerId && n.ownerId !== old.ownerId) add("task.assigned", people(n.ownerId), { ...at, facts: { from: old.ownerId } })
     // A claim is the owner accepting the task (in the app or through their task link). A lead giving an unclaimed task to someone
     // also sets acceptedOn, but that is an assignment, recorded above and as the status change below (contract §3, amended).

@@ -48,7 +48,7 @@ Compare `prev` and `next` by ID. For nodes:
 | --- | --- | --- | --- |
 | `task.created` | a node ID appears | owner if any | `status`, `eventId` (also on the event) |
 | `task.removed` | a node ID disappears | former owner if any | `status` |
-| `task.assigned` | `ownerId` changes to a person | new owner | `from` (old owner or null) |
+| `task.assigned` | `ownerId` changes to a person, or a node is created with an owner (not when a removed step is restored) | new owner | `from` (old owner or null) |
 | `task.claimed` | `unclaimed` → any other status with `acceptedOn` set by this change, **and the actor is the new owner** (the owner accepted it, in the app or through their task link). A lead assigning a task records `task.assigned` and `task.status` only (amended after review, 2026-11-26) | owner | none |
 | `task.status` | `status` changes (always, in addition to claimed/done/reopened) | owner | `from`, `to` |
 | `task.waiting_on` | `waitingOnPersonId` becomes a person | the person waited on | `ownerId` |
@@ -91,7 +91,7 @@ Order within one action: by node order in `next.nodes`, then the table order abo
 
 ## 5a. Review amendments (2026-11-26)
 
-An independent review of the merged R0 found no P1 and three P2 issues; the rows above were amended. Also: `firstResponse` treats a reminder as a trigger only when its recipient is the task owner; backfilled `task.done` takes `onTime` from a contribution only when that contribution's `completedOn` equals the task's; `startWorkspace` (`src/data/settings.ts`) drops `activity` itself, not only the reducer wrapper. Restoring a removed step records `task.created` again with fact `restored: true`, so counts of created tasks can skip it.
+An independent review of the merged R0 found no P1 and three P2 issues; the rows above were amended. Also: `firstResponse` treats a reminder as a trigger only when its recipient is the task owner; backfilled `task.done` takes `onTime` from a contribution only when that contribution's `completedOn` equals the task's; `startWorkspace` (`src/data/settings.ts`) drops `activity` itself, not only the reducer wrapper. Restoring a removed step records `task.created` again with fact `restored: true`, so counts of created tasks can skip it. Known remaining differences between live and rebuilt records (documented, not bugs): a retro task opened by the clock keeps its stalled case's `assignedOn`, so the rebuild dates its assignment earlier; claiming an unowned task keeps its earlier `assignedOn` (`claimTask`), so the rebuild dates the assignment on the posting day; a lead assigning a task to themselves counts as a live claim but not a rebuilt one on the same day; status replies are not rebuilt. `seq` values above 1,000,000,000 and empty `nodeId`/`eventId` are dropped by sanitizing.
 
 ## 6. Gates (main agent after merging)
 

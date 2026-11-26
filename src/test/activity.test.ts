@@ -52,9 +52,11 @@ afterEach(() => { vi.unstubAllGlobals(); localStorage.clear() })
 describe("live activity through the real reducer", () => {
   it("claim, then submit with details: claimed, two status changes, submitted and done, with the right facts", () => {
     const created = createdForJordan()
-    const [creation] = created.activity ?? []
-    expect(created.activity).toHaveLength(1)
+    const [creation, assignment] = created.activity ?? []
+    // A task created for Jordan is recorded as created and assigned (contract §3).
+    expect(created.activity).toHaveLength(2)
     expect(creation).toMatchObject({ kind: "task.created", actorId: "alex", personIds: ["jordan"], facts: { status: "unclaimed", eventId: null } })
+    expect(assignment).toMatchObject({ kind: "task.assigned", actorId: "alex", personIds: ["jordan"], nodeId: creation.nodeId, facts: { from: null } })
     const id = creation.nodeId!
     expect(node(created, id)).toMatchObject({ ownerId: "jordan", status: "unclaimed" })
 
@@ -78,9 +80,9 @@ describe("live activity through the real reducer", () => {
 
     // Numbered in recording order, append only.
     const all = done.activity!
-    expect(all.map(e => e.seq)).toEqual([1, 2, 3, 4, 5, 6])
-    expect(all.map(e => e.id)).toEqual(["act:1", "act:2", "act:3", "act:4", "act:5", "act:6"])
-    expect(all.slice(0, 3)).toEqual(claimed.activity)
+    expect(all.map(e => e.seq)).toEqual([1, 2, 3, 4, 5, 6, 7])
+    expect(all.map(e => e.id)).toEqual(["act:1", "act:2", "act:3", "act:4", "act:5", "act:6", "act:7"])
+    expect(all.slice(0, 4)).toEqual(claimed.activity)
   })
 
   it("claiming a task nobody owned also records who took it", () => {
@@ -279,7 +281,10 @@ describe("live activity through the real reducer", () => {
     // its stalled case's date), so for these only the owner compares.
     const created = new Map(record.filter(e => e.kind === "task.created").map(e => [e.nodeId!, e]))
     expect(created.has("photos:0")).toBe(true)
-    const liveEvents = record.filter(e => KNOWN.includes(e.kind))
+    // A task created for someone is recorded live as task.created plus task.assigned (from null), like the rebuild.
+    for (const [nodeId, e] of created) if (e.personIds.length && !e.facts?.restored) expect(record.some(x => x.kind === "task.assigned" && x.nodeId === nodeId && x.facts?.from === null), nodeId).toBe(true)
+    const isCreatedAssignment = (e: ActivityEvent) => e.kind === "task.assigned" && created.has(e.nodeId!)
+    const liveEvents = record.filter(e => KNOWN.includes(e.kind) && !isCreatedAssignment(e))
     // What the rebuild adds to the rebuild of the starting state is exactly what was recorded live.
     const before = new Set(rebuilt(start).activity!.map(shape))
     const rebuiltAll = rebuilt(state).activity!.filter(e => KNOWN.includes(e.kind) && !before.has(shape(e)))
@@ -306,9 +311,11 @@ describe("live activity through the real reducer", () => {
     const retros = later.nodes.filter(n => !s.nodes.some(o => o.id === n.id))
     const events = added(s, later)
     expect(retros.length).toBeGreaterThan(0)
-    expect(events.map(e => [e.kind, e.nodeId])).toEqual(retros.map(n => ["task.created", n.id]))
-    expect(events.every(e => e.actorId === "system:clock" && e.on === "2026-11-01" && e.facts?.status === "unclaimed")).toBe(true)
-    expect(events.map(e => e.personIds)).toEqual(retros.map(n => [n.ownerId]))
+    // Each retro task is created and, having an owner, assigned (contract §3).
+    expect(events.map(e => [e.kind, e.nodeId])).toEqual(retros.flatMap(n => [["task.created", n.id], ...(n.ownerId ? [["task.assigned", n.id]] : [])]))
+    expect(events.every(e => e.actorId === "system:clock" && e.on === "2026-11-01")).toBe(true)
+    expect(events.filter(e => e.kind === "task.created").every(e => e.facts?.status === "unclaimed")).toBe(true)
+    expect(events.filter(e => e.kind === "task.created").map(e => e.personIds)).toEqual(retros.map(n => n.ownerId ? [n.ownerId] : []))
   })
 
   it("an action that changes nothing returns the same state; one that changes no tracked record keeps the record", () => {
