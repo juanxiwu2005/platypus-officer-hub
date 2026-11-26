@@ -1,6 +1,18 @@
 # Cheers, team progress and the activity record: phased multi-agent plan (2026-11-26)
 
-**Status:** proposal, awaiting Juanxi's review and approval. No code is written until he approves; decisions D1–D8 (section 8) are open.
+**Status:** approved by Juanxi on 2026-11-26 with the design choices below; phase R0 started the same day. Where this section and later sections differ, this section wins.
+
+**Design choices (Juanxi, 2026-11-26, from the static concepts in `docs/prototypes/cheers-concepts/`):**
+- **P1 send sheet: option A (right-rail form), and the written note is required**, so the sender reflects on why the work was good; quick reasons stay as an optional start.
+- **P2 entry points: B + A, where A changes.** No Cheer button in Team rows (too crowded). Team's Contributions board is hidden; later it is shown to the president only. In its place every officer, the president included, sees a **personal cheers card**: their own points (received this term, allowance left) and their recent records (whom I cheered, who cheered me), with **View history** (a dialog listing past records over time) and **Give points** (opens the P1 A form in the right-rail Details). B stays: a finished task offers "Say thanks?".
+- **P3 receiving: option B**, a centered card shown once.
+- **P4 public Cheers card: dropped.** Cheers are not shown publicly; a cheer is visible to its sender and its recipient only (this replaces D4).
+- **P5 president's weekly thanks: option A**, the one-line strip (counts and names of people who delivered on time with details; no cheer contents).
+- **P6 email: A with B's subject style** (a short subject with a star), always including the sender's reason, stating the points received and why (not the running total), and a link that opens the full cheer as the P3 B card.
+- **P7 event progress: option A with a percentage.**
+- **P8 milestones: B + C** (event-head banner and a bell notice).
+- **P9 clean delivery: option B** (a star in the event list).
+- Decisions D1, D3, D5, D6, D7 and D8 follow the recommendations in section 8; D2 and D4 are replaced by the choices above.
 
 **Decisions so far (Juanxi, 2026-11-26):** keep time on the platform as short as possible (each action takes seconds, at most a few minutes); do not build option D (self-set dates): without consequences it relies on self-discipline most members do not have; build option B as **Cheers**: voluntary peer recognition between any two officers (upstream, downstream or another team), sent as an in-app card or a short email ("You received 50 points because …"), never tied to reviewing someone's work, so nobody can be asked "why didn't you give me points"; build option C as **team progress** per event; for the competence record (option E) build only the data layer now: every action is recorded so a growth record or handoff view can be built later, with nothing shown in the interface yet. Earlier review: the first reward plan and the five options in `docs/PROGRESS.md` (November 25 entries).
 

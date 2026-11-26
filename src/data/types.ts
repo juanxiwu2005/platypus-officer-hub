@@ -707,6 +707,38 @@ export interface DemoState {
   officerGrants: OfficerGrant[]
   /** Random per-browser demo signing key, generated at runtime; never an API/provider key. */
   demoLinkKey: string
+  /**
+   * Activity record (R0, 2026-11-26; docs/feedback-fix/CHEERS_R0_CONTRACT.md): one event per meaningful action, IDs and small facts only,
+   * kept for a future growth record or handoff view. Nothing reads it in the interface, and it is never sent to AI.
+   * Optional: absent in older saves, which are backfilled once from existing records (src/data/activityBackfill.ts).
+   */
+  activity?: ActivityEvent[]
+}
+
+/** The kinds the activity record knows. Unknown kinds in an imported file are kept as data. */
+export type ActivityKind =
+  | "task.created" | "task.removed" | "task.assigned" | "task.claimed" | "task.status" | "task.waiting_on" | "task.target_changed"
+  | "task.submitted" | "task.done" | "task.reopened" | "reminder.recorded" | "event.created"
+  | "playbook.answer_added" | "playbook.voted" | "handoff.step"
+  | "cheer.sent" | "progress.milestone"
+/** A fact is an ID, an enum, a number, a boolean or a demo date: never free text a person wrote. */
+export type ActivityFact = string | number | boolean | null
+export interface ActivityEvent {
+  /** `act:<seq>` for live events, `act:bf:<kind>:<subject>` for backfilled ones. */
+  id: string
+  /** 1, 2, 3 … in the order events were recorded; never reused. */
+  seq: number
+  /** The demo date (`DemoState.today`) the event happened on: never the real clock. */
+  on: string
+  /** Who did it: a person ID, `system:reminders` or `system:clock`, or null when not known (backfill). */
+  actorId: string | null
+  kind: ActivityKind | string
+  /** The people the event is about (the owner, the person waited on, the recipient). */
+  personIds: string[]
+  nodeId?: string
+  eventId?: string
+  facts?: Record<string, ActivityFact>
+  source: "live" | "backfill"
 }
 
 

@@ -38,6 +38,8 @@ import { onUi, type UiEvent } from "../lib/uiLog"
 import { buildTimeline } from "../lib/timeline"
 import { BUILD_INFO } from "../lib/buildInfo"
 import { normalizeTerms } from "./roleTerms"
+import { withActivity } from "./activity"
+import { withActivityBackfill } from "./activityBackfill"
 import { isOfficer } from "./permissions"
 import { changeRole, type RoleChange } from "./roleChanges"
 import { advancePlannedClock, afterReminderAction, confirmLegacyPlannedReminder, confirmPlannedReminder, enableReminderPlan, remindersEnabled, upgradeReminderPlan, reviewLegacyReminder } from "../reminders/adapter"
@@ -376,12 +378,33 @@ function cleanBudgetPatch(raw: Partial<Omit<BudgetLineItem, "id">>): Partial<Omi
   return patch
 }
 
-/** Every action, then keep role terms in step with who holds what (src/data/roleTerms.ts). Returns the same object when nothing changed. */
+/**
+ * Every action, then the activity record (R0, docs/feedback-fix/CHEERS_R0_CONTRACT.md): one place compares the state before and after,
+ * so every path that changes a task is recorded once. Reset, import and first-time setup start a new record from existing data instead.
+ * Internal calls use coreReducer so a nested action is not recorded twice. Returns the same object when nothing changed.
+ */
 export function reducer(state: DemoState, action: Action): DemoState {
+  const next = coreReducer(state, action)
+  if (next === state) return state
+  // First-time setup replaces the demo club with a new one, so its record starts again from the new club's data.
+  if (action.type === "completeSetup") { const { activity: _old, ...fresh } = next; void _old; return withActivityBackfill(fresh) }
+  if (action.type === "reset" || action.type === "replace") return withActivityBackfill(next)
+  return withActivity(state, next, action, actorOf(state, action))
+}
+
+/** Who an action is done by: the task-link holder, Platypus for automatic reminders, otherwise the viewer. */
+export function actorOf(state: DemoState, action: Action): string {
+  const grant = action.type === "officerAction" ? usableGrant(state, action.token) : undefined
+  const access = action.type === "taskAccessAction" ? usableTaskAccessGrant(state, action.token) : undefined
+  return (action.type === "saveTaskWork" || action.type === "updateTaskTarget") ? taskWorkActor(state, action.nodeId, action.authorization) ?? state.viewerId : (action.type === "recordReminderBatch" || action.type === "recordReminderDigests") && action.via === "automatic" ? "system:reminders" : access?.recipientId ?? grant?.ownerId ?? state.viewerId
+}
+
+/** Every action, then keep role terms in step with who holds what (src/data/roleTerms.ts). Returns the same object when nothing changed. */
+function coreReducer(state: DemoState, action: Action): DemoState {
   if (!READ_ONLY_OK.has(action.type) && state.people.some(p => p.id === state.viewerId && !isOfficer(p))) return state
   const grant = action.type === "officerAction" ? usableGrant(state, action.token) : undefined
   const access = action.type === "taskAccessAction" ? usableTaskAccessGrant(state, action.token) : undefined
-  const actorId = (action.type === "saveTaskWork" || action.type === "updateTaskTarget") ? taskWorkActor(state, action.nodeId, action.authorization) ?? state.viewerId : (action.type === "recordReminderBatch" || action.type === "recordReminderDigests") && action.via === "automatic" ? "system:reminders" : access?.recipientId ?? grant?.ownerId ?? state.viewerId
+  const actorId = actorOf(state, action)
   let next = normalizeTerms(baseReducer(state, action))
   if (next === state) return state
   if (action.type === "completeSetup" && (next.reminderRuntime !== undefined || next.taskAccessGrants !== undefined)) {
@@ -533,9 +556,9 @@ function baseReducer(state: DemoState, action: Action): DemoState {
         const clean = sanitizeOps([raw], commandContext(state))[0]
         op = clean
         switch (clean.op) {
-          case "assign_owner": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { ownerId: clean.ownerId } }); break
-          case "set_tier": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { tier: clean.tier } }); break
-          case "link_dependency": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { dependsOn: [...new Set([...state.nodes.find(n => n.id === clean.nodeId)!.dependsOn, clean.dependsOnId])] } }); break
+          case "assign_owner": next = coreReducer(state, { type: "updateNode", id: clean.nodeId, patch: { ownerId: clean.ownerId } }); break
+          case "set_tier": next = coreReducer(state, { type: "updateNode", id: clean.nodeId, patch: { tier: clean.tier } }); break
+          case "link_dependency": next = coreReducer(state, { type: "updateNode", id: clean.nodeId, patch: { dependsOn: [...new Set([...state.nodes.find(n => n.id === clean.nodeId)!.dependsOn, clean.dependsOnId])] } }); break
           case "create_event":
           case "add_node": {
             const id = `${change.id}:${action.index}`
@@ -547,9 +570,9 @@ function baseReducer(state: DemoState, action: Action): DemoState {
             break
           }
           case "update_event": next = applySchedule({ ...state, events: state.events.map(e => e.id === clean.eventId ? { ...e, ...(clean.name ? { name: clean.name } : {}), ...(clean.headcount ? { headcount: clean.headcount } : {}) } : e) }); break
-          case "add_contact": next = reducer(state, { type: "addContact", name: clean.name, organization: clean.organization, relation: clean.relation, ownerRoleId: clean.ownerRoleId, cadenceDays: clean.cadenceDays }); break
-          case "set_funding_amount": next = reducer(state, { type: "fundingAmount", eventId: clean.eventId, amount: clean.amount }); break
-          case "advance_funding": next = reducer(state, { type: "advanceFunding", eventId: clean.eventId }); break
+          case "add_contact": next = coreReducer(state, { type: "addContact", name: clean.name, organization: clean.organization, relation: clean.relation, ownerRoleId: clean.ownerRoleId, cadenceDays: clean.cadenceDays }); break
+          case "set_funding_amount": next = coreReducer(state, { type: "fundingAmount", eventId: clean.eventId, amount: clean.amount }); break
+          case "advance_funding": next = coreReducer(state, { type: "advanceFunding", eventId: clean.eventId }); break
         }
       }
       const reviews = change.ops.map((_, i) => i === action.index ? action.decision : change.reviews?.[i] ?? "pending")
@@ -608,7 +631,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       const entry = state.protocolLog.find(e => e.id === action.entryId && e.kind === "suggest_owner")
       const c = state.silenceCases.find(c => c.id === entry?.caseId && !c.closedOn)
       if (!entry?.suggestedOwnerId || !c || c.temporaryOwnerId || !state.people.some(p => p.id === entry.suggestedOwnerId)) return state
-      const next = reducer(state, { type: "updateNode", id: entry.nodeId, patch: { ownerId: entry.suggestedOwnerId } })
+      const next = coreReducer(state, { type: "updateNode", id: entry.nodeId, patch: { ownerId: entry.suggestedOwnerId } })
       return { ...next, silenceCases: next.silenceCases.map(x => x.id === c.id ? { ...c, temporaryOwnerId: entry.suggestedOwnerId } : x) }
     }
     case "approveRecovery": {
@@ -716,7 +739,7 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   const loaded = readStateWithNotice()
   // Data held back for download (migration_blocked) is kept exactly as it was read.
   if (loaded.notice?.kind === "migration_blocked") return { ...loaded, state: ensureWorkflowPresetTeams(loaded.state) }
-  return { ...loaded, state: withCurrentReminders(ensureWorkflowPresetTeams(loaded.state)) }
+  return { ...loaded, state: withActivityBackfill(withCurrentReminders(ensureWorkflowPresetTeams(loaded.state))) }
 }
 
 /**
@@ -1282,11 +1305,11 @@ function aiAutoApply(state: DemoState, set: ChangeSet): DemoState {
       case "set_tags":
       case "set_tier":
         if (!lead) { note = "Only the president or VP can edit task details."; break }
-        next = reducer(next, { type: "updateNode", id: op.nodeId, patch: op.op === "rename_task" ? { title: op.title } : op.op === "set_tags" ? { tags: op.tags } : { tier: op.tier } })
+        next = coreReducer(next, { type: "updateNode", id: op.nodeId, patch: op.op === "rename_task" ? { title: op.title } : op.op === "set_tags" ? { tags: op.tags } : { tier: op.tier } })
         touchedNodes.add(op.nodeId)
         break
       case "mark_contacted":
-        next = reducer(next, { type: "contacted", id: op.contactId })
+        next = coreReducer(next, { type: "contacted", id: op.contactId })
         if (next === before) note = "Only the partner's owner or a lead can log contact."
         else touchedContacts.add(op.contactId)
         break
