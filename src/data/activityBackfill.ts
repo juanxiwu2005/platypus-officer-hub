@@ -88,11 +88,9 @@ function contributionFor(byNode: Map<string, Contribution[]>, node: Node): Contr
   return list.find(c => c.personId === node.ownerId) ?? list[0]
 }
 
-/** The `revision` of a submission: the task-work revision it was saved at (`submission-<n>`), else its position (1 for the first). */
-function submissionRevision(id: string, index: number): number {
-  const m = /^submission-(\d+)$/.exec(id)
-  const n = m ? Number(m[1]) : NaN
-  return Number.isSafeInteger(n) && n > 0 ? n : index + 1
+/** The `revision` of a submission: its position among the task's submissions (1 for the first), as live events record it. */
+function submissionRevision(_id: string, index: number): number {
+  return index + 1
 }
 
 /** Events rebuilt from what the state already records (contract §5). Nothing else is guessed: votes and handoff steps have no dates. */
