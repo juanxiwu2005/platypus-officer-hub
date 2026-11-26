@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useStore } from "../../data/store"
-import { givenThisTerm, receivedThisTerm, visibleCheers } from "../../data/cheers"
+import { visibleCheers } from "../../data/cheers"
+import { givenThisTerm, receivedThisTerm } from "../../data/cheerViews"
 import type { Cheer } from "../../data/types"
 import { addDays, fmtLong } from "../../lib/dates"
 import { CheerDialog } from "./CheerDialog"

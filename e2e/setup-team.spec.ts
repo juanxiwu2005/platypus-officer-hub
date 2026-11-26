@@ -168,20 +168,9 @@ test("task dates remain visible while another officer's buffer explanation stays
   // S3 removed the Events List view, whose per-step reminder note was the only place a personal buffer was named.
 })
 
-/** Audit §5.1: buttons inside a hover card can be clicked (fixed in S3: styles.css restores pointer-events). */
-test("the contribution board drills down from its hover card", async ({ page }, info) => {
-  // Cheers R1 (docs/feedback-fix/CHEERS_R1_CONTRACT.md §5): the board is not rendered until it returns for the president.
-  test.skip(true, "The Contributions board is not rendered since Cheers R1")
-  await page.goto("/#/team")
-  const row = page.getByTestId("contribution-board").locator("tbody tr").filter({ has: page.locator(".hover") }).first()
-  const trigger = row.locator("[tabindex]")
-  if (info.project.name === "mobile") await trigger.tap() // a phone cannot hover: a tap opens the card
-  else await trigger.hover()
-  const card = row.locator(".hover-card")
-  await expect(card).toBeVisible()
-  await card.getByRole("button").first().click()
-  await expect(page.getByTestId("task-detail")).toBeVisible()
-})
+// Audit §5.1 ("the contribution board drills down from its hover card") was removed with Cheers R1 (2026-11-26): the board is not
+// rendered until it returns for the president. src/test/teamContributions.test.tsx now clicks a hover-card button on the board and
+// checks the side panel opens with that task; e2e/cheers.spec.ts checks a Team hover card stays open when the pointer moves into it.
 
 for (const width of [375, 390, 768]) {
   test(`Settings controls and organization chart remain operable at ${width}px`, async ({ page }, info) => {

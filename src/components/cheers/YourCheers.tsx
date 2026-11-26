@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState, type CSSProperties } from "react"
 import { useStore } from "../../data/store"
-import { allowanceOf, canSendCheers, receivedThisTerm, visibleCheers } from "../../data/cheers"
+import { allowanceOf, canSendCheers, visibleCheers } from "../../data/cheers"
+import { receivedThisTerm } from "../../data/cheerViews"
 import { useRail } from "../rail/RailContext"
 import { CheerRow } from "./CheerRow"
 import "../../styles/ch-01-cheers.css"

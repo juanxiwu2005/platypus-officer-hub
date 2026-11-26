@@ -29,19 +29,10 @@ test("hover cards and flow-chart cards start showing with no delay", async ({ pa
   await expect(mCard).toBeVisible()
 })
 
-test("a button inside a hover card can be clicked (Team contributions)", async ({ page }, info) => {
-  // Cheers R1 (docs/feedback-fix/CHEERS_R1_CONTRACT.md §5): the Contributions board, the only hover card with buttons, is not
-  // rendered until it returns for the president; re-enable this test with it.
-  test.skip(true, "The Contributions board is not rendered since Cheers R1")
-  await page.goto("/#/team")
-  const cell = page.getByTestId("contribution-board").locator(".hover").filter({ has: page.locator(".hover-card button") }).first()
-  const trigger = cell.locator("[tabindex]")
-  if (info.project.name === "desktop") await trigger.hover(); else await trigger.tap() // a phone cannot hover: a tap opens the card
-  const button = cell.locator(".hover-card button").first()
-  const title = (await button.textContent())!
-  await button.click()
-  await expect(page.getByTestId("task-detail").getByRole("heading", { name: title })).toBeVisible()
-})
+// "A button inside a hover card can be clicked (Team contributions)" was removed with Cheers R1 (2026-11-26): the Contributions
+// board, the only hover card with buttons, is not rendered until it returns for the president. Its coverage moved to
+// src/test/teamContributions.test.tsx (a hover-card button opens that task in the side panel) and to e2e/cheers.spec.ts
+// ("a Team cheer row's hover card stays open when the pointer moves into it": the same Hover component and CSS rule).
 
 test("form fields get a quiet focus style; keyboard focus on buttons keeps its ring", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop", "the Ask box is in the side panel on desktop")

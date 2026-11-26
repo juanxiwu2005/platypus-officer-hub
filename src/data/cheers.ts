@@ -1,15 +1,18 @@
 import type { Cheer, CheerBook, CheerCard, CheerPoints, DemoState, Notice, Person } from "./types"
-import { ALLOWANCE_LEAD, ALLOWANCE_OFFICER, CHEER_CARDS, CHEER_POINTS, MAX_RECIPIENTS, NOTE_MAX, NOTE_MIN, WEEKLY_LINE_LAST_WEEKDAY } from "./cheerRules"
+import { ALLOWANCE_LEAD, ALLOWANCE_OFFICER, CHEER_CARDS, CHEER_POINTS, MAX_RECIPIENTS, NOTE_MAX, NOTE_MIN } from "./cheerRules"
 import { isOfficer } from "./permissions"
-import { TERMS } from "../engine/calendar"
 import { addDays, fromISO } from "../lib/dates"
 import { nextCounter } from "../lib/ids"
-import { deliveredWithDetails } from "../lib/activityQuery"
 
 /**
  * Cheers model (R1, docs/feedback-fix/CHEERS_R1_CONTRACT.md §2). Every exported name and signature here is frozen; the interface
  * agent builds against them. Dates come only from the demo clock (`state.today`). A cheer is visible to its sender and recipients
  * only, and its note never leaves this module except to the people in it (no notice, activity fact or log entry carries it).
+ *
+ * This module is in the entry chunk (the store's reducer and loading, the card host and the inbox use it). The read helpers only
+ * the Cheers screens use (`weeklyLine`, `thankPromptFor`, `cheerRecipients`, `receivedThisTerm`, `givenThisTerm`) are in
+ * `cheerViews.ts`, which only those lazily loaded screens import. They are deliberately not re-exported here: that would put
+ * them back in the entry chunk.
  */
 export type CheerAction =
   | { kind: "send"; toIds: string[]; points: CheerPoints; note: string; nodeId?: string; card: CheerCard; email?: boolean }
@@ -23,33 +26,50 @@ const ID_MAX = 64
 
 const personOf = (s: DemoState, id: string) => s.people.find(p => p.id === id)
 const firstName = (p: Person | undefined) => p?.name.trim().split(/\s+/)[0] || "A teammate"
-const live = (c: Cheer) => !c.withdrawnOn
-const cost = (c: Pick<Cheer, "points" | "toIds">) => c.points * c.toIds.length
-const byName = (a: Person, b: Person) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)
+/** Not withdrawn. Also used by cheerViews.ts. */
+export const live = (c: Cheer) => !c.withdrawnOn
+/** What a cheer cost its sender: points × recipients. Also used by cheerViews.ts. */
+export const cost = (c: Pick<Cheer, "points" | "toIds">) => c.points * c.toIds.length
 /** Unique, non-empty strings, in first-seen order. */
 const uniqueIds = (v: unknown): string[] => Array.isArray(v) ? [...new Set(v.filter((x): x is string => typeof x === "string" && x.length > 0))] : []
 
-/** Monday and Sunday of the demo week that contains `day`. */
-const weekOf = (day: string) => {
+/** Monday and Sunday of the demo week that contains `day`. Also used by cheerViews.ts. */
+export const weekOf = (day: string) => {
   const monday = addDays(day, -((fromISO(day).getDay() + 6) % 7))
   return { monday, sunday: addDays(monday, 6) }
 }
-/** "This term": the term containing today, else the latest that ended before it, else everything. */
-const termOf = (today: string): { from: string; to: string } => {
-  const current = TERMS.find(t => today >= t.from && today <= t.to)
-  if (current) return current
-  const past = TERMS.filter(t => t.to < today).sort((a, b) => a.to.localeCompare(b.to)).at(-1)
-  return past ?? { from: "0000-01-01", to: "9999-12-31" }
-}
-/** The president or vice president who currently holds that role. */
-const isLead = (s: DemoState, personId: string) => {
+/** The president or vice president who currently holds that role. Also used by cheerViews.ts and the weekly line's first check. */
+export const isLead = (s: DemoState, personId: string) => {
   const person = personOf(s, personId)
   if (!person || !isOfficer(person)) return false
   const role = s.roles.find(r => r.id === person.roleId)
   return role?.holderId === person.id && (role.fn === "president" || role.fn === "vice_president")
 }
 
-export const cheersOf = (s: DemoState): CheerBook => s.cheers && Array.isArray(s.cheers.cheers) ? s.cheers : EMPTY
+/**
+ * Whether a saved entry has every field the read helpers and the reducer touch. Loading, reset and import clean cheers
+ * (`withSanitizedCheers`), but a save the migration could not upgrade is shown as it is, so a `null` or half-written entry
+ * must not throw anywhere: such entries are ignored, and the next change to the cheers drops them.
+ */
+const usable = (c: unknown): c is Cheer => {
+  if (!c || typeof c !== "object") return false
+  const x = c as Record<string, unknown>
+  return typeof x.id === "string" && typeof x.fromId === "string" && Array.isArray(x.toIds) && Array.isArray(x.seenBy)
+    && typeof x.on === "string" && typeof x.points === "number" && typeof x.note === "string"
+}
+/** The usable view of each unsanitized book, so one saved book always reads as the same object. */
+const usableViews = new WeakMap<CheerBook, CheerBook>()
+
+/** Every saved cheer (everyone's: callers filter by viewer), with any unusable entry left out (see `usable`). */
+export const cheersOf = (s: DemoState): CheerBook => {
+  const book = s.cheers
+  if (!book || typeof book !== "object" || !Array.isArray(book.cheers)) return EMPTY
+  const entries: unknown[] = book.cheers
+  if (entries.every(usable)) return book
+  let view = usableViews.get(book)
+  if (!view) { view = { ...book, cheers: entries.filter(usable) }; usableViews.set(book, view) }
+  return view
+}
 
 /** Cheers the person sent or received, not withdrawn, newest first. Nobody else's cheers are ever returned. */
 export const visibleCheers = (s: DemoState, personId: string): Cheer[] =>
@@ -64,12 +84,6 @@ export const allowanceOf = (s: DemoState, personId: string): { total: number; us
   return { total, used, left: Math.max(0, total - used) }
 }
 
-const inTerm = (s: DemoState) => { const t = termOf(s.today); return (c: Cheer) => live(c) && c.on >= t.from && c.on <= t.to }
-export const receivedThisTerm = (s: DemoState, personId: string): number =>
-  cheersOf(s).cheers.filter(inTerm(s)).filter(c => c.toIds.includes(personId)).reduce((n, c) => n + c.points, 0)
-export const givenThisTerm = (s: DemoState, personId: string): number =>
-  cheersOf(s).cheers.filter(inTerm(s)).filter(c => c.fromId === personId).reduce((n, c) => n + cost(c), 0)
-
 /** Received cheers the person has not seen yet, oldest first. */
 export const unseenFor = (s: DemoState, personId: string): Cheer[] =>
   cheersOf(s).cheers.map((c, i) => ({ c, i }))
@@ -79,10 +93,6 @@ export const unseenFor = (s: DemoState, personId: string): Cheer[] =>
 /** Current officers send; incoming officers only receive; former officers do neither. */
 export const canSendCheers = (s: DemoState, personId: string): boolean => { const p = personOf(s, personId); return !!p && isOfficer(p) }
 export const canReceiveCheers = (s: DemoState, personId: string): boolean => { const p = personOf(s, personId); return !!p && !p.leftOn }
-
-/** People the sender may cheer, in display order. */
-export const cheerRecipients = (s: DemoState, fromId: string): Person[] =>
-  s.people.filter(p => p.id !== fromId && canReceiveCheers(s, p.id)).sort(byName)
 
 /** Why a send would be refused (shown under the form), or null when it is allowed. */
 export const validateCheer = (s: DemoState, fromId: string, input: Extract<CheerAction, { kind: "send" }>): string | null => {
@@ -101,27 +111,6 @@ export const validateCheer = (s: DemoState, fromId: string, input: Extract<Cheer
   const { left } = allowanceOf(s, fromId)
   if (input.points * toIds.length > left) return left ? `Only ${left} points left this week.` : "No points left this week."
   return null
-}
-
-/** The president/VP weekly line, or null when it should not show. */
-export const weeklyLine = (s: DemoState, viewerId: string): { personIds: string[] } | null => {
-  if (!isLead(s, viewerId)) return null
-  const weekday = (fromISO(s.today).getDay() + 6) % 7 + 1 // 1 = Monday … 7 = Sunday
-  if (weekday > WEEKLY_LINE_LAST_WEEKDAY) return null
-  const { monday, sunday } = weekOf(s.today)
-  if (cheersOf(s).weeklyLineDismissed?.[viewerId] === monday) return null
-  const personIds = s.people
-    // On time and with details, as the approved screen F7 says (a late completion with details does not count).
-    .filter(p => p.id !== viewerId && canReceiveCheers(s, p.id) && deliveredWithDetails(s, p.id, monday, sunday).some(e => e.facts?.onTime !== false))
-    .sort(byName).slice(0, MAX_RECIPIENTS).map(p => p.id)
-  return personIds.length ? { personIds } : null
-}
-
-/** The "Say thanks?" prompt on a finished task, or null. */
-export const thankPromptFor = (s: DemoState, viewerId: string, nodeId: string): { ownerId: string } | null => {
-  const n = s.nodes.find(x => x.id === nodeId)
-  if (!n || n.status !== "done" || !n.ownerId || n.ownerId === viewerId) return null
-  return canReceiveCheers(s, n.ownerId) && canSendCheers(s, viewerId) ? { ownerId: n.ownerId } : null
 }
 
 /** A cheer in its canonical field order, so saving and sanitizing produce the same JSON. */

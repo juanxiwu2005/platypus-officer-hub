@@ -8,6 +8,8 @@
  *
  * What is never read: keystrokes, the value of text, number, date, password or file fields (not even their
  * length), scrolling, mouse movement, and the AI's reply text. Query strings are dropped from every address.
+ * Controls whose visible name or chosen option would name a person or a club's own text carry `data-log-name` (a fixed
+ * name for the log) or, on a drop-down, `data-log-value="omit"` (no chosen value): the Cheers screens use both.
  * Nothing here sends anything anywhere; events only go to the in-browser log.
  *
  * Four behaviour-only items approved by Juanxi on 2026-11-07 (docs/PHASE3_DATA_DICTIONARY.md section 11):
@@ -186,7 +188,10 @@ export function describeClick(target: EventTarget | null, route: string, origin:
   return { type: "ui.click", payload, ...(off ? { applied: false } : {}) }
 }
 
-/** A choice made in a checkbox, radio button or drop-down. Text, date, number and file fields return null: what is typed is never read. */
+/**
+ * A choice made in a checkbox, radio button or drop-down. Text, date, number and file fields return null: what is typed is never read.
+ * A drop-down marked `data-log-value="omit"` records its name only, never the option chosen (nor, for a multiple choice, how many).
+ */
 export function describeChange(target: EventTarget | null, route: string): UiEvent | null {
   const el = target as Element | null
   if (!el || !el.tagName) return null
@@ -200,6 +205,8 @@ export function describeChange(target: EventTarget | null, route: string): UiEve
   }
   if (el instanceof HTMLSelectElement) {
     const payload = common(el, route)
+    // A drop-down whose options name people or club tasks (Cheers' To and task) records only that a choice was made.
+    if (el.getAttribute("data-log-value") === "omit") return { type: "ui.change", payload }
     if (el.multiple) payload.selected = [...el.selectedOptions].length
     else payload.value = clip(el.selectedOptions[0]?.text ?? "", 60)   // the option's own label (app text or a fictional name), not typing
     return { type: "ui.change", payload }

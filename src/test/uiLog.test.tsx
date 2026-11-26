@@ -79,6 +79,17 @@ describe("reading a choice", () => {
     const sel = document.querySelector<HTMLSelectElement>("#s")!; sel.value = "email"
     expect(describeChange(sel, "/tasks")?.payload).toEqual({ route: "/tasks", role: "combobox", name: "Preferred channel", value: "Gmail" })
   })
+  it("a select marked data-log-value=\"omit\" (a person or a task, as in Cheers) records that a choice was made, never which", () => {
+    html(`<aside class="rail"><label for="to">To</label><select id="to" data-log-value="omit" data-testid="cheer-to"><option value="">Choose a teammate</option><option value="jordan">Jordan SECRET Patel</option></select>
+      <select id="task" aria-label="For a task" data-log-value="omit"><option value="t1">SECRET task title</option></select>
+      <select id="many" multiple data-log-value="omit" aria-label="Several"><option selected>SECRET A</option><option selected>SECRET B</option></select></aside>`)
+    const to = document.querySelector<HTMLSelectElement>("#to")!; to.value = "jordan"
+    expect(describeChange(to, "/team")).toEqual({ type: "ui.change", payload: { route: "/team", role: "combobox", name: "To", testid: "cheer-to", area: "rail" } })
+    const task = document.querySelector<HTMLSelectElement>("#task")!
+    expect(describeChange(task, "/team")?.payload).toEqual({ route: "/team", role: "combobox", name: "For a task", area: "rail" })
+    expect(describeChange(document.querySelector("#many"), "/team")?.payload).not.toHaveProperty("selected")
+    expect(JSON.stringify([describeChange(to, "/"), describeChange(task, "/"), describeChange(document.querySelector("#many"), "/")])).not.toContain("SECRET")
+  })
   it("never reads text, number, date, password or file fields", () => {
     html(`<input type="text" value="SECRET"><input type="number" value="42"><input type="date" value="2026-12-01"><input type="password" value="pw"><input type="file"><textarea>SECRET</textarea>`)
     for (const el of document.querySelectorAll("input, textarea")) expect(describeChange(el, "/")).toBeNull()

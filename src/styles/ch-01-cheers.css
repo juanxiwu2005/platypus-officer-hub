@@ -23,7 +23,13 @@
 .ch-fi.compact .ch-fi-main { display: flex; align-items: baseline; gap: var(--s4); flex-wrap: wrap; }
 .ch-fi-trigger { border-radius: var(--r-xs); cursor: default; }
 .ch-hc-note { overflow-wrap: anywhere; }
-.ch-fi-note { margin: 0; font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+/* The note card takes the pointer while shown, like a card with buttons (styles.css), and the strip below it bridges the
+   gap, so moving onto a long note to read it does not close it. */
+.ch-hover:hover > .hover-card, .ch-hover:focus-within > .hover-card { pointer-events: auto; }
+.ch-hover > .hover-card::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: var(--s4); }
+/* History (F3) shows every note in full; only a compact Team row would clamp one to two lines. */
+.ch-fi-note { margin: 0; font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
+.ch-fi.compact .ch-fi-note { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .ch-d { white-space: nowrap; }
 .ch-dir { font-size: var(--fs-xs); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border-radius: var(--r-sm); padding: 0 var(--s3); margin-right: var(--s3); }
 .ch-dir.in { background: var(--accent-soft); color: var(--accent-ink); }

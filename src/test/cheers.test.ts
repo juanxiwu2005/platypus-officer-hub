@@ -3,9 +3,10 @@ import type { ActivityEvent, Cheer, CheerCard, CheerPoints, DemoState } from "..
 import { SCHEMA_VERSION, seedDemo } from "../data/seed"
 import { loggedReducer, reducer } from "../data/store"
 import {
-  allowanceOf, canReceiveCheers, canSendCheers, cheerRecipients, cheersOf, givenThisTerm, receivedThisTerm, thankPromptFor, unseenFor,
-  validateCheer, visibleCheers, weeklyLine, withSanitizedCheers, type CheerAction,
+  allowanceOf, canReceiveCheers, canSendCheers, cheersOf, unseenFor, validateCheer, visibleCheers, withSanitizedCheers, type CheerAction,
 } from "../data/cheers"
+// Screen-only read helpers live apart so they stay out of the entry chunk (src/test/cheersBundle.test.ts).
+import { cheerRecipients, givenThisTerm, receivedThisTerm, thankPromptFor, weeklyLine } from "../data/cheerViews"
 import { sampleCheers } from "../data/cheerSeed"
 import { cheerLink, cheerMail } from "../lib/cheerMail"
 import { composeUrl } from "../lib/nudges"
@@ -412,6 +413,25 @@ describe("Cheers: email draft", () => {
     expect(composeUrl("email", mail.body, mail.subject)).toContain(encodeURIComponent(mail.subject))
   })
 
+  it("the card link keeps only origin and path: a query before the # (a walkthrough's ?walk=1) is dropped", () => {
+    expect(cheerLink("http://localhost:5173/?walk=1#/team", "ch-3")).toBe("http://localhost:5173/#/?cheer=ch-3")
+    expect(cheerLink("https://club.example.org/app/index.html?walk=1&x=2#/tasks?node=n1", "ch-12")).toBe("https://club.example.org/app/index.html#/?cheer=ch-12")
+    expect(cheerLink("https://club.example.org/app/?walk=1", "ch-0")).toBe("https://club.example.org/app/#/?cheer=ch-0")
+    expect(cheerLink("https://club.example.org/app/", "ch-0")).toBe("https://club.example.org/app/#/?cheer=ch-0")
+  })
+
+  it("the Gmail draft can carry a To address; without one every existing draft address is unchanged", () => {
+    expect(composeUrl("email", "Body text", "Subject")).toBe("https://mail.google.com/mail/?view=cm&fs=1&su=Subject&body=Body%20text")
+    expect(composeUrl("whatsapp", "Body text", "Subject")).toBe("https://wa.me/?text=Body%20text")
+    expect(composeUrl("sms", "Body text", "Subject")).toBe("sms:?body=Body%20text")
+    const withTo = new URL(composeUrl("email", "Body text", "⭐ Maya sent you 25 points", "jordan.patel@example.org"))
+    expect(withTo.searchParams.get("to")).toBe("jordan.patel@example.org")
+    expect(withTo.searchParams.get("su")).toBe("⭐ Maya sent you 25 points")
+    expect(withTo.searchParams.get("body")).toBe("Body text")
+    expect(composeUrl("email", "Body text", "Subject", "")).toBe(composeUrl("email", "Body text", "Subject"))
+    expect(composeUrl("sms", "Body text", "Subject", "jordan.patel@example.org")).toBe("sms:?body=Body%20text")
+  })
+
   it("leaves out the task when there is none, and the event when the task has none", () => {
     const s = sendAs(blank(), "maya", ["jordan", "sam"], 10)
     expect(cheerMail(s, last(s), "sam", base).body.split("\n").slice(0, 3)).toEqual(["Hi Sam,", "", "Maya sent you 10 points."])
@@ -471,6 +491,29 @@ describe("Cheers: sanitizing loaded and imported data", () => {
     ])
     expect(cheersOf(clean).weeklyLineDismissed).toEqual({ alex: "2026-10-26" })
     expect(withSanitizedCheers(clean)).toBe(clean)
+  })
+
+  it("read helpers and the reducer ignore unsanitized entries instead of throwing (a save the migration could not upgrade)", () => {
+    const junk = [null, 42, "ch-x", {}, { id: "ch-7" }, { id: "ch-8", fromId: "maya", toIds: "jordan", seenBy: [], on: "2026-10-30", points: 25, note: NOTE }]
+    const raw = { ...as(blank(), "maya"), cheers: { cheers: [...junk, good({ id: "ch-1", fromId: "jordan", toIds: ["maya"] }), good({ id: "ch-2", on: "2026-10-31" })] as unknown as Cheer[] } }
+    expect(cheersOf(raw).cheers.map(c => c.id)).toEqual(["ch-1", "ch-2"])
+    expect(cheersOf(raw)).toBe(cheersOf(raw))
+    expect(visibleCheers(raw, "maya").map(c => c.id)).toEqual(["ch-2", "ch-1"])
+    expect(unseenFor(raw, "maya").map(c => c.id)).toEqual(["ch-1"])
+    expect(allowanceOf(raw, "maya")).toEqual({ total: 200, used: 25, left: 175 })
+    expect(receivedThisTerm(raw, "maya")).toBe(25)
+    expect(givenThisTerm(raw, "maya")).toBe(25)
+    expect(validateCheer(raw, "maya", send(["sam"]))).toBeNull()
+    expect(() => weeklyLine(as(raw, "alex"), "alex")).not.toThrow()
+    expect(cheerRecipients(raw, "maya").length).toBeGreaterThan(0)
+    expect(thankPromptFor(raw, "maya", "t-checkin")).toEqual({ ownerId: "jordan" })
+    // Every action goes through the reducer without throwing.
+    const sent = cheer(raw, send(["sam"]))
+    expect(last(sent)).toMatchObject({ id: "ch-3", toIds: ["sam"] })
+    expect(cheersOf(cheer(raw, { kind: "withdraw", id: "ch-2" })).cheers.find(c => c.id === "ch-2")?.withdrawnOn).toBe("2026-10-31")
+    expect(cheersOf(cheer(raw, { kind: "markSeen", ids: ["ch-1"] })).cheers.find(c => c.id === "ch-1")?.seenBy).toEqual(["maya"])
+    expect(() => cheer(as(on(raw, "2026-11-02"), "alex"), { kind: "dismissWeeklyLine" })).not.toThrow()
+    expect(cheer(raw, { kind: "withdraw", id: "ch-7" })).toBe(raw)
   })
 
   it("replaces a book that is not a book", () => {
