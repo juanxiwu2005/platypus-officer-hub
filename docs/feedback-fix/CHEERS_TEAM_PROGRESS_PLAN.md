@@ -58,7 +58,7 @@ Order: **R0 activity record → R1 Cheers → R2 team progress.** R0 comes first
 | Agent | Owns | Delivers |
 | --- | --- | --- |
 | R0-M model | `src/data/activity.ts`, `src/lib/activityQuery.ts`, `src/test/activity*.test.ts` | `deriveActivity(prev, next, action, actorId)`: pure, deterministic, idempotent; facts are IDs, enums and numbers only (status, on time, days before the club deadline, details length, attachment count), never free text, so task titles, details and reasons stay in their original records and are joined by ID. Query helpers for later use, tested but not called by any page: `eventsForPerson`, `eventsForTask`, `firstResponse(nodeId)`, `deliveredWithDetails(personId, from, to)`. |
-| R0-P persistence | `src/data/activityBackfill.ts`, load/import/export paths named in the contract, `src/test/activityPersistence.test.ts` | One-time backfill on load from existing records (`assignedOn`, `acceptedOn`, `completedOn`, task submissions, nudges, contributions) marked `source: "backfill"` with deterministic IDs; import sanitizer (malformed events dropped, unknown kinds kept as data); full export includes the record; reset clears it; `migration_blocked` saves untouched; a seeded-semester size test (target under 500 KB); a test that `src/lib/aiContext.ts` never includes it. |
+| R0-P persistence | `src/data/activityBackfill.ts`, load/import/export paths named in the contract, `src/test/activityPersistence.test.ts` | One-time backfill on load from existing records (`assignedOn`, `acceptedOn`, `completedOn`, task submissions, nudges, contributions) marked `source: "backfill"` with deterministic IDs; import sanitizer (malformed events dropped, unknown kinds kept as data); full export includes the record; reset clears it; `migration_blocked` saves untouched; a seeded-semester size test (3,000 events under 700 KB; corrected from a first estimate of 500 KB); a test that `src/lib/aiContext.ts` never includes it. |
 
 **Main agent also:** data dictionary section in `docs/PHASE3_DATA_DICTIONARY.md` (the activity record is product data in the browser, separate from the research interaction log; the research log records only action types).
 
@@ -119,5 +119,5 @@ Each agent's work is one merge commit; `git revert -m 1 <merge>` removes it. All
 | D4 | Who sees cheers | The whole club (praise is public); the allowance left is private. |
 | D5 | Email | Sender opens a Gmail draft (demo); real sending waits for accounts and server email (v1.5). |
 | D6 | What counts as "delivered" | Done with details or at least one attachment; Event Budget completion counts. |
-| D7 | Activity record size | Keep every event (estimated under 500 KB a semester); warn in Settings → Admin above 15,000 events. |
+| D7 | Activity record size | Keep every event (about 200 KB for a typical semester of about 1,000 events; 3,000 events stay under 700 KB); warn in Settings → Admin above 15,000 events. |
 | D8 | Can incoming officers receive cheers? | Yes; former officers neither send nor receive. |
