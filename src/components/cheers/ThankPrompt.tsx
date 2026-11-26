@@ -1,5 +1,5 @@
 import { useStore } from "../../data/store"
-import { thankPromptFor } from "../../data/cheers"
+import { thankPromptFor } from "../../data/cheerViews"
 import { firstName, fullName, openGiveCheer } from "./shared"
 import "../../styles/ch-01-cheers.css"
 

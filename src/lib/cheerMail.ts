@@ -12,8 +12,11 @@ const firstName = (s: DemoState, personId: string) => s.people.find(p => p.id ==
 /** The first `n` words of `text`, with an ellipsis when cut. */
 const clip = (text: string, n: number) => { const w = text.split(/\s+/).filter(Boolean); return w.length <= n ? w.join(" ") : `${w.slice(0, Math.max(1, n)).join(" ")}…` }
 
-/** The link that opens the received card (F5) for its sender or recipient. */
-export const cheerLink = (baseUrl: string, cheerId: string): string => `${baseUrl.replace(/#.*$/, "")}#/?cheer=${encodeURIComponent(cheerId)}`
+/**
+ * The link that opens the received card (F5) for its sender or recipient: the address's origin and path, then `#/?cheer=<id>`.
+ * Any query before the `#` (such as a walkthrough's `?walk=1`) and any route after it are dropped.
+ */
+export const cheerLink = (baseUrl: string, cheerId: string): string => `${baseUrl.replace(/#.*$/, "").replace(/\?.*$/, "")}#/?cheer=${encodeURIComponent(cheerId)}`
 
 export function cheerMail(s: DemoState, cheer: Cheer, recipientId: string, baseUrl: string): { subject: string; body: string; url: string } {
   const url = cheerLink(baseUrl, cheer.id)

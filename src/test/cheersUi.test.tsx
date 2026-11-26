@@ -10,6 +10,9 @@ import { YourCheers } from "../components/cheers/YourCheers"
 import GiveCheer from "../components/cheers/GiveCheer"
 import { CardsHost } from "../components/cheers/CardsHost"
 import { joinNames, mondayOf, otherLabel, pointsLabel } from "../components/cheers/shared"
+import { PrivateInbox } from "../components/PrivateInbox"
+import { useStore } from "../data/store"
+import { describeClick, describeHover, installUiCapture, type UiEvent } from "../lib/uiLog"
 
 // Cheers R1 interface (docs/feedback-fix/CHEERS_R1_CONTRACT.md §5). These run against src/data/cheers.ts as it is, so they
 // check what the screens show and keep private, not the model's rules (src/test/cheers*.test.ts covers those).
@@ -153,5 +156,62 @@ describe("received cards (F5)", () => {
   it("shows nothing when the viewer has no unseen card and no link", () => {
     mount(demo("jordan", [cheer({})]), <CardsHost />)
     expect(screen.queryByRole("dialog")).toBeNull()
+  })
+  it("closing marks the cards shown so far as seen, and only those", async () => {
+    let read: () => DemoState = () => { throw new Error("not mounted") }
+    function Probe() { const { getState } = useStore(); read = getState; return null }
+    mount(demo("jordan", [unseen("ch-1", "2026-10-27"), unseen("ch-2", "2026-10-28"), unseen("ch-3", "2026-10-29"), unseen("ch-4", "2026-10-30")]), <><Probe /><CardsHost /></>)
+    await screen.findByRole("dialog", { name: "Thank you, Jordan!" })
+    fireEvent.click(screen.getByTestId("cheer-card-next"))
+    fireEvent.click(screen.getByTestId("cheer-card-next"))
+    act(() => { fireEvent.click(screen.getByTestId("cheer-card-close")) })
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    const seen = (read().cheers?.cheers ?? []).filter(c => c.seenBy.includes("jordan")).map(c => c.id)
+    expect(seen).toEqual(["ch-1", "ch-2", "ch-3"])
+  })
+})
+
+describe("private inbox: cheer notices", () => {
+  const notice = (id: string, cheerId: string, read = false) => ({ id, recipientId: "jordan", nodeId: "", kind: "cheer" as const, text: "Maya sent you 25 points.", createdOn: "2026-10-31", read, cheerId })
+  it("hides the notice of a withdrawn or missing cheer, and does not count it as unread", () => {
+    const s = demo("jordan", [cheer({ id: "ch-1" }), cheer({ id: "ch-2", withdrawnOn: "2026-10-31" })])
+    const own = s.notifications.filter(n => n.recipientId === "jordan")
+    mount({ ...s, notifications: [...own, notice("cheer:ch-1:jordan", "ch-1"), notice("cheer:ch-2:jordan", "ch-2"), notice("cheer:ch-9:jordan", "ch-9")] }, <PrivateInbox />)
+    const links = screen.getAllByTestId("inbox-cheer")
+    expect(links).toHaveLength(1)
+    expect(links[0].getAttribute("href")).toContain("cheer=ch-1")
+    const unread = own.filter(n => !n.read).length + 1
+    expect(screen.getByText(`${unread} unread`)).toBeTruthy()
+  })
+})
+
+describe("research log: Cheers never names who was cheered or for which task", () => {
+  it("the send form's choices, the Team row's hover card and the inbox link are logged by fixed names only", () => {
+    const s = demo("alex", [cheer({ id: "ch-1", fromId: "maya", toIds: ["alex"], nodeId: "e-night:venue", seenBy: ["alex"] })])
+    const task = s.nodes.find(n => n.id === "e-night:venue")!
+    const got: UiEvent[] = []
+    const stop = installUiCapture(document, e => got.push(e), { trustedOnly: false })
+    const notices = [{ id: "cheer:ch-1:alex", recipientId: "alex", nodeId: "e-night:venue", kind: "cheer" as const, text: "Maya sent you 25 points.", createdOn: "2026-10-31", read: false, cheerId: "ch-1" }]
+    mount({ ...s, notifications: notices }, <><YourCheers /><PrivateInbox /><GiveCheer /></>, "/team")
+    // Give points: choose two people and a task, then remove one.
+    fireEvent.change(screen.getByTestId("cheer-to"), { target: { value: "jordan" } })
+    fireEvent.click(screen.getByRole("button", { name: "+ Add someone" }))
+    fireEvent.change(screen.getByLabelText("Add a teammate"), { target: { value: "maya" } })
+    fireEvent.change(screen.getByTestId("cheer-task"), { target: { value: task.id } })
+    fireEvent.click(screen.getByRole("button", { name: "Remove Maya Chen" }))
+    // The inbox's cheer link.
+    fireEvent.click(screen.getByTestId("inbox-cheer"))
+    stop()
+    // The Team row's hover card (written when it closes, here directly).
+    const row = screen.getByTestId("cheer-row-who").closest(".hover")!
+    got.push(describeHover(row, 800, "mouse", "/team")!)
+    const changes = got.filter(e => e.type === "ui.change")
+    expect(changes.map(e => e.payload.name)).toEqual(["To", "Add a teammate", "For a task (optional)"])
+    for (const e of changes) expect(e.payload).not.toHaveProperty("value")
+    expect(got.find(e => e.type === "ui.hover")?.payload.name).toBe("cheer-row")
+    expect(describeClick(screen.getByTestId("inbox-cheer"), "/", "http://localhost")?.payload.name).toBe("inbox-cheer")
+    const text = JSON.stringify(got)
+    for (const p of s.people) for (const part of p.name.split(" ")) expect(text, `${p.name} in the log`).not.toContain(part)
+    expect(text).not.toContain(task.title)
   })
 })

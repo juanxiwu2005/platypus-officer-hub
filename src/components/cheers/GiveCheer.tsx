@@ -1,6 +1,7 @@
 import { useId, useMemo, useRef, useState } from "react"
 import { useStore } from "../../data/store"
-import { allowanceOf, canSendCheers, cheerRecipients, cheersOf, validateCheer, type CheerAction } from "../../data/cheers"
+import { allowanceOf, canSendCheers, cheersOf, validateCheer, type CheerAction } from "../../data/cheers"
+import { cheerRecipients } from "../../data/cheerViews"
 import { CHEER_CARD_EMOJI, CHEER_CARDS, CHEER_POINTS, MAX_RECIPIENTS, NOTE_MAX, QUICK_STARTS } from "../../data/cheerRules"
 import type { Cheer, CheerCard, CheerPoints } from "../../data/types"
 import { cheerMail } from "../../lib/cheerMail"
@@ -15,7 +16,9 @@ type Send = Extract<CheerAction, { kind: "send" }>
 
 /**
  * F2 (R1): Give points, in the right rail's Details. The note is required; Send stays off until `validateCheer` allows it.
- * "Also email" opens a draft the sender sends themselves (composeUrl); the app sends nothing.
+ * "Also email" opens a draft the sender sends themselves (composeUrl, addressed to the recipient); the app sends nothing.
+ * Research log: the selects that name people or tasks carry `data-log-value="omit"`, and the controls whose names say who
+ * (Remove …, Email …) carry a fixed `data-log-name`, so the log never records who was cheered or for which task.
  */
 export default function GiveCheer({ toIds: initialTo, nodeId: initialNode }: { toIds?: string[]; nodeId?: string }) {
   const { state, tryDispatch, getState } = useStore()
@@ -45,7 +48,11 @@ export default function GiveCheer({ toIds: initialTo, nodeId: initialNode }: { t
   const problem = validateCheer(state, viewer, action)
   const left = recipients.filter(p => !to.includes(p.id))
   const eventName = (eventId: string | null) => eventId ? state.events.find(e => e.id === eventId)?.name : undefined
-  const draftUrl = (c: Cheer, recipientId: string) => { const mail = cheerMail(getState(), c, recipientId, window.location.href); return composeUrl("email", mail.body, mail.subject) }
+  const draftUrl = (c: Cheer, recipientId: string) => {
+    const now = getState()
+    const mail = cheerMail(now, c, recipientId, window.location.href)
+    return composeUrl("email", mail.body, mail.subject, now.people.find(p => p.id === recipientId)?.email.trim() || undefined)
+  }
 
   const quick = (phrase: string) => {
     const t = note.trimEnd()
@@ -67,12 +74,12 @@ export default function GiveCheer({ toIds: initialTo, nodeId: initialNode }: { t
   if (sent) return <div className="ch-panel" data-testid="cheer-sent">
     <h2 className="ch-title">Cheer sent</h2>
     <p className="small muted">One email draft each:</p>
-    <ul className="ch-drafts">{sent.toIds.map(id => <li key={id}><a className="btn small" data-testid="cheer-draft" href={draftUrl(sent, id)} target="_blank" rel="noreferrer">Email {firstName(fullName(state, id))}</a></li>)}</ul>
+    <ul className="ch-drafts">{sent.toIds.map(id => <li key={id}><a className="btn small" data-testid="cheer-draft" data-log-name="cheer-draft" href={draftUrl(sent, id)} target="_blank" rel="noreferrer">Email {firstName(fullName(state, id))}</a></li>)}</ul>
     <button type="button" className="btn btn-primary small" onClick={() => rail.closeDetail()}>Done</button>
   </div>
 
   const pick = (id: string) => { if (id) setTo(t => t.includes(id) ? t : [...t, id].slice(0, MAX_RECIPIENTS)); setAdding(false) }
-  const addSelect = <select id={`${ids}-add`} className="ch-add" aria-label="Add a teammate" value="" onChange={e => pick(e.target.value)}>
+  const addSelect = <select id={`${ids}-add`} className="ch-add" aria-label="Add a teammate" data-log-value="omit" value="" onChange={e => pick(e.target.value)}>
     <option value="">+ Add</option>{left.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
   </select>
   return <form className="ch-panel" data-testid="give-cheer" aria-labelledby={`${ids}-h`} onSubmit={e => { e.preventDefault(); send() }}>
@@ -81,21 +88,21 @@ export default function GiveCheer({ toIds: initialTo, nodeId: initialNode }: { t
       {to.length <= 1 && !adding ? <>
         <label className="ch-label" htmlFor={`${ids}-to`}>To</label>
         <div className="ch-field">{to[0] && <Avatar name={fullName(state, to[0])} size="sm" />}
-          <select id={`${ids}-to`} data-testid="cheer-to" value={to[0] ?? ""} onChange={e => setTo(e.target.value ? [e.target.value] : [])}>
+          <select id={`${ids}-to`} data-testid="cheer-to" data-log-value="omit" value={to[0] ?? ""} onChange={e => setTo(e.target.value ? [e.target.value] : [])}>
             <option value="">Choose a teammate</option>{recipients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
         {to.length === 1 && left.length > 0 && <button type="button" className="btn btn-quiet small ch-more" onClick={() => setAdding(true)}>+ Add someone</button>}
       </> : <>
         <span className="ch-label" id={`${ids}-to-l`}>To</span>
-        <ul className="ch-recips" aria-labelledby={`${ids}-to-l`} data-testid="cheer-recipients">{to.map(id => <li key={id}><Avatar name={fullName(state, id)} size="sm" />{firstName(fullName(state, id))}<button type="button" className="ch-remove" aria-label={`Remove ${fullName(state, id)}`} onClick={() => setTo(t => t.filter(x => x !== id))}>✕</button></li>)}
+        <ul className="ch-recips" aria-labelledby={`${ids}-to-l`} data-testid="cheer-recipients">{to.map(id => <li key={id}><Avatar name={fullName(state, id)} size="sm" />{firstName(fullName(state, id))}<button type="button" className="ch-remove" data-log-name="cheer-remove" aria-label={`Remove ${fullName(state, id)}`} onClick={() => setTo(t => t.filter(x => x !== id))}>✕</button></li>)}
           {to.length < MAX_RECIPIENTS && left.length > 0 && <li className="ch-add-li">{addSelect}</li>}
         </ul>
       </>}
     </div>
     <div>
       <label className="ch-label" htmlFor={`${ids}-task`}>For a task (optional)</label>
-      <select id={`${ids}-task`} className="ch-select" data-testid="cheer-task" value={nodeId} onChange={e => setNodeId(e.target.value)}>
+      <select id={`${ids}-task`} className="ch-select" data-testid="cheer-task" data-log-value="omit" value={nodeId} onChange={e => setNodeId(e.target.value)}>
         <option value="">No task</option>{tasks.map(n => { const ev = eventName(n.eventId); return <option key={n.id} value={n.id}>{ev ? `${n.title} · ${ev}` : n.title}</option> })}
       </select>
     </div>
