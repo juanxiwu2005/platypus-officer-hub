@@ -75,6 +75,21 @@ describe("firstResponse", () => {
     expect(firstResponse(claimed, "t-tabling")).toMatchObject({ trigger: { kind: "task.assigned" }, response: { kind: "task.claimed", actorId: "alex" }, days: 0 })
   })
 
+  it("counts a reminder as a trigger only when it went to the task's owner, or names no recipient", () => {
+    const assigned = event(1, { kind: "task.assigned", nodeId: "a", on: "2026-10-28", personIds: ["jordan"], facts: { from: null } })
+    const reply = event(4, { kind: "task.status", nodeId: "a", on: "2026-10-31", actorId: "jordan", personIds: ["jordan"], facts: { from: "accepted", to: "in_progress" } })
+    const reminder = (seq: number, on: string, recipientId: string | undefined) => event(seq, {
+      kind: "reminder.recorded", nodeId: "a", on, actorId: "system:reminders", personIds: recipientId && recipientId !== "jordan" ? ["jordan", recipientId] : ["jordan"],
+      facts: { via: "automatic", channel: "email", ...(recipientId === undefined ? {} : { recipientId }) },
+    })
+    // A reminder to Maya, whom Jordan waits on, asks Maya for input: it does not restart Jordan's wait.
+    expect(firstResponse({ activity: [assigned, reminder(2, "2026-10-30", "maya"), reply] }, "a")).toMatchObject({ trigger: { seq: 1 }, response: { seq: 4 }, days: 3 })
+    // A reminder to the owner does.
+    expect(firstResponse({ activity: [assigned, reminder(2, "2026-10-29", "jordan"), reminder(3, "2026-10-30", "maya"), reply] }, "a")).toMatchObject({ trigger: { seq: 2 }, response: { seq: 4 }, days: 2 })
+    // An event from before recipients were recorded counts as a reminder to the owner.
+    expect(firstResponse({ activity: [assigned, reminder(2, "2026-10-30", undefined), reply] }, "a")).toMatchObject({ trigger: { seq: 2 }, days: 1 })
+  })
+
   it("is null for a task that was never assigned or reminded", () => {
     const s = run(seed(), { type: "setViewer", viewerId: "jordan" }, { type: "replyTask", nodeId: "t-room", reply: "working" })
     expect(eventsForTask(s, "t-room")).toHaveLength(1)

@@ -6,7 +6,8 @@ import { playbookOf } from "./playbook"
  * Backfill and sanitizing of the activity record (R0, docs/feedback-fix/CHEERS_R0_CONTRACT.md §5).
  *
  * - A state that never had a record (an older save, the seed, a reset demo, an imported file without one) gets one rebuilt from
- *   the records it already holds: assignments, claims, submissions, completions, reminders, events and Playbook answers.
+ *   the records it already holds: assignments, claims, submissions, completions, reminders (legacy nudges and reminder plan v2
+ *   deliveries), events and Playbook answers.
  * - A state that has a record keeps it, sanitized: malformed events and facts are dropped, nothing valid is changed.
  *
  * Only IDs, demo dates, enums, counts and booleans enter the record: never task titles, details text, names or email addresses.
@@ -40,21 +41,40 @@ function cleanFacts(raw: Record<string, unknown>): Record<string, ActivityFact> 
 
 const EVENT_KEYS = new Set(["id", "seq", "on", "actorId", "kind", "personIds", "nodeId", "eventId", "facts", "source"])
 
+/** Longest ID (event, actor, person, task or club event) and kind a record keeps (contract §5): longer text is not an ID. */
+const ID_MAX = 128
+const KIND_MAX = 64
+/**
+ * Highest `seq` kept. The contract asks for a safe integer; this also leaves room above it, so the live events numbered after an
+ * imported one stay safe integers (`seq: Number.MAX_SAFE_INTEGER` would make the next live seq unsafe, then dropped on reload).
+ * A browser's storage holds a few tens of thousands of events, far below this.
+ */
+const SEQ_MAX = 1_000_000_000
+const LIVE_ID = /^act:(\d+)$/
+const isId = (v: unknown): v is string => nonEmpty(v) && v.length <= ID_MAX
+const usableId = (v: unknown) => v === undefined || isId(v)
+
 /**
  * One event from saved or imported data, or null when it cannot be kept. Returns the original object when it is already clean.
- * Optional fields of the wrong type, facts that fail `isActivityFact`, and unknown fields (which could carry free text) are removed.
+ * Optional fields of the wrong type or length, person IDs that are too long, facts that fail `isActivityFact`, and unknown fields
+ * (which could carry free text) are removed. A live-style ID (`act:<n>`) must carry its own seq, so it cannot take the ID of a
+ * live event recorded after it.
  */
 function cleanEvent(raw: unknown): ActivityEvent | null {
   if (!isObject(raw)) return null
   const { id, seq, on, actorId, kind, personIds, nodeId, eventId, facts, source } = raw
-  if (!nonEmpty(id) || !Number.isInteger(seq) || (seq as number) < 1 || !isIsoDate(on) || !(actorId === null || isString(actorId))
-    || !nonEmpty(kind) || !Array.isArray(personIds) || !personIds.every(isString) || (source !== "live" && source !== "backfill")) return null
-  const event: ActivityEvent = { id, seq: seq as number, on, actorId, kind, personIds: personIds as string[], source }
-  if (isString(nodeId)) event.nodeId = nodeId
-  if (isString(eventId)) event.eventId = eventId
+  if (!isId(id) || !Number.isSafeInteger(seq) || (seq as number) < 1 || (seq as number) > SEQ_MAX || !isIsoDate(on)
+    || !(actorId === null || (isString(actorId) && actorId.length <= ID_MAX))
+    || !nonEmpty(kind) || kind.length > KIND_MAX || !Array.isArray(personIds) || !personIds.every(isString) || (source !== "live" && source !== "backfill")) return null
+  const live = LIVE_ID.exec(id)
+  if (live && Number(live[1]) !== seq) return null
+  const people = (personIds as string[]).filter(p => p.length <= ID_MAX)
+  const event: ActivityEvent = { id, seq: seq as number, on, actorId, kind, personIds: people, source }
+  if (isId(nodeId)) event.nodeId = nodeId
+  if (isId(eventId)) event.eventId = eventId
   if (isObject(facts)) event.facts = cleanFacts(facts)
-  const unchanged = Object.keys(raw).every(k => EVENT_KEYS.has(k))
-    && (nodeId === undefined || isString(nodeId)) && (eventId === undefined || isString(eventId))
+  const unchanged = Object.keys(raw).every(k => EVENT_KEYS.has(k)) && people.length === personIds.length
+    && usableId(nodeId) && usableId(eventId)
     && (facts === undefined || (isObject(facts) && Object.keys(event.facts!).length === Object.keys(facts).length))
   return unchanged ? raw as unknown as ActivityEvent : event
 }
@@ -82,9 +102,12 @@ type Draft = Omit<ActivityEvent, "id" | "seq"> & { subject: string }
 /** Kind order from contract §3, used to order events of the same day. Unknown kinds go last. */
 const kindRank = (kind: string) => { const i = (ACTIVITY_KINDS as readonly string[]).indexOf(kind); return i < 0 ? ACTIVITY_KINDS.length : i }
 
-/** The contribution recorded for this completion: the owner's when there is one, otherwise any for the task. */
+/**
+ * The contribution recorded for this completion: one dated the day the task was completed (an older one belongs to an earlier
+ * completion of a reopened task), the owner's when there is one, otherwise any for the task.
+ */
 function contributionFor(byNode: Map<string, Contribution[]>, node: Node): Contribution | undefined {
-  const list = byNode.get(node.id) ?? []
+  const list = (byNode.get(node.id) ?? []).filter(c => c.completedOn === node.completedOn)
   return list.find(c => c.personId === node.ownerId) ?? list[0]
 }
 
@@ -111,7 +134,9 @@ function backfillEvents(s: DemoState): ActivityEvent[] {
     const where = { nodeId: n.id, ...(nonEmpty(n.eventId) ? { eventId: n.eventId } : {}) }
     // Assigned to a person: who assigned it is not recorded. A task posted to nobody is not an assignment (contract §3).
     if (owner && n.assignedOn) add({ subject: n.id, kind: "task.assigned", on: n.assignedOn, actorId: null, personIds: people, ...where, source: "backfill" })
-    if (n.acceptedOn) add({ subject: n.id, kind: "task.claimed", on: n.acceptedOn, actorId: owner, personIds: people, ...where, source: "backfill" })
+    // A lead's assignment sets acceptedOn on the day it assigns, like an owner accepting on that day: the two cannot be told
+    // apart, so only an acceptance on another day is a claim (contract §5, amended; live claims follow the same meaning, §3).
+    if (n.acceptedOn && n.acceptedOn !== n.assignedOn) add({ subject: n.id, kind: "task.claimed", on: n.acceptedOn, actorId: owner, personIds: people, ...where, source: "backfill" })
     const saved = isObject(n.taskWork) ? n.taskWork.submissions : undefined
     const submissions = Array.isArray(saved) ? saved.filter(x => isObject(x) && nonEmpty(x.id)) : []
     submissions.forEach((x, i) => {
@@ -139,13 +164,31 @@ function backfillEvents(s: DemoState): ActivityEvent[] {
     }
   }
 
+  // A reminder's task and club event, as the live record writes them.
+  const eventOf = new Map(nodes.map(n => [n.id, nonEmpty(n.eventId) ? n.eventId : null]))
+  const at = (nodeId: unknown) => isString(nodeId) ? { nodeId, ...(eventOf.get(nodeId) ? { eventId: eventOf.get(nodeId)! } : {}) } : {}
+  // A legacy nudge always went to the task's owner.
   for (const x of Array.isArray(s.nudges) ? s.nudges : []) {
     if (!isObject(x) || !nonEmpty(x.id)) continue
     const owner = isString(x.nodeId) ? ownerOf.get(x.nodeId) ?? null : null
     add({
       subject: x.id, kind: "reminder.recorded", on: x.sentOn, actorId: nonEmpty(x.sentBy) ? x.sentBy : null, personIds: owner ? [owner] : [],
-      ...(isString(x.nodeId) ? { nodeId: x.nodeId } : {}), source: "backfill",
-      facts: { via: x.via === "president" || x.via === "platypus" ? x.via : null, channel: isString(x.channel) ? x.channel : null },
+      ...at(x.nodeId), source: "backfill",
+      facts: { via: x.via === "president" || x.via === "platypus" ? x.via : null, channel: isString(x.channel) ? x.channel : null, recipientId: owner },
+    })
+  }
+
+  // Reminder plan v2 records its sends as deliveries, with the owner and recipient as they were when it was sent. The ledger does
+  // not name who pressed send for a manual or Platypus-drafted reminder, so only automatic sends have an actor.
+  const runtime = isObject(s.reminderRuntime) ? s.reminderRuntime : undefined
+  for (const d of Array.isArray(runtime?.deliveries) ? runtime.deliveries as unknown[] : []) {
+    if (!isObject(d) || !nonEmpty(d.id)) continue
+    const owner = nonEmpty(d.ownerId) ? d.ownerId : null, recipient = nonEmpty(d.recipientId) ? d.recipientId : null
+    const message = isObject(d.message) ? d.message : undefined
+    add({
+      subject: d.id, kind: "reminder.recorded", on: d.sentOn as string, actorId: d.via === "automatic" ? "system:reminders" : null,
+      personIds: [...new Set([owner, recipient].filter(nonEmpty))], ...at(d.nodeId), source: "backfill",
+      facts: { via: isString(d.via) ? d.via : null, channel: isString(message?.channel) ? message.channel : null, recipientId: recipient },
     })
   }
 

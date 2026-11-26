@@ -6,6 +6,9 @@ import { ACTIVITY_KINDS, backfillActivityId, FACT_TEXT_MAX, isActivityFact } fro
 import { aiSnapshot, formSnapshot } from "../lib/aiContext"
 import type { ActivityEvent, DemoState, Node } from "../data/types"
 import type { TaskWork } from "../taskDetails/contracts"
+import type { ReminderDelivery } from "../reminders/contracts"
+import { clubDraft, startWorkspace } from "../data/settings"
+import { parseCommand } from "../lib/commands"
 
 /**
  * R0 persistence (docs/feedback-fix/CHEERS_R0_CONTRACT.md §5): the activity record is rebuilt from existing records when a state
@@ -27,6 +30,15 @@ const live = (seq: number, extra: Partial<ActivityEvent> = {}): ActivityEvent =>
   ({ id: `act:${seq}`, seq, on: "2026-11-02", actorId: "jordan", kind: "task.status", personIds: ["jordan"], nodeId: "t-agenda", facts: { from: "accepted", to: "in_progress" }, source: "live", ...extra })
 
 const work = (submissions: TaskWork["submissions"]): TaskWork => ({ version: 1, revision: submissions.length, files: [], drafts: [], submissions })
+
+/** A reminder plan v2 delivery as the ledger keeps it, with fictional snapshot text that must never reach the record. */
+const delivery = (id: string, patch: Partial<ReminderDelivery>): ReminderDelivery => ({
+  id, candidateId: `candidate:${id}`, nodeId: "t-agenda", recipientId: "priya", ownerId: "priya", ownerVersion: 0, planKey: `plan:${id}`, reason: "start",
+  scheduledOn: "2026-11-01", sentOn: "2026-11-01", sequence: 1, via: "automatic", recipientName: "Fictional Recipient Name", taskTitle: "Fictional delivery task title",
+  eventName: null, due: "2026-11-03", outcome: "simulated", message: { channel: "email" } as ReminderDelivery["message"], ...patch,
+})
+const withDeliveries = (s: DemoState, deliveries: ReminderDelivery[]): DemoState =>
+  ({ ...s, reminderRuntime: { version: 2, activatedOn: "2026-10-01", sequence: deliveries.length, updates: [], deliveries, waitingRequests: [] } })
 
 describe("backfill from existing records", () => {
   it("rebuilds the seed deterministically, and running it again changes nothing", () => {
@@ -114,6 +126,44 @@ describe("backfill from existing records", () => {
     expect(record(withActivityBackfill(state)).find(e => e.id === backfillActivityId("task.done", "t-minutes"))?.facts?.onTime).toBe(false)
   })
 
+  it("ignores a contribution from another completion of the task and judges against the club deadline", () => {
+    const s = seed()
+    const minutes = s.nodes.find(n => n.id === "t-minutes")!
+    expect(minutes.completedOn! <= minutes.clubDeadline!).toBe(true)
+    const doneOn = (state: DemoState) => record(withActivityBackfill(state)).find(e => e.id === backfillActivityId("task.done", "t-minutes"))?.facts?.onTime
+    // A contribution from an earlier completion (the task was reopened and finished again on time).
+    expect(doneOn({ ...s, contributions: s.contributions.map(c => c.nodeId === "t-minutes" ? { ...c, onTime: false, completedOn: "2026-10-12" } : c) })).toBe(true)
+    // A contribution without a completion date cannot be matched either.
+    expect(doneOn({ ...s, contributions: s.contributions.map(c => c.nodeId === "t-minutes" ? { personId: c.personId, nodeId: c.nodeId, points: c.points, onTime: false } : c) })).toBe(true)
+  })
+
+  it("rebuilds reminder plan v2 deliveries as reminder.recorded, like the live record", () => {
+    const s = seed()
+    const agenda = s.nodes.find(n => n.id === "t-agenda")!
+    const venue = s.nodes.find(n => n.id === "e-night:venue")!
+    const state = withDeliveries(s, [
+      delivery("reminder-delivery:1", { sentOn: "2026-11-01", via: "automatic" }),
+      // A follow-up to the person Priya waits on: about the owner and the recipient.
+      delivery("reminder-delivery:2", { sentOn: "2026-11-02", via: "manual", recipientId: "maya", reason: "waiting_on", message: { channel: "whatsapp" } as ReminderDelivery["message"] }),
+      delivery("reminder-delivery:3", { sentOn: "2026-11-02", via: "platypus", nodeId: venue.id, ownerId: "maya", recipientId: "maya", message: undefined }),
+    ])
+    const events = record(withActivityBackfill(state))
+    const find = (subject: string) => events.find(e => e.id === backfillActivityId("reminder.recorded", subject))
+    expect(find("reminder-delivery:1")).toEqual({
+      id: backfillActivityId("reminder.recorded", "reminder-delivery:1"), seq: find("reminder-delivery:1")!.seq, on: "2026-11-01", actorId: "system:reminders",
+      kind: "reminder.recorded", personIds: ["priya"], nodeId: "t-agenda", facts: { via: "automatic", channel: "email", recipientId: "priya" }, source: "backfill",
+    })
+    expect(agenda.eventId).toBeNull()
+    // The sender of a manual or Platypus-drafted send is not in the ledger, so no actor is guessed.
+    expect(find("reminder-delivery:2")).toMatchObject({ on: "2026-11-02", actorId: null, personIds: ["priya", "maya"], nodeId: "t-agenda", facts: { via: "manual", channel: "whatsapp", recipientId: "maya" } })
+    expect(find("reminder-delivery:3")).toMatchObject({ actorId: null, personIds: ["maya"], nodeId: venue.id, eventId: venue.eventId, facts: { via: "platypus", channel: null, recipientId: "maya" } })
+    const text = JSON.stringify(events)
+    for (const t of ["Fictional Recipient Name", "Fictional delivery task title"]) expect(text).not.toContain(t)
+    // Damaged ledger entries are skipped, and a record that exists already is never rebuilt.
+    const damaged = withDeliveries(s, [null, { id: 7 }, delivery("reminder-delivery:4", { sentOn: "soon" })] as never)
+    expect(record(withActivityBackfill(damaged)).some(e => e.kind === "reminder.recorded")).toBe(false)
+  })
+
   it("never records task titles, details, reminder text, names or email addresses", () => {
     const s = seed()
     const secret = "Fictional private details about the caterer"
@@ -189,6 +239,56 @@ describe("sanitizing a saved or imported record", () => {
     expect(sanitizeActivity({ 0: live(1) })).toEqual([])
   })
 
+  it("caps the length of IDs and kinds, requires a safe seq, and an act:<n> ID that matches its seq", () => {
+    const at = (n: number) => "i".repeat(n)
+    const raw: unknown[] = [
+      live(1, { id: `x:${at(126)}` }), // 128 characters: kept
+      live(2, { id: `x:${at(127)}` }), // 129: dropped
+      live(3, { kind: `k.${at(62)}` }), // 64: kept
+      live(4, { kind: `k.${at(63)}` }), // 65: dropped
+      live(5, { actorId: at(129) }), // dropped
+      live(6, { personIds: ["jordan", at(129), at(128)] }), // the over-long entry is dropped
+      live(7, { nodeId: at(129), eventId: at(129) }), // the over-long fields are dropped
+      live(8, { nodeId: at(128), eventId: at(128) }),
+      { ...live(9), id: "act:3" }, // an act:<n> ID that does not match its seq
+      { ...live(10), seq: Number.MAX_SAFE_INTEGER + 2 },
+      { ...live(11), seq: 2 ** 60 },
+      live(12, { id: "act:012" }), // the same number written with leading zeros
+    ]
+    const out = sanitizeActivity(raw)
+    expect(out.map(e => e.seq)).toEqual([1, 3, 6, 7, 8, 12])
+    expect(out[0]).toBe(raw[0])
+    expect(out.find(e => e.seq === 6)!.personIds).toEqual(["jordan", at(128)])
+    const seven = out.find(e => e.seq === 7)!
+    expect(seven).not.toHaveProperty("nodeId")
+    expect(seven).not.toHaveProperty("eventId")
+    expect(out.find(e => e.seq === 8)).toBe(raw[7])
+  })
+
+  it("drops hostile imported events, so live events recorded after them survive a reload", () => {
+    const note = "Fictional private note pasted into the record by hand. ".repeat(5).slice(0, 234)
+    expect(note).toHaveLength(234)
+    const hostile: [string, ActivityEvent[]][] = [
+      ["an ID that claims a later seq", [{ ...live(1), id: "act:3" }]],
+      ["the largest safe seq", [live(Number.MAX_SAFE_INTEGER)]],
+      ["a long note in personIds", [live(1, { personIds: ["jordan", note] })]],
+    ]
+    for (const [label, activity] of hostile) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...seed(), activity }))
+      const loaded = loadStateWithNotice().state
+      expect(JSON.stringify(loaded.activity), label).not.toContain(note)
+      // Three live events: Alex takes the unowned tabling task (assigned, claimed, status change).
+      const after = reducer(loaded, { type: "claimTask", nodeId: "t-tabling" })
+      const recorded = record(after).filter(e => e.source === "live" && e.nodeId === "t-tabling")
+      expect(recorded.map(e => e.kind), label).toEqual(["task.assigned", "task.claimed", "task.status"])
+      expect(recorded.every(e => Number.isSafeInteger(e.seq) && e.id === `act:${e.seq}`), label).toBe(true)
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(after))
+      const reloaded = loadStateWithNotice().state
+      expect(reloaded.activity, label).toEqual(after.activity)
+      expect(record(reloaded).filter(e => e.nodeId === "t-tabling" && e.source === "live").map(e => e.kind), label).toEqual(["task.assigned", "task.claimed", "task.status"])
+    }
+  })
+
   it("rebuilds a record that is not an array", () => {
     const s = { ...seed(), activity: "damaged" as unknown as ActivityEvent[] }
     const next = withActivityBackfill(s)
@@ -255,6 +355,25 @@ describe("reset, import and export", () => {
     const file = JSON.parse(JSON.stringify({ ...seed(), activity: [live(2), { ...live(3), seq: -1 }, { ...live(4), personIds: [null] }, live(1, { kind: "progress.future" }), "junk"] })) as DemoState
     const next = reducer(seed(), { type: "replace", state: file })
     expect(next.activity).toEqual([live(1, { kind: "progress.future" }), live(2)])
+  })
+
+  it("starts a new record for the new club on first-time setup", () => {
+    const CODE = "12345678-1234-1234-1234-123456789abc"
+    const s = withLiveEvent()
+    const mixer = parseCommand("Plan Welcome Mixer on Nov 19, 30 people", s)[0]
+    // startWorkspace itself (src/data/settings.ts) drops the old record, not only the reducer around it.
+    const workspace = startWorkspace(s, clubDraft(s), mixer, "2026-11-19", CODE)
+    expect(workspace).not.toBe(s)
+    expect(workspace).not.toHaveProperty("activity")
+    const next = reducer(s, { type: "completeSetup", draft: clubDraft(s), event: mixer, date: "2026-11-19", inviteCode: CODE })
+    expect(next.org.setupCompletedOn).toBe(s.today)
+    const events = record(next)
+    expect(events.length).toBeGreaterThan(0)
+    expect(events.some(e => e.id === "act:999")).toBe(false)
+    expect(events.every(e => e.source === "backfill")).toBe(true)
+    expect(events).toEqual(record(withActivityBackfill(withoutActivity(next))))
+    // The new club's own event is in its record.
+    expect(events.some(e => e.kind === "event.created" && next.events.some(x => x.id === e.eventId && x.name === "Welcome Mixer"))).toBe(true)
   })
 
   it("includes the record in the full export", () => {

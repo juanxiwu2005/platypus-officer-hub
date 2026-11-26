@@ -172,6 +172,7 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   const cleanWorkspace = { ...s }, cleanOrg = { ...s.org }
   delete cleanWorkspace.matching
   delete cleanWorkspace.matchingContext
+  delete cleanWorkspace.activity // a new club starts a new activity record (R0); the prior club's events are not carried over
   delete cleanOrg.matchingWorkspaceId
   // A deliberately new workspace starts its own template library and team IDs.
   delete cleanOrg.workflowTemplates
