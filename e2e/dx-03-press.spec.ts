@@ -40,7 +40,7 @@ test.describe("with motion", () => {
   })
   test("the side navigation changes background only, it does not move", async ({ page }) => {
     await page.goto("/#/")
-    const link = page.locator(".sidenav a", { hasText: "Handoff" })   // FB-8: Team is folded into More
+    const link = page.locator(".sidenav a", { hasText: "Playbook" })   // Playbook replaced the Handoff navigation item (2026-11-25)
     await link.hover()
     await page.mouse.down()
     await page.waitForTimeout(250)

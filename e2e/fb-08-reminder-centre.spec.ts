@@ -7,7 +7,7 @@ import { applySchedule } from "../src/engine/schedule"
 import { addDays } from "../src/lib/dates"
 
 // FB-8 (docs/feedback-fix/PLAN.md §12.2), redrawn as concept F (2026-11-19): the home page is the reminder centre; one email per person;
-// the three reminder modes really behave differently; the navigation is Reminders, Plan, Team, Handoff, Rules; Partners is temporarily archived.
+// the three reminder modes really behave differently; the navigation is Reminders, Plan, Team, Playbook, Rules (Playbook replaced Handoff on 2026-11-25); Partners is temporarily archived.
 // Nothing is ever sent: no request leaves the browser. Set FB8_SHOTS=<folder> to also save screenshots of each state for a visual check.
 const SHOTS = process.env.FB8_SHOTS
 const shot = async (page: Page, name: string, isMobile: boolean) => { if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}-${isMobile ? "phone" : "desktop"}.png`, fullPage: true }) }
@@ -282,7 +282,7 @@ test("navigation: Team is primary, Partners is archived, and Plan keeps its task
   await viewAs(page, "jordan")
   await closeRail(page)
   const nav = page.getByRole("navigation", { name: "Sections" })
-  await expect(nav.getByRole("link")).toHaveText([/^Reminders/, /^Plan/, /^Team/, /^Handoff/, /^Rules/, /^Settings/])
+  await expect(nav.getByRole("link")).toHaveText([/^Reminders/, /^Plan/, /^Team/, /^Playbook/, /^Rules/, /^Settings/])
   await expect(nav.getByRole("button", { name: "More", exact: true })).toHaveCount(0)
   await expect(nav.getByRole("link", { name: "Partners", exact: true })).toHaveCount(0)
   await expect(nav.getByRole("link", { name: "Team", exact: true })).toBeVisible()

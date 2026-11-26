@@ -23,7 +23,7 @@ test.describe("with motion", () => {
     expect(await page.locator("main").evaluate(el => el.className)).toBe("")          // not on the first load
     const frames = await page.evaluate(async () => {
       const out: { o: number; y: number; cls: string }[] = []
-      ;(document.querySelector(".sidenav a[href$='/handoff']") as HTMLElement).click()
+      ;(document.querySelector(".sidenav a[href$='/playbook']") as HTMLElement).click()
       const t0 = performance.now()
       while (performance.now() - t0 < 500) {
         const first = document.querySelector("main > *") as HTMLElement | null
@@ -79,7 +79,7 @@ test.describe("Reduce Motion", () => {
   test.use({ reducedMotion: "reduce" })
   test("neither fades", async ({ page }) => {
     await fresh(page)
-    await page.locator(".sidenav a", { hasText: "Handoff" }).click()
+    await page.locator(".sidenav a", { hasText: "Playbook" }).click()
     expect(await page.locator("main > *").first().evaluate(el => getComputedStyle(el).animationName)).not.toContain("dx-fade-in")
     await openTaskTable(page)
     await page.locator(ROWS).first().click()
