@@ -19,8 +19,7 @@
 .ch-fi-main { min-width: 0; display: grid; gap: var(--s1); justify-items: start; }
 .ch-fi-who { font-size: var(--fs-md); }
 /* Team card rows: who and when on one line; the note shows in the row's hover card (or a tap sheet on a phone). */
-.ch-fi.compact { align-items: center; }
-.ch-fi.compact .ch-fi-main { display: flex; align-items: baseline; gap: var(--s4); flex-wrap: wrap; }
+.ch-fi.compact .ch-fi-main { display: grid; gap: var(--s1); }
 .ch-fi-trigger { border-radius: var(--r-xs); cursor: default; }
 .ch-hc-note { overflow-wrap: anywhere; }
 /* The note card takes the pointer while shown, like a card with buttons (styles.css), and the strip below it bridges the

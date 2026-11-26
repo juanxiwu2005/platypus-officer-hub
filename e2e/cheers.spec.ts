@@ -58,7 +58,10 @@ test("Team shows the viewer's own cheers in place of Contributions, and nobody e
   await expect(rows.first()).toContainText("To Jordan")
   await expect(rows.first()).toContainText("Today")
   await expect(rows.nth(1)).toContainText("Thu")
-  // The note is one hover, focus or tap away (Team's word budget); the history shows it in full.
+  // Option B (Juanxi, 2026-11-26): the note shows on the row, as in F1; the hover or tap card keeps the full note.
+  await expect(rows.first().locator(".ch-fi-note")).toContainText(`“${NOTE_B}”`)
+  await expect(rows.first().locator(".ch-dir")).toHaveText("Sent")
+  await expect(rows.nth(1).locator(".ch-dir")).toHaveText("Received")
   await rows.first().getByTestId("cheer-row-who").click()
   await expect(rows.first().getByRole("tooltip")).toBeVisible()
   await expect(rows.first().getByRole("tooltip")).toHaveText(`“${NOTE_B}”`)
