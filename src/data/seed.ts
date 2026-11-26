@@ -5,6 +5,7 @@ import { DUTY_TEMPLATES } from "./structure"
 import { syncBudgetFlow } from "../engine/eventBudget"
 import { sampleHandoff } from "./sampleScenario"
 import { samplePlaybook } from "./playbookSeed"
+import { sampleCheers } from "./cheerSeed"
 import { normalizeTerms } from "./roleTerms"
 import { DEFAULT_REMINDER_MODE } from "./reminderMode"
 
@@ -203,6 +204,7 @@ export function seedDemo(today: string | undefined = undefined, workflow: "legac
     ...(workflow === "v2" ? sampleHandoff(roles, { from: "2026-10-26", to: "2026-11-25" }) : { handoff: null, handoffRoles: [] }),
     // v2: a fictional Playbook so the question-first library has content to read (Playbook phase 1).
     ...(workflow === "v2" ? { playbook: samplePlaybook() } : {}),
+    ...(workflow === "v2" ? { cheers: sampleCheers() } : {}), // v2: a few fictional cheers (src/data/cheerSeed.ts)
     roleTerms: [],
     archivedRoles: [],
     feedback: [],
