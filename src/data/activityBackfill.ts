@@ -1,13 +1,189 @@
-import type { ActivityEvent, DemoState } from "./types"
+import type { ActivityEvent, ActivityFact, Contribution, DemoState, Node } from "./types"
+import { ACTIVITY_KINDS, backfillActivityId, isActivityFact } from "./activityIds"
+import { playbookOf } from "./playbook"
 
 /**
- * Backfill and sanitizing of the activity record (R0). STAGE A PLACEHOLDER: agent R0-P replaces this file
- * (docs/feedback-fix/CHEERS_R0_CONTRACT.md §5). Signatures are frozen: return the same object when nothing changes.
+ * Backfill and sanitizing of the activity record (R0, docs/feedback-fix/CHEERS_R0_CONTRACT.md §5).
+ *
+ * - A state that never had a record (an older save, the seed, a reset demo, an imported file without one) gets one rebuilt from
+ *   the records it already holds: assignments, claims, submissions, completions, reminders, events and Playbook answers.
+ * - A state that has a record keeps it, sanitized: malformed events and facts are dropped, nothing valid is changed.
+ *
+ * Only IDs, demo dates, enums, counts and booleans enter the record: never task titles, details text, names or email addresses.
+ * Both functions are pure and deterministic, and return the same object when nothing changes.
  */
-export function withActivityBackfill(s: DemoState): DemoState {
-  return s
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+/** A real calendar date written as YYYY-MM-DD (rejects 2026-02-30 and similar). */
+function isIsoDate(v: unknown): v is string {
+  if (typeof v !== "string" || !ISO_DATE.test(v)) return false
+  const [y, m, d] = v.split("-").map(Number)
+  const t = new Date(Date.UTC(y, m - 1, d))
+  return t.getUTCFullYear() === y && t.getUTCMonth() === m - 1 && t.getUTCDate() === d
+}
+/** Calendar days from `a` to `b` (positive when `b` is later). Both are valid ISO dates. */
+function calendarDays(a: string, b: string): number {
+  const utc = (v: string) => { const [y, m, d] = v.split("-").map(Number); return Date.UTC(y, m - 1, d) }
+  return Math.round((utc(b) - utc(a)) / 86_400_000)
 }
 
+const isObject = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v)
+const isString = (v: unknown): v is string => typeof v === "string"
+const nonEmpty = (v: unknown): v is string => typeof v === "string" && v.length > 0
+
+/** Keeps only the facts a record may hold (contract §2). */
+function cleanFacts(raw: Record<string, unknown>): Record<string, ActivityFact> {
+  const out: Record<string, ActivityFact> = {}
+  for (const [k, v] of Object.entries(raw)) if (isActivityFact(v)) out[k] = v
+  return out
+}
+
+const EVENT_KEYS = new Set(["id", "seq", "on", "actorId", "kind", "personIds", "nodeId", "eventId", "facts", "source"])
+
+/**
+ * One event from saved or imported data, or null when it cannot be kept. Returns the original object when it is already clean.
+ * Optional fields of the wrong type, facts that fail `isActivityFact`, and unknown fields (which could carry free text) are removed.
+ */
+function cleanEvent(raw: unknown): ActivityEvent | null {
+  if (!isObject(raw)) return null
+  const { id, seq, on, actorId, kind, personIds, nodeId, eventId, facts, source } = raw
+  if (!nonEmpty(id) || !Number.isInteger(seq) || (seq as number) < 1 || !isIsoDate(on) || !(actorId === null || isString(actorId))
+    || !nonEmpty(kind) || !Array.isArray(personIds) || !personIds.every(isString) || (source !== "live" && source !== "backfill")) return null
+  const event: ActivityEvent = { id, seq: seq as number, on, actorId, kind, personIds: personIds as string[], source }
+  if (isString(nodeId)) event.nodeId = nodeId
+  if (isString(eventId)) event.eventId = eventId
+  if (isObject(facts)) event.facts = cleanFacts(facts)
+  const unchanged = Object.keys(raw).every(k => EVENT_KEYS.has(k))
+    && (nodeId === undefined || isString(nodeId)) && (eventId === undefined || isString(eventId))
+    && (facts === undefined || (isObject(facts) && Object.keys(event.facts!).length === Object.keys(facts).length))
+  return unchanged ? raw as unknown as ActivityEvent : event
+}
+
+/**
+ * The valid events of a saved or imported record, sorted by `seq` (contract §5). Unknown kinds are kept (a file from a later
+ * version); a duplicate ID keeps its first occurrence. Valid events are returned as the same objects.
+ */
 export function sanitizeActivity(raw: unknown): ActivityEvent[] {
-  return Array.isArray(raw) ? (raw as ActivityEvent[]) : []
+  if (!Array.isArray(raw)) return []
+  const seen = new Set<string>()
+  const kept: ActivityEvent[] = []
+  for (const item of raw) {
+    const event = cleanEvent(item)
+    if (!event || seen.has(event.id)) continue
+    seen.add(event.id)
+    kept.push(event)
+  }
+  // Array.prototype.sort is stable, so events that share a seq keep their saved order.
+  return kept.sort((a, b) => a.seq - b.seq)
+}
+
+type Draft = Omit<ActivityEvent, "id" | "seq"> & { subject: string }
+
+/** Kind order from contract §3, used to order events of the same day. Unknown kinds go last. */
+const kindRank = (kind: string) => { const i = (ACTIVITY_KINDS as readonly string[]).indexOf(kind); return i < 0 ? ACTIVITY_KINDS.length : i }
+
+/** The contribution recorded for this completion: the owner's when there is one, otherwise any for the task. */
+function contributionFor(byNode: Map<string, Contribution[]>, node: Node): Contribution | undefined {
+  const list = byNode.get(node.id) ?? []
+  return list.find(c => c.personId === node.ownerId) ?? list[0]
+}
+
+/** The `revision` of a submission: the task-work revision it was saved at (`submission-<n>`), else its position (1 for the first). */
+function submissionRevision(id: string, index: number): number {
+  const m = /^submission-(\d+)$/.exec(id)
+  const n = m ? Number(m[1]) : NaN
+  return Number.isSafeInteger(n) && n > 0 ? n : index + 1
+}
+
+/** Events rebuilt from what the state already records (contract §5). Nothing else is guessed: votes and handoff steps have no dates. */
+function backfillEvents(s: DemoState): ActivityEvent[] {
+  const drafts: Draft[] = []
+  const add = (d: Draft) => { if (isIsoDate(d.on)) drafts.push(d) }
+  const nodes = Array.isArray(s.nodes) ? s.nodes.filter(n => isObject(n) && nonEmpty(n.id)) : []
+  const byNode = new Map<string, Contribution[]>()
+  for (const c of Array.isArray(s.contributions) ? s.contributions : []) {
+    if (!isObject(c) || !isString(c.nodeId)) continue
+    byNode.set(c.nodeId, [...(byNode.get(c.nodeId) ?? []), c])
+  }
+  const ownerOf = new Map(nodes.map(n => [n.id, nonEmpty(n.ownerId) ? n.ownerId : null]))
+
+  for (const n of nodes) {
+    const owner = ownerOf.get(n.id) ?? null
+    const people = owner ? [owner] : []
+    const where = { nodeId: n.id, ...(nonEmpty(n.eventId) ? { eventId: n.eventId } : {}) }
+    // Assigned to a person: who assigned it is not recorded. A task posted to nobody is not an assignment (contract §3).
+    if (owner && n.assignedOn) add({ subject: n.id, kind: "task.assigned", on: n.assignedOn, actorId: null, personIds: people, ...where, source: "backfill" })
+    if (n.acceptedOn) add({ subject: n.id, kind: "task.claimed", on: n.acceptedOn, actorId: owner, personIds: people, ...where, source: "backfill" })
+    const saved = isObject(n.taskWork) ? n.taskWork.submissions : undefined
+    const submissions = Array.isArray(saved) ? saved.filter(x => isObject(x) && nonEmpty(x.id)) : []
+    submissions.forEach((x, i) => {
+      const author = nonEmpty(x.authorId) ? x.authorId : null
+      add({
+        subject: `${n.id}:${x.id}`, kind: "task.submitted", on: x.savedOn, actorId: author, personIds: author ? [author] : [], ...where, source: "backfill",
+        facts: { detailsChars: isString(x.details) ? x.details.length : 0, files: Array.isArray(x.attachmentIds) ? x.attachmentIds.length : 0, revision: submissionRevision(x.id, i) },
+      })
+    })
+    if (n.status === "done" && isIsoDate(n.completedOn)) {
+      const deadline = isIsoDate(n.clubDeadline) ? n.clubDeadline : null
+      const credit = contributionFor(byNode, n)
+      const latest = submissions[submissions.length - 1]
+      add({
+        subject: n.id, kind: "task.done", on: n.completedOn, actorId: owner, personIds: people, ...where, source: "backfill",
+        facts: {
+          onTime: typeof credit?.onTime === "boolean" ? credit.onTime : deadline === null || n.completedOn <= deadline,
+          daysEarly: deadline === null ? null : calendarDays(n.completedOn, deadline),
+          detailsChars: latest && isString(latest.details) ? latest.details.length : 0,
+          files: latest && Array.isArray(latest.attachmentIds) ? latest.attachmentIds.length : 0,
+          // A backfilled completion cannot tell whether it came from the budget table.
+          viaBudget: false,
+        },
+      })
+    }
+  }
+
+  for (const x of Array.isArray(s.nudges) ? s.nudges : []) {
+    if (!isObject(x) || !nonEmpty(x.id)) continue
+    const owner = isString(x.nodeId) ? ownerOf.get(x.nodeId) ?? null : null
+    add({
+      subject: x.id, kind: "reminder.recorded", on: x.sentOn, actorId: nonEmpty(x.sentBy) ? x.sentBy : null, personIds: owner ? [owner] : [],
+      ...(isString(x.nodeId) ? { nodeId: x.nodeId } : {}), source: "backfill",
+      facts: { via: x.via === "president" || x.via === "platypus" ? x.via : null, channel: isString(x.channel) ? x.channel : null },
+    })
+  }
+
+  // The day an event was created is not recorded: it is dated on the state's own day.
+  for (const e of Array.isArray(s.events) ? s.events : []) {
+    if (!isObject(e) || !nonEmpty(e.id)) continue
+    add({ subject: e.id, kind: "event.created", on: s.today, actorId: null, personIds: [], eventId: e.id, source: "backfill", facts: { date: isIsoDate(e.date) ? e.date : null } })
+  }
+
+  for (const a of playbookOf(s).answers) {
+    const author = nonEmpty(a.authorId) ? a.authorId : null
+    add({ subject: a.id, kind: "playbook.answer_added", on: a.on, actorId: author, personIds: author ? [author] : [], source: "backfill", facts: { questionId: a.questionId, answerKind: a.kind } })
+  }
+
+  drafts.sort((a, b) => a.on < b.on ? -1 : a.on > b.on ? 1 : kindRank(a.kind) - kindRank(b.kind) || (a.subject < b.subject ? -1 : a.subject > b.subject ? 1 : 0))
+  const seen = new Set<string>()
+  const events: ActivityEvent[] = []
+  for (const { subject, facts, ...rest } of drafts) {
+    const id = backfillActivityId(rest.kind, subject)
+    if (seen.has(id)) continue // a duplicated record ID in damaged data: the first one wins
+    seen.add(id)
+    events.push({ id, seq: events.length + 1, ...rest, ...(facts ? { facts: cleanFacts(facts) } : {}) })
+  }
+  return events
+}
+
+/**
+ * The state with a usable activity record (contract §5). An existing record is sanitized (the same state when nothing was dropped);
+ * a missing one is rebuilt from existing records (an empty array when there is nothing). A value that is not an array cannot hold a
+ * record, so it is treated like a missing one and rebuilt.
+ */
+export function withActivityBackfill(s: DemoState): DemoState {
+  const raw = (s as { activity?: unknown }).activity
+  if (Array.isArray(raw)) {
+    const clean = sanitizeActivity(raw)
+    return clean.length === raw.length && clean.every((e, i) => e === raw[i]) ? s : { ...s, activity: clean }
+  }
+  return { ...s, activity: backfillEvents(s) }
 }
