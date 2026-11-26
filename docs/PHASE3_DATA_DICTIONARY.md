@@ -454,3 +454,17 @@ This increment affects actual Nodes only, not Settings StepTemplate/EventWorkflo
 | Reopen Done / Undo mark done | `replyTask` or owner-grant update to todo/working/help/waiting clears completedOn and the task's current contribution, preserving taskWork results/history. Undo verifies workspace, author permissions, original owner term, and this submission revision before restoring original status; after refresh, reopen through the status menu; finance Done remains controlled by Event Budget |
 
 All dates still come from the original rule engine or demo business clock; operation times use the original log's `at`. Current browser storage is not server-based cross-device synchronization; a waiting-person grant cannot submit the original task. See `feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md`.
+
+## Activity record (`state.activity`, 2026-11-26 addition, phase R0)
+
+Product data, separate from the research interaction log: the interaction log (Sections 4–5) records what a person pressed and when (real clock); the activity record keeps one event per meaningful change to club data, dated by the demo clock, so that a later growth record, handoff view, Cheers and team progress can be rebuilt. Nothing in the interface reads it in R0, and it is never sent to AI. Contract: `docs/feedback-fix/CHEERS_R0_CONTRACT.md`. The outer schema remains 23; the field is optional.
+
+| Field | Meaning and boundaries |
+| --- | --- |
+| `activity[]` | Append-only list, ordered by `seq`. Older saves are backfilled once on load, reset, import and first-time setup (`source: "backfill"`); later changes are recorded as `source: "live"`. Nothing is capped or dropped. |
+| `id` | `act:<seq>` (live) or `act:bf:<kind>:<subject>` (backfill, stable so it is never duplicated). |
+| `seq`, `on` | Recording order (1, 2, 3 …) and the demo date (`demoToday` at the time), never real time. |
+| `actorId` | The person who acted (the viewer, or the holder of a task link), `system:reminders` for automatic reminders, `system:clock` for the demo clock, or null when a backfilled record does not say. |
+| `kind` | `task.created`, `task.removed`, `task.assigned`, `task.claimed`, `task.status`, `task.waiting_on`, `task.target_changed`, `task.submitted`, `task.done`, `task.reopened`, `reminder.recorded`, `event.created`, `playbook.answer_added`, `playbook.voted`, `handoff.step`; `cheer.sent` and `progress.milestone` are reserved for phases R1 and R2. |
+| `personIds`, `nodeId`, `eventId` | Who and what the event is about, by ID. |
+| `facts` | IDs, enums, numbers, booleans and demo dates only (strings of at most 64 characters), for example `from`/`to` statuses, `onTime`, `daysEarly`, `detailsChars`, `files`. Task titles, submission text, reasons, question and answer text, names and email addresses are never copied in; they stay in their own records. |
