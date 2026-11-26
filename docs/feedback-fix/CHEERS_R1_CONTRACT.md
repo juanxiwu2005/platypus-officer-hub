@@ -64,3 +64,17 @@ Phase R1 of `CHEERS_TEAM_PROGRESS_PLAN.md`. Juanxi approved the final screens an
 ## 7. Rollback
 
 One merge commit per agent. `DemoState.cheers` is optional; an older build reads a v23 save verbatim and keeps the field.
+
+## 8. R1.1 amendments (Juanxi, 2026-11-26, after trying the form)
+
+Juanxi reviewed the Give points form and asked for these changes. Where they differ from §2 and §5, this section wins.
+
+1. **No task field.** Remove "For a task" from the form. A cheer opened from the thank prompt on a finished task (F4) still carries that task's `nodeId` silently.
+2. **Points are a number with − and + buttons**, not chips. Minimum 100 (Juanxi's scale: about 100 points ≈ $1, so 5,000 ≈ $50); whole numbers in steps of 50 for the buttons, any whole number from 100 up typed; at most the allowance left. Old saved cheers with smaller values (10/25/50/100) stay valid and count as stored.
+3. **Interim allowance** until the points-system research and Juanxi's decision: 1,000 points a week for an officer, 2,500 for a president or VP, Monday reset, unused points expire. All numbers live in `src/data/cheerRules.ts` so they can change in one place.
+4. **The note label** is "What did they do, and how did it help?" with a small asterisk for required (no red "Required"). **No quick-start chips.**
+5. **Trophy, not card.** The picker is labelled "Trophy" and offers at least eight emoji (for example 🏆 ⭐ 🙌 🤝 🚀 💡 🎉 ❤️). Old saved card values `thanks`, `star`, `teamwork` stay valid and show their old emoji.
+6. **Confirm before sending.** Send opens a confirmation dialog ("Send 300 points to Jordan Patel? You can't undo this.") with Cancel and Send; focus is trapped and returns on Cancel.
+7. **No withdraw.** Remove withdrawal from the interface and refuse it in the reducer. Existing withdrawn cheers in saved data are still respected (hidden, counted for nobody).
+8. **Email is automatic.** Remove "Also email". Every cheer tells its recipients by in-app notice and by email from Platypus. The demo sends nothing: it records that an email was sent (`email: true`) and lets the sender and recipient open the email text (the §2 template) from the cheer; the toast says "Cheer sent. Jordan will get an email." Real sending waits for accounts and server email (v1.5).
+9. **Let others know (optional).** A multi-select "Let others know too (optional)" of current officers other than the sender and recipients, offering the president, VP and the recipient's team lead first. Each chosen person gets an in-app notice (and, in the real product, an email) "<Sender> recognized <Recipient>: “<note>”" and can open the cheer's card read-only. Store them as `Cheer.ccIds?: string[]` (at most 5). Visibility becomes: sender, recipients and these people. They are not charged or credited points. Interaction-log entries name nobody (fixed `data-log-name`, `data-log-value="omit"`).
