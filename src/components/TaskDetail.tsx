@@ -12,6 +12,7 @@ import { TaskSubmission } from "../taskDetails/TaskSubmission"
 import { TaskProgress } from "../taskDetails/TaskProgress"
 import { TaskEditPanel } from "../taskDetails/TaskEditPanel"
 import type { TaskAuthorization } from "../taskDetails/contracts"
+import { ThankPrompt } from "./cheers/ThankPrompt"
 import "../taskDetails/detail.css"
 
 /** One task surface for every real node and email entry; templates never render this component. */
@@ -40,6 +41,8 @@ export function TaskDetail({ node, actorId, token, accessToken, standalone = fal
     </header>
     <p className="task-requirement">{facts?.requirement ?? node.instructions ?? node.title}</p>
     {links.length > 0 && <nav className="task-external-links" aria-label="External task links">{links.map(link => <a key={`${link.label}:${link.url}`} className="btn small" href={link.url} target="_blank" rel="noreferrer">{link.label} <span aria-hidden="true">↗</span></a>)}</nav>}
+    {/* Cheers (R1, F4): only in the app, as the viewer; not on an emailed task link or a read-only view. */}
+    {!standalone && !authorization && !readOnly && actorId === state.viewerId && node.status === "done" && <ThankPrompt nodeId={node.id} />}
     <TaskSubmission key={`${node.id}:${actorId}`} node={node} actorId={actorId} authorization={authorization} readOnly={readOnly} />
     {issues.length > 0 && <details className="task-schedule-notes small"><summary>Schedule notes ({issues.length})</summary><ul>{issues.map(issue => <li key={issue.code}>{issue.text}</li>)}</ul></details>}
     {editing && canEdit && <TaskEditPanel node={node} due={due} onClose={closeEditor} />}

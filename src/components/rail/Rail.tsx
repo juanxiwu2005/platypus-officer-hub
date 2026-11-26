@@ -19,6 +19,7 @@ const HandoffRoleDetail = lazy(() => import("../../pages/Handoff").then(module =
 const DigestPanel = lazy(() => import("../../reminders/DigestPanel"))
 const ReminderHistoryPanel = lazy(() => import("../../reminders/DigestPanel").then(module => ({ default: module.ReminderHistoryPanel })))
 const EventDetail = lazy(() => import("../EventDetail").then(module => ({ default: module.EventDetail })))
+const GiveCheer = lazy(() => import("../cheers/GiveCheer"))
 
 /** Right rail: Ask (the only AI box) and Details (whatever was clicked). */
 /**
@@ -97,7 +98,7 @@ function DetailView() {
   const d = rail.detail!
   const box = useRef<HTMLDivElement>(null)
   // Every kind of detail takes focus when it opens or changes (unless it already put focus inside itself).
-  const key = d.kind === "reminderDigest" ? `${d.kind}:${d.recipientId}` : d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" || d.kind === "event" ? `${d.kind}:${d.eventId}` : d.kind
+  const key = d.kind === "reminderDigest" ? `${d.kind}:${d.recipientId}` : d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" || d.kind === "event" ? `${d.kind}:${d.eventId}` : d.kind === "cheer" ? `${d.kind}:${(d.toIds ?? []).join(",")}:${d.nodeId ?? ""}` : d.kind
   useEffect(() => {
     box.current?.scrollTo?.({ top: 0 })
     if (box.current && !box.current.contains(document.activeElement)) box.current.focus()
@@ -146,6 +147,8 @@ function DetailView() {
     case "partner": body = <PartnerDetail id={d.id} />; break
     case "org": body = <OrgDetail id={d.id} />; break
     case "handoff": body = <HandoffRoleDetail roleId={d.roleId} />; break
+    // Cheers (R1): Give points. A new prefill (another person or task) starts a fresh form.
+    case "cheer": body = <GiveCheer key={`${state.viewerId}:${(d.toIds ?? []).join(",")}:${d.nodeId ?? ""}`} toIds={d.toIds} nodeId={d.nodeId} />; break
   }
   return <div ref={box} className="detail-scroll" {...region}>{closer}<Suspense fallback={<RouteLoading label="Loading details…" />}>{body}</Suspense></div>
 }

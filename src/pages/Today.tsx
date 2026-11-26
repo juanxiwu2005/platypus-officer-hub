@@ -14,6 +14,7 @@ import { prepareReminderDigest, recordReminderDigests, sendReminderDigests } fro
 import type { ReminderDelivery } from "../reminders/contracts"
 import { Mail, digestVia, usePreparedDigest } from "../reminders/DigestMail"
 import { isReminderRuntime } from "../reminders/runtime"
+import { WeeklyLine } from "../components/cheers/WeeklyLine"
 import "../reminders/centre.css"
 import "../reminders/digest-centre.css"
 
@@ -76,6 +77,8 @@ function ReminderCentre({ q }: { q: Centre }) {
     {automaticReminders.error && <div className="rc-save-error" role="alert"><p>{automaticReminders.error}</p><button type="button" className="btn small" disabled={automaticReminders.busy} onClick={automaticReminders.retry}>Retry automatic reminders</button></div>}
     {feedback && <p role="status" className="rq-note">{feedback}</p>}
     {persistenceFailed && <p role="alert" className="rq-note">Can't save in this browser.</p>}
+    {/* Cheers (R1, F7): president and VP, Monday to Wednesday. */}
+    <WeeklyLine />
     {ready && <section className="card dg-top" data-testid="rq-summary" aria-label="Today's reminder emails">
       <div className="dg-top-row">
         <p className="dg-top-text"><b>{n ? `${people(n)} to remind` : "Nothing to send today."}</b></p>
