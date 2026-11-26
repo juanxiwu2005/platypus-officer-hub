@@ -54,7 +54,7 @@ Phase R1 of `CHEERS_TEAM_PROGRESS_PLAN.md`. Juanxi approved the final screens an
 - F4: the thank prompt in Task Details for `thankPromptFor`, opening F2 with the owner and task.
 - F5: received cards, centered, once: on app load and when new ones arrive for the viewer, show `unseenFor` (at most 3, "1 of N", Next, then Close; when more than 3, the last says "N more on Team"); closing marks shown ones seen. The link `#/?cheer=<id>` opens that card for its sender or recipient (others see nothing).
 - F7: on the Reminders home for president and VP when `weeklyLine` is not null: one line with **Thank them** (opens F2 with those people) and a close button; both dismiss for the week.
-- Word limits must hold without raising any limit: Team visible ≤ 130 (today 117), "/" visible ≤ 200 (today 127). Measure with `npm run words` and adjust copy, not limits.
+- Word limits: Team visible ≤ 160 (raised from 130 by Juanxi on 2026-11-26 so that F1 shows each note on its row; option B), "/" visible ≤ 200 (today 127). Measure with `npm run words` and adjust copy, not limits.
 - Browser tests: the flows above on desktop and mobile, including the "at most 3 presses with a typed note" path (open, type, Send), privacy (a third officer sees none of another pair's cheers), the once-only card, the email draft link, and axe with no serious or critical issues.
 
 ## 6. Gates
