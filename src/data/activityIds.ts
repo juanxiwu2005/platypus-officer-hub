@@ -10,7 +10,7 @@ export const ACTIVITY_KINDS: readonly ActivityKind[] = [
   "task.created", "task.removed", "task.assigned", "task.claimed", "task.status", "task.waiting_on", "task.target_changed",
   "task.submitted", "task.done", "task.reopened", "reminder.recorded", "event.created",
   "playbook.answer_added", "playbook.voted", "handoff.step",
-  "cheer.sent", "progress.milestone",
+  "cheer.sent", "cheer.withdrawn", "progress.milestone",
 ]
 
 /** The next unused sequence number (1 for an empty or missing record). */

@@ -19,6 +19,8 @@ export type Detail =
   | { kind: "partner"; id: string }
   | { kind: "org"; id: string }
   | { kind: "handoff"; roleId: string }
+  /** Cheers (R1): the Give points form, optionally with recipients and a task already chosen. */
+  | { kind: "cheer"; toIds?: string[]; nodeId?: string }
   | { kind: "workflow" }
 
 export type RailTab = "ask" | "details"

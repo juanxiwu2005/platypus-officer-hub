@@ -1,5 +1,6 @@
 import { changeHandoff, repairLegacyHandoff, type HandoffAction } from "./handoff"
 import { changePlaybook, playbookOf, type PlaybookAction } from "./playbook"
+import { changeCheers, withSanitizedCheers, type CheerAction } from "./cheers"
 import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
@@ -120,6 +121,7 @@ export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount" | "de
 
 export type Action =
   | { type: "handoffAction"; action:HandoffAction }
+  | { type: "cheerAction"; action: CheerAction }
   | { type: "roleChange"; change: RoleChange }
   | { type: "reportOutput"; outputId:string; text:string }
   | { type: "resolveReport"; id:string }
@@ -387,8 +389,8 @@ export function reducer(state: DemoState, action: Action): DemoState {
   const next = coreReducer(state, action)
   if (next === state) return state
   // First-time setup replaces the demo club with a new one, so its record starts again from the new club's data.
-  if (action.type === "completeSetup") { const { activity: _old, ...fresh } = next; void _old; return withActivityBackfill(fresh) }
-  if (action.type === "reset" || action.type === "replace") return withActivityBackfill(next)
+  if (action.type === "completeSetup") { const { activity: _old, cheers: _oldCheers, ...fresh } = next; void _old; void _oldCheers; return withActivityBackfill(fresh) }
+  if (action.type === "reset" || action.type === "replace") return withActivityBackfill(withSanitizedCheers(next))
   return withActivity(state, next, action, actorOf(state, action))
 }
 
@@ -426,10 +428,12 @@ function coreReducer(state: DemoState, action: Action): DemoState {
  * What someone who is not a current officer may do while viewed as (D-3a): a next officer who has not taken the role yet (or a former officer)
  * reads, works through their own handoff steps and switches view, but cannot claim, create or change tasks, contacts, events or settings.
  */
-const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "playbookAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction", "recordReminderBatch", "recordReminderDigests", "saveTaskWork", "updateTaskTarget"])
+const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "cheerAction", "playbookAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction", "recordReminderBatch", "recordReminderDigests", "saveTaskWork", "updateTaskTarget"])
 function baseReducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
     case "handoffAction": return changeHandoff(state,action.action)
+    // Cheers (R1): who may send, withdraw or mark seen is checked in changeCheers (incoming officers may only mark their cards seen).
+    case "cheerAction": return changeCheers(state, action.action, state.viewerId)
     case "roleChange": return changeRole(state,action.change)
     case "reportOutput": return state.feedback.some(f=>f.outputId===action.outputId&&f.reportedBy===state.viewerId)?state:{...state,feedback:[...state.feedback,{id:`report:${nextCounter(state.feedback.map(f=>f.id),/^report:(\d+)/)}`,outputId:action.outputId.slice(0,20000),text:action.text.slice(0,10000),reportedBy:state.viewerId,on:state.today,resolved:false}]}
     case "resolveReport":return canLead(state)?{...state,feedback:state.feedback.map(f=>f.id===action.id?{...f,resolved:true}:f)}:state
@@ -739,7 +743,7 @@ export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice
   const loaded = readStateWithNotice()
   // Data held back for download (migration_blocked) is kept exactly as it was read.
   if (loaded.notice?.kind === "migration_blocked") return { ...loaded, state: ensureWorkflowPresetTeams(loaded.state) }
-  return { ...loaded, state: withActivityBackfill(withCurrentReminders(ensureWorkflowPresetTeams(loaded.state))) }
+  return { ...loaded, state: withActivityBackfill(withSanitizedCheers(withCurrentReminders(ensureWorkflowPresetTeams(loaded.state)))) }
 }
 
 /**
@@ -873,6 +877,8 @@ function payloadOf(a: Action): unknown {
     case "confirmPlannedReminder": return { candidateId: a.candidateId, via: a.via, ...(a.message ? { message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : {}) }
     case "confirmNudgeSent": return a.message ? { nodeId: a.nodeId, channel: a.channel, via: a.via, message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
     case "replace": return { nodes: a.state.nodes.length, events: a.state.events.length }
+    // IDs and numbers only: a cheer's note never enters the log.
+    case "cheerAction": { const x = a.action; return x.kind === "send" ? { kind: x.kind, recipients: Array.isArray(x.toIds) ? x.toIds.length : 0, points: x.points, noteLength: typeof x.note === "string" ? x.note.trim().length : 0, nodeId: x.nodeId ?? null, card: x.card, email: !!x.email } : x.kind === "markSeen" ? { kind: x.kind, ids: Array.isArray(x.ids) ? x.ids.slice(0, 20) : [] } : x.kind === "withdraw" ? { kind: x.kind, id: x.id } : { kind: x.kind } }
     // Counts only, like its "before" value: the default would copy (truncated) checklist titles on every debounced save.
     // Counts and IDs only: question and answer text never enters the log.
     case "playbookAction": { const x = a.action; return { kind: x.kind, ...("questionId" in x ? { questionId: x.questionId } : {}), ...("answerId" in x ? { answerId: x.answerId } : {}), ...("vote" in x ? { vote: x.vote } : {}), ...(x.kind === "addQuestion" ? { category: x.category } : {}), ...(x.kind === "addAnswer" ? { answerKind: x.answerKind } : {}) } }

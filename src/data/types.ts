@@ -486,10 +486,12 @@ export interface Notice {
   id: string
   recipientId: string
   nodeId: string
-  kind: "ready" | "delay" | "approval" | "info" | "help" | "protocol" | "claim"
+  kind: "ready" | "delay" | "approval" | "info" | "help" | "protocol" | "claim" | "cheer"
   text: string
   createdOn: string
   read: boolean
+  /** Cheers (R1): the cheer this notice announces. Its `nodeId` is the cheer's task, or "" when the cheer names no task. */
+  cheerId?: string
 }
 export interface SilenceCase {
   id: string
@@ -713,6 +715,38 @@ export interface DemoState {
    * Optional: absent in older saves, which are backfilled once from existing records (src/data/activityBackfill.ts).
    */
   activity?: ActivityEvent[]
+  /** Cheers (R1, 2026-11-26; docs/feedback-fix/CHEERS_R1_CONTRACT.md): voluntary peer recognition. Optional: absent in older saves, read as empty. */
+  cheers?: CheerBook
+}
+
+/** Cheers (R1). A cheer is visible to its sender and its recipients only; its note never enters AI context or the research log. */
+export type CheerPoints = 10 | 25 | 50 | 100
+export type CheerCard = "thanks" | "star" | "teamwork"
+export interface Cheer {
+  /** `ch-<n>`, assigned by the reducer. */
+  id: string
+  fromId: string
+  /** 1–5 recipients; each costs the sender `points` from their weekly allowance. */
+  toIds: string[]
+  points: CheerPoints
+  /** Required, 10–280 characters after trimming: why the work was good. */
+  note: string
+  /** The task the cheer is for, if any. */
+  nodeId?: string
+  card: CheerCard
+  /** The demo date it was sent. */
+  on: string
+  /** The sender chose "Also email" (a draft they send themselves; the app sends nothing). */
+  email?: boolean
+  /** Recipients who have seen the received card (shown once). */
+  seenBy: string[]
+  /** Set when the sender withdrew it (same day only); a withdrawn cheer counts for nobody and is hidden. */
+  withdrawnOn?: string
+}
+export interface CheerBook {
+  cheers: Cheer[]
+  /** President/VP weekly line: person ID → the Monday of the week they dismissed it or acted on it. */
+  weeklyLineDismissed?: Record<string, string>
 }
 
 /** The kinds the activity record knows. Unknown kinds in an imported file are kept as data. */
@@ -720,7 +754,7 @@ export type ActivityKind =
   | "task.created" | "task.removed" | "task.assigned" | "task.claimed" | "task.status" | "task.waiting_on" | "task.target_changed"
   | "task.submitted" | "task.done" | "task.reopened" | "reminder.recorded" | "event.created"
   | "playbook.answer_added" | "playbook.voted" | "handoff.step"
-  | "cheer.sent" | "progress.milestone"
+  | "cheer.sent" | "cheer.withdrawn" | "progress.milestone"
 /** A fact is an ID, an enum, a number, a boolean or a demo date: never free text a person wrote. */
 export type ActivityFact = string | number | boolean | null
 export interface ActivityEvent {
