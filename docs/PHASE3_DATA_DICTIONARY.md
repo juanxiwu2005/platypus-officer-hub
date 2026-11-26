@@ -465,6 +465,18 @@ Product data, separate from the research interaction log: the interaction log (S
 | `id` | `act:<seq>` (live) or `act:bf:<kind>:<subject>` (backfill, stable so it is never duplicated). |
 | `seq`, `on` | Recording order (1, 2, 3 …) and the demo date (`demoToday` at the time), never real time. |
 | `actorId` | The person who acted (the viewer, or the holder of a task link), `system:reminders` for automatic reminders, `system:clock` for the demo clock, or null when a backfilled record does not say. |
-| `kind` | `task.created`, `task.removed`, `task.assigned`, `task.claimed`, `task.status`, `task.waiting_on`, `task.target_changed`, `task.submitted`, `task.done`, `task.reopened`, `reminder.recorded`, `event.created`, `playbook.answer_added`, `playbook.voted`, `handoff.step`; `cheer.sent` and `progress.milestone` are reserved for phases R1 and R2. |
+| `kind` | `task.created`, `task.removed`, `task.assigned`, `task.claimed`, `task.status`, `task.waiting_on`, `task.target_changed`, `task.submitted`, `task.done`, `task.reopened`, `reminder.recorded`, `event.created`, `playbook.answer_added`, `playbook.voted`, `handoff.step`, `cheer.sent`, `cheer.withdrawn` (R1); `progress.milestone` is reserved for phase R2. |
 | `personIds`, `nodeId`, `eventId` | Who and what the event is about, by ID. |
 | `facts` | IDs, enums, numbers, booleans and demo dates only (strings of at most 64 characters), for example `from`/`to` statuses, `onTime`, `daysEarly`, `detailsChars`, `files`. Task titles, submission text, reasons, question and answer text, names and email addresses are never copied in; they stay in their own records. |
+
+## Cheers (`state.cheers`, 2026-11-26 addition, phase R1)
+
+Voluntary peer recognition between officers. Contract: `docs/feedback-fix/CHEERS_R1_CONTRACT.md`. Optional field; the outer schema remains 23. A cheer is visible in the interface to its sender and recipients only, is never sent to AI, and its note never enters the interaction log or the activity record.
+
+| Field/action | Meaning and boundaries |
+| --- | --- |
+| `cheers.cheers[]` | `id` (`ch-<n>`), `fromId`, `toIds` (1–5), `points` (10, 25, 50 or 100 per recipient), `note` (the sender's own words, 10–280 characters; fictional in the demo), optional `nodeId`, `card` (`thanks`, `star`, `teamwork`), `on` (demo date), optional `email` (the sender opened a draft; the app sends nothing), `seenBy` (recipients who saw the received card), optional `withdrawnOn` (same-day withdrawal; a withdrawn cheer counts for nobody). |
+| `cheers.weeklyLineDismissed` | President/VP weekly line: person ID → the Monday of the week they acted on or closed it. |
+| `notifications[]` with `kind: "cheer"` | One per recipient, with `cheerId`; text "<First name> sent you <points> points." without the note; excluded from AI context. |
+| `cheerAction` (interaction log) | Payload IDs and numbers only: `kind` (`send`, `withdraw`, `markSeen`, `dismissWeeklyLine`), and for `send` the recipient count, points, note length, task ID, card and email flag; never the note or recipient names. Interface entries for the cheer controls use fixed `data-log-name` values and omit selected recipient names. |
+| Activity record | `cheer.sent` (actor the sender, `personIds` the recipients, facts `cheerId`, `points`, `recipients`, `noteChars`, `card`, `email`) and `cheer.withdrawn` (fact `cheerId`); older saves rebuild them from `cheers`. |
