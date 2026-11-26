@@ -49,14 +49,14 @@ Compare `prev` and `next` by ID. For nodes:
 | `task.created` | a node ID appears | owner if any | `status`, `eventId` (also on the event) |
 | `task.removed` | a node ID disappears | former owner if any | `status` |
 | `task.assigned` | `ownerId` changes to a person | new owner | `from` (old owner or null) |
-| `task.claimed` | `unclaimed` → any other status with `acceptedOn` set by this change | owner | none |
+| `task.claimed` | `unclaimed` → any other status with `acceptedOn` set by this change, **and the actor is the new owner** (the owner accepted it, in the app or through their task link). A lead assigning a task records `task.assigned` and `task.status` only (amended after review, 2026-11-26) | owner | none |
 | `task.status` | `status` changes (always, in addition to claimed/done/reopened) | owner | `from`, `to` |
 | `task.waiting_on` | `waitingOnPersonId` becomes a person | the person waited on | `ownerId` |
 | `task.target_changed` | `clubDeadlineOverride` changes, or the `targetDates` log grows | owner | `from`, `to` (club deadline before and after) |
 | `task.submitted` | `taskWork.submissions` grows | the submitting author | `detailsChars`, `files`, `revision` |
 | `task.done` | `status` becomes `done` | owner | `onTime` (completedOn ≤ clubDeadline, true when no deadline), `daysEarly` (calendar days from completedOn to clubDeadline, may be negative, null without a deadline), `detailsChars` and `files` of the latest submission (0 when none), `viaBudget` (true when the action was a budget action) |
 | `task.reopened` | `status` leaves `done` | owner | `to` |
-| `reminder.recorded` | a nudge ID appears | the task owner | `via`, `channel` |
+| `reminder.recorded` | a nudge ID appears, or a `reminderRuntime.deliveries` ID appears (reminder plan v2) | the task owner, plus the recipient when different | `via`, `channel`, `recipientId` |
 | `event.created` | an event ID appears | none | `date` |
 | `playbook.answer_added` | a Playbook answer ID appears | author | `questionId`, `answerKind` |
 | `playbook.voted` | a person is added to an answer's `votes.up` or `votes.down` | the voter | `answerId`, `vote` ("up" or "down") |
@@ -80,14 +80,18 @@ Order within one action: by node order in `next.nodes`, then the table order abo
 - `export function withActivityBackfill(s: DemoState): DemoState` (frozen):
   - `s.activity` is an array → `{ ...s, activity: sanitizeActivity(s.activity) }`, or `s` itself when sanitizing changes nothing;
   - `s.activity` is undefined → build events from existing records and return `{ ...s, activity }` (an empty array when there is nothing).
-- `export function sanitizeActivity(raw: unknown): ActivityEvent[]` (frozen): keep objects with a string `id`, integer `seq` ≥ 1, ISO `on`, string or null `actorId`, string `kind`, string-array `personIds`, `source` "live" or "backfill"; drop facts that fail `isActivityFact`; drop duplicate IDs (first wins); keep unknown kinds; sort by `seq`.
+- `export function sanitizeActivity(raw: unknown): ActivityEvent[]` (frozen): keep objects with a string `id` (at most 128 characters; an `act:<n>` ID must have n equal to its `seq`), a safe integer `seq` ≥ 1, ISO `on`, string or null `actorId` (at most 128 characters), string `kind` (at most 64), string-array `personIds` (each at most 128; longer entries dropped), optional `nodeId`/`eventId` (at most 128), `source` "live" or "backfill"; drop facts that fail `isActivityFact`; drop duplicate IDs (first wins); keep unknown kinds; sort by `seq`.
 - Backfill sources, each with `source: "backfill"`, `backfillActivityId(kind, subject)`, `actorId` when the record names the person (else null):
-  - nodes: `assignedOn` → `task.assigned`; `acceptedOn` → `task.claimed`; each `taskWork.submissions` entry → `task.submitted` (subject `<nodeId>:<submission id>`); `status === "done"` with `completedOn` → `task.done` (facts as in §3, with `onTime` from the matching contribution when one exists);
-  - nudges → `reminder.recorded`; events → `event.created` (no date known: `on` = `s.today`, fact `date`);
+  - nodes: `assignedOn` → `task.assigned`; `acceptedOn` → `task.claimed` **only when `acceptedOn` differs from `assignedOn`** (on the same day a lead's assignment and an owner's claim cannot be told apart, so no claim is invented); each `taskWork.submissions` entry → `task.submitted` (subject `<nodeId>:<submission id>`); `status === "done"` with `completedOn` → `task.done` (facts as in §3, with `onTime` from the matching contribution when one exists);
+  - nudges and `reminderRuntime.deliveries` → `reminder.recorded` (deliveries: subject the delivery ID, `on` its `sentOn`, actor `system:reminders` for automatic sends, otherwise the lead who sent it when recorded, else null; personIds and facts as live); events → `event.created` (no date known: `on` = `s.today`, fact `date`);
   - Playbook answers → `playbook.answer_added` (`on` = the answer's `on`);
   - nothing else (votes and handoff steps have no dates).
   - Order: by `on`, then kind order in §3, then subject; `seq` 1…n.
 - Tests: the seed backfills deterministically (same result twice; running it on its own output changes nothing); a v23 save without `activity` gains it on load through `loadStateWithNotice`; a save with `activity` keeps it (sanitized); `migration_blocked` data is untouched; `reset` and `replace` (import) paths; an imported record with malformed events keeps the valid ones; the full export (`buildExport`) contains `state.activity`; `src/lib/aiContext.ts` output never contains `activity` or any event ID; size: a synthetic semester of 3,000 events serializes under 700 KB. (Corrected during integration: the plan's first estimate of 500 KB was too low; with this event shape an event averages about 200 bytes, so 3,000 events are about 640 KB. The seeded demo state itself is about 127 KB with 131 tasks, a typical semester is about 1,000 events or 200 KB, and browser storage allows about 5 MB per site, so 700 KB keeps a wide margin.)
+
+## 5a. Review amendments (2026-11-26)
+
+An independent review of the merged R0 found no P1 and three P2 issues; the rows above were amended. Also: `firstResponse` treats a reminder as a trigger only when its recipient is the task owner; backfilled `task.done` takes `onTime` from a contribution only when that contribution's `completedOn` equals the task's; `startWorkspace` (`src/data/settings.ts`) drops `activity` itself, not only the reducer wrapper. Restoring a removed step records `task.created` again with fact `restored: true`, so counts of created tasks can skip it.
 
 ## 6. Gates (main agent after merging)
 
