@@ -1,4 +1,4 @@
-import type { ActivityEvent, ActivityFact, DemoState, Event, Node, Nudge, PlaybookAnswer, RoleHandoff } from "./types"
+import type { ActivityEvent, ActivityFact, Cheer, DemoState, Event, Node, Nudge, PlaybookAnswer, RoleHandoff } from "./types"
 import type { ReminderDelivery } from "../reminders/contracts"
 import { ACTIVITY_KINDS, isActivityFact, liveActivityId, nextActivitySeq } from "./activityIds"
 import { daysBetween } from "../lib/dates"
@@ -43,6 +43,7 @@ const targetChanges = (n: Node) => list(n.targetDates?.changes).length
 const deliveriesOf = (s: DemoState) => keyed<ReminderDelivery>(s.reminderRuntime?.deliveries)
 const answersOf = (s: DemoState) => keyed<PlaybookAnswer>(s.playbook?.answers)
 const votersOf = (a: PlaybookAnswer | undefined, side: "up" | "down") => list(a?.votes?.[side]).filter((id): id is string => typeof id === "string")
+const cheersOf = (s: DemoState) => keyed<Cheer>(s.cheers && typeof s.cheers === "object" ? s.cheers.cheers : undefined)
 
 /**
  * The events one action produced, without `id` and `seq`, in recording order: by node order in `next.nodes` (removed nodes
@@ -55,8 +56,8 @@ export function deriveActivity(prev: DemoState, next: DemoState, action: { type:
   const nodeIndex = new Map(nextNodes.map((n, i) => [n.id, i]))
   const removedIndex = new Map(prevNodes.filter(n => !nodeIndex.has(n.id)).map((n, i) => [n.id, nextNodes.length + i]))
   const indexOf = (nodeId: unknown) => typeof nodeId !== "string" ? Infinity : nodeIndex.get(nodeId) ?? removedIndex.get(nodeId) ?? Infinity
-  const add = (kind: string, personIds: string[], extra: { nodeId?: unknown; eventId?: unknown; facts?: Record<string, unknown> } = {}) => {
-    const event: DerivedActivity = { on, actorId: actor, kind, personIds, source: "live" }
+  const add = (kind: string, personIds: string[], extra: { nodeId?: unknown; eventId?: unknown; facts?: Record<string, unknown>; actorId?: string } = {}) => {
+    const event: DerivedActivity = { on, actorId: extra.actorId ?? actor, kind, personIds, source: "live" }
     if (typeof extra.nodeId === "string") event.nodeId = extra.nodeId
     if (typeof extra.eventId === "string") event.eventId = extra.eventId
     if (extra.facts && Object.keys(extra.facts).length) event.facts = clean(extra.facts)
@@ -139,6 +140,16 @@ export function deriveActivity(prev: DemoState, next: DemoState, action: { type:
     const old = oldHandoffs.get(h.roleId)
     for (const step of HANDOFF_STEPS) if (h[step] === true && old?.[step] !== true)
       add("handoff.step", people(h.outgoingId, h.incomingId), { facts: { roleId: h.roleId, step } })
+  }
+
+  // Cheers (R1, docs/feedback-fix/CHEERS_R1_CONTRACT.md §2): the sender is the actor. IDs and numbers only: never the note.
+  const oldCheers = new Map(cheersOf(prev).map(c => [c.id, c]))
+  for (const c of cheersOf(next)) {
+    const old = oldCheers.get(c.id), recipients = people(...list(c.toIds)), sender = typeof c.fromId === "string" ? c.fromId : undefined
+    if (!old) add("cheer.sent", recipients, { actorId: sender, nodeId: c.nodeId || undefined, facts: {
+      cheerId: c.id, points: c.points, recipients: recipients.length, noteChars: typeof c.note === "string" ? c.note.length : 0, card: c.card, email: c.email === true,
+    } })
+    if (c.withdrawnOn && !old?.withdrawnOn) add("cheer.withdrawn", recipients, { actorId: sender, facts: { cheerId: c.id } })
   }
 
   return found.sort((a, b) => a.node - b.node || a.kind - b.kind || a.order - b.order).map(k => k.event)
