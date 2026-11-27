@@ -13,6 +13,18 @@ function eventDay(value: string): string | null {
   return toISO(fromISO(value)) === value ? fmtShort(value) : null
 }
 
+const STEP_REQUIREMENTS = new Set(["venue", "registry", "quotes", "quote", "budget", "budgetRequest", "usg", "purchaseRequest", "ritm", "sap", "speakerPacket", "usgspeaker", "headcount", "feedback"])
+/**
+ * What Task Details shows as the task's description. Typed instructions, or the specific line for a known ASU step;
+ * otherwise the task's own "why" (for a template step it says what to make), so the page does not just repeat the title.
+ * Reminder emails keep requirement() as it is.
+ */
+export function taskDescription(state: DemoState, node: Node): string {
+  const event = node.eventId ? state.events.find(e => e.id === node.eventId) : undefined
+  if (node.instructions?.trim() || (node.stepKey && STEP_REQUIREMENTS.has(node.stepKey)) || !text(node.why ?? "")) return requirement(node, event)
+  return sentence(text(node.why))
+}
+
 function requirement(node: Node, event: Event | undefined): string {
   if (node.instructions?.trim()) return text(node.instructions)
   const count = event && Number.isInteger(event.headcount) && event.headcount > 0 ? ` for ${event.headcount} attendees` : ""

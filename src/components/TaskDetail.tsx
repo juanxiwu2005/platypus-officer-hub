@@ -6,7 +6,7 @@ import { fmtShort } from "../lib/dates"
 import { Avatar } from "./ui"
 import { canLead, isOfficer } from "../data/permissions"
 import { dueOf, isLate } from "../lib/taskDue"
-import { buildReminderFacts } from "../reminders/facts"
+import { buildReminderFacts, taskDescription } from "../reminders/facts"
 import { taskLinks } from "../taskDetails/links"
 import { TaskSubmission } from "../taskDetails/TaskSubmission"
 import { TaskProgress } from "../taskDetails/TaskProgress"
@@ -39,7 +39,7 @@ export function TaskDetail({ node, actorId, token, accessToken, standalone = fal
         <TaskProgress key={`${node.id}:${actorId}:${node.ownerVersion ?? 0}:${accessToken ?? token ?? "viewer"}`} node={node} actorId={actorId} authorization={authorization} initialReply={initialReply} readOnly={readOnly} />
       </div>
     </header>
-    <p className="task-requirement">{facts?.requirement ?? node.instructions ?? node.title}</p>
+    <p className="task-requirement">{facts ? taskDescription(state, node) : node.instructions ?? node.title}</p>
     {links.length > 0 && <nav className="task-external-links" aria-label="External task links">{links.map(link => <a key={`${link.label}:${link.url}`} className="btn small" href={link.url} target="_blank" rel="noreferrer">{link.label} <span aria-hidden="true">↗</span></a>)}</nav>}
     {/* Cheers (R1, F4): only in the app, as the viewer; not on an emailed task link or a read-only view. */}
     {!standalone && !authorization && !readOnly && actorId === state.viewerId && node.status === "done" && <ThankPrompt nodeId={node.id} />}

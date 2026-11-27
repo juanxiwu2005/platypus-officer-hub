@@ -55,14 +55,15 @@ describe("universal work on actual task nodes", () => {
       expect(save(bad, input(s))).toBe(bad)
     }
   })
-  it("completes without a note (I3), but rejects an empty correction of a Done task or an empty budget result", () => {
-    const s = fixture(), empty = { details: " ", attachments: [], submit: true }
-    const done = save(s, { ...input(s), ...empty })
+  it("needs Details to submit or mark done, even with files attached (Juanxi 2026-11-27), but saves an empty draft", () => {
+    const s = fixture()
+    expect(save(s, { ...input(s), details: " ", attachments: [], submit: true })).toBe(s)
+    expect(save(s, { ...input(s), details: " ", attachments: [file], submit: true })).toBe(s)
+    expect(taskWork(save(s, { ...input(s), details: " ", attachments: [], submit: false }).nodes[0])?.drafts).toHaveLength(1)
+    const done = save(s, { ...input(s), details: "Room 204 booked", attachments: [], submit: true })
     expect(done.nodes[0].status).toBe("done")
-    expect(taskWork(done.nodes[0])?.submissions).toMatchObject([{ authorId: "jordan", details: "", attachmentIds: [] }])
-    expect(save(done, { ...input(done), ...empty })).toBe(done)
     const budget = { ...s, nodes: [{ ...s.nodes[0], stepKey: "budgetRequest" }] }
-    expect(save(budget, { ...input(budget), ...empty })).toBe(budget)
+    expect(save(budget, { ...input(budget), details: " ", attachments: [], submit: true })).toBe(budget)
   })
   it("rejects mismatched file contents, executable files and excessive attachments", () => {
     const s = fixture()

@@ -64,11 +64,16 @@ test("the owner: one Due, one primary button, four status updates, and no privat
   await expect(detail).toHaveCount(0)
 })
 
-test("the owner marks the task done in one click beside the status, with no note and no scrolling (I3)", async ({ page }) => {
+test("the owner marks the task done beside the status once Details has the result (Details required, files optional)", async ({ page }) => {
   const { n, owner } = await ruledStep(page)
   const detail = await openAs(page, owner, n.id)
   const markDone = detail.getByTestId("single-task-status").getByRole("button", { name: "Mark done", exact: true })
   await expect(markDone).toBeInViewport()
+  await markDone.click()
+  await expect(detail.getByRole("alert")).toHaveText("Add the result in Details before you mark this done.")
+  await expect(detail.getByLabel("Details", { exact: true })).toBeFocused()
+  expect(await savedTask(page, n.id)).toMatchObject({ status: n.status })
+  await detail.getByLabel("Details", { exact: true }).fill("Room 204 booked")
   await markDone.click()
   await expect(detail.getByRole("combobox", { name: "Task status", exact: true })).toHaveValue("done")
   expect(await savedTask(page, n.id)).toMatchObject({ status: "done" })

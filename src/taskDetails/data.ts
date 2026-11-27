@@ -41,8 +41,8 @@ export function saveTaskWork(s: DemoState, id: string, actorId: string, input: T
   if (!work || !input || work.revision !== input.expectedRevision || node.ownerId !== input.expectedOwnerId || (node.ownerVersion ?? 0) !== input.expectedOwnerVersion || typeof input.submit !== "boolean" || typeof input.details !== "string" || input.details.length > 20_000 || !Array.isArray(input.attachments) || input.attachments.length > MAX_FILES || !input.attachments.every(validAttachment) || new Set(input.attachments.map(f => f.id)).size !== input.attachments.length) return s
   const details = input.details.trim()
   if (input.attachments.reduce((sum, f) => sum + f.size, 0) > MAX_TOTAL_BYTES) return s
-  // I3 (2026-11-27): a note is optional when the submission completes the task; a Done or budget-controlled task still needs content.
-  if (input.submit && !details && !input.attachments.length && (node.status === "done" || isBudgetControlledNode(node))) return s
+  // Juanxi (2026-11-27): Details are required to submit or mark done, because the team has to see the result. Files stay optional.
+  if (input.submit && !details) return s
   const files = [...work.files]
   for (const f of input.attachments) {
     const old = files.find(x => x.id === f.id)

@@ -42,11 +42,11 @@ type UndoOffer = { workspaceKey: string; status: NodeStatus; waitingOn: string |
 const undoOffers = new Map<string, UndoOffer>()
 function EditableSubmission({ node, actorId, authorization, work }: { node: Node; actorId: string; authorization?: TaskAuthorization; work: TaskWork }) {
   const { state, tryDispatch, saveProblem, getState } = useStore()
-  const detailsId = useId(), input = useRef<HTMLInputElement>(null), section = useRef<HTMLElement>(null)
+  const detailsId = useId(), input = useRef<HTMLInputElement>(null), section = useRef<HTMLElement>(null), detailsBox = useRef<HTMLTextAreaElement>(null)
   const initialRecord = work.drafts.find(d => d.authorId === actorId) ?? work.submissions.at(-1)
   const session = useMemo(() => taskDraftSession({ workspaceKey: state.demoLinkKey, nodeId: node.id, actorId, ownerId: node.ownerId, ownerVersion: node.ownerVersion ?? 0, workRevision: work.revision, details: initialRecord?.details ?? "", files: (initialRecord?.attachmentIds ?? []).flatMap(id => work.files.find(f => f.id === id) ?? []), hasDraft: work.drafts.some(d => d.authorId === actorId) }), [state.demoLinkKey, node.id, node.ownerId, node.ownerVersion, actorId])
   const draft = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot)
-  const [error, setError] = useState(""), [notice, setNotice] = useState(""), [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState(""), [notice, setNotice] = useState(""), [submitting, setSubmitting] = useState(false), [missing, setMissing] = useState(false)
   const undoKey = `${state.demoLinkKey}:${node.id}:${actorId}:${authorization?.kind ?? ""}`
   const [undo, setUndoState] = useState<UndoOffer | null>(() => { const kept = undoOffers.get(undoKey); return kept && kept.revision === work.revision && kept.ownerId === node.ownerId && kept.ownerVersion === (node.ownerVersion ?? 0) ? kept : null })
   const setUndo = (offer: UndoOffer | null) => { if (offer) undoOffers.set(undoKey, offer); else undoOffers.delete(undoKey); setUndoState(offer) }
@@ -63,14 +63,15 @@ function EditableSubmission({ node, actorId, authorization, work }: { node: Node
     finally { if (input.current) input.current.value = "" }
   }
   async function submit(fromStatus = false) {
-    setError(""); setNotice(""); setSubmitting(true)
+    setError(""); setNotice(""); setMissing(false)
+    // Juanxi (2026-11-27): Details are required to submit or mark done, so the team sees the result. Files are optional.
+    if (!session.getSnapshot().details.trim()) { setMissing(true); detailsBox.current?.focus(); return }
+    setSubmitting(true)
     const startingStatus = getState().nodes.find(n => n.id === node.id)?.status
     try {
       await session.flush()
       const current = session.getSnapshot()
-      // I3: a note is optional when the submission completes the task; adding to a Done or budget task still needs one.
-      const empty = !current.details.trim() && !current.files.length
-      if (empty && (startingStatus === "done" || isBudgetControlledNode(node))) throw new Error("Add some details or an attachment before submitting.")
+      if (!current.details.trim()) { setMissing(true); detailsBox.current?.focus(); return }
       if (current.files.length > MAX_FILES || current.files.reduce((sum, f) => sum + f.size, 0) > MAX_TOTAL_BYTES) throw new Error("Keep up to 3 current attachments, 2 MB each and 5 MB in total.")
       await Promise.all(current.files.map(taskAttachmentBlob))
       if (getState().demoLinkKey !== session.scope.workspaceKey || taskWorkActor(getState(), node.id, authorization) !== actorId) throw new Error("Your draft is saved, but the task viewer has changed. Return to the original task and member before submitting.")
@@ -80,7 +81,7 @@ function EditableSubmission({ node, actorId, authorization, work }: { node: Node
       const savedNode = getState().nodes.find(n => n.id === node.id), savedWork = savedNode && taskWork(savedNode), saved = savedWork?.submissions.at(-1)
       if (!accepted || !savedWork || savedWork.revision !== current.baseWorkRevision + 1 || saved?.authorId !== actorId || saved.details !== current.details.trim() || JSON.stringify(saved.attachmentIds) !== JSON.stringify(current.files.map(f => f.id))) throw new Error(saveFailedText(saveProblem(), "Submission not saved. Try again."))
       if (alive.current) {
-        setNotice(empty ? "Marked done." : "Submitted.")
+        setNotice(savedNode?.status === "done" && before.status !== "done" ? "Marked done." : "Submitted.")
         const offerUndo = before.status !== "done" && savedNode?.status === "done" && authorization?.kind !== "legacy"
         if (offerUndo) setUndo({ workspaceKey: session.scope.workspaceKey, status: before.status, waitingOn: before.waitingOn, waitingOnPersonId: before.waitingOnPersonId ?? null, revision: savedWork.revision, ownerVersion: before.ownerVersion ?? 0, ownerId: before.ownerId })
         if (fromStatus && slot && offerUndo) setFocusUndo(true); else section.current?.focus()
@@ -104,7 +105,7 @@ function EditableSubmission({ node, actorId, authorization, work }: { node: Node
   const completes = node.status !== "done" && !isBudgetControlledNode(node)
   const undoControl = undo && node.status === "done" && <button type="button" ref={undoButton} className="btn small" disabled={submitting} onClick={undoCompletion}>Undo mark done</button>
   return <section className="task-submission" aria-label="Task submission" data-testid="task-submission" ref={section} tabIndex={-1}>
-    <div className="task-details-field"><label htmlFor={detailsId}>Details</label><textarea id={detailsId} value={draft.details} disabled={draft.loading || submitting} onChange={e => { session.setDetails(e.target.value); setNotice("") }} maxLength={20_000} rows={6} placeholder={completes ? "Add a note (optional): the result, location or reference numbers." : "Share the result, location, reference numbers or anything your team needs."} /></div>
+    <div className="task-details-field"><label htmlFor={detailsId}>Details</label><textarea id={detailsId} ref={detailsBox} value={draft.details} disabled={draft.loading || submitting} aria-required="true" aria-invalid={missing || undefined} aria-describedby={missing ? `${detailsId}-missing` : undefined} onChange={e => { session.setDetails(e.target.value); setNotice(""); if (e.target.value.trim()) setMissing(false) }} maxLength={20_000} rows={6} placeholder="Required: the result, location or reference numbers." />{missing && <p className="small late-text task-details-missing" id={`${detailsId}-missing`} role="alert">{completes ? "Add the result in Details before you mark this done." : "Add the result in Details before you submit."}</p>}</div>
     {node.draftLink && safeTaskUrl(node.draftLink) && <a className="small" href={node.draftLink} target="_blank" rel="noreferrer">Open current draft ↗</a>}
     {draft.files.length > 0 && <ul className="task-file-list" aria-label="Attachments">{draft.files.map(file => <li key={file.id}><button type="button" className="task-file-download" aria-label={`Download ${file.name}`} onClick={() => { void downloadTaskAttachment(file, session.pendingBlob(file)).catch(() => setError("This file could not be downloaded. Please try again.")) }}><span aria-hidden="true">▤</span><span>{file.name}</span></button><button type="button" className="btn btn-quiet small" aria-label={`Remove ${file.name}`} disabled={draft.loading || submitting} onClick={() => { session.removeFile(file.id); setNotice("") }}>×</button></li>)}</ul>}
     <input ref={input} className="sr-only" tabIndex={-1} type="file" multiple accept=".pdf,.txt,.md,.csv,.docx,.xlsx,.png,.jpg,.jpeg,.webp" aria-label="Attach files" disabled={draft.loading || submitting} onChange={e => addFiles(e.target.files)} />
