@@ -216,7 +216,9 @@ test("Follow up: a recorded email starts the no-reply clock; Follow up opens tha
   await expect(toggle).toHaveAttribute("aria-expanded", "true")
   await expect(toggle).toBeFocused()
   await expect(toggle).toBeInViewport()
-  await expect(person(page).getByTestId("digest-body")).toBeVisible()
+  // A review-mode row opens its email as the compose box (R-S0 §4), with the task link as a token.
+  await expect(person(page).getByTestId("rq-draft-body")).toBeVisible()
+  await expect(person(page).getByTestId("rq-draft-body")).toHaveValue(/\[Open task: [^\]]+\]/)
   await expect(panel(page)).toHaveCount(0)
   // A rail that covers the page (narrow screens) closes so the row is visible; beside the page, History stays open.
   if ((page.viewportSize()?.width ?? 1280) < 1200) await expect(page.getByTestId("rail")).toBeHidden()

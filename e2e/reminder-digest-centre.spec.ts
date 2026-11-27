@@ -131,9 +131,17 @@ test("narrow screens wrap whole titles; reasons are neutral; statuses use the fi
   await expect(fix.getByText("No owner")).toHaveCount(0)
   await expect(fix.locator('.pill[data-status="unclaimed"]')).toHaveText(["Not claimed", "Not claimed"])
   await expect(fix.locator('.pill[data-status="blocked"]')).toHaveText(["Stuck", "Stuck"])
-  // The email subject is plain sans text; the page title keeps the serif.
-  await page.locator('[data-recipient="maya"]').getByTestId("rq-person-toggle").click()
-  const subject = page.locator('[data-recipient="maya"]').getByTestId("digest-subject")
+  // The email subject is plain sans text; the page title keeps the serif. A review-mode row opens the compose box (R-S0 §4),
+  // whose Subject field is sans too; the read-only preview is checked on the recorded email of a sent row.
+  const maya = page.locator('[data-recipient="maya"]')
+  await maya.getByTestId("rq-person-toggle").click()
+  const field = maya.getByRole("textbox", { name: "Subject" })
+  await expect(field).toHaveValue("Club work · Reconcile September receipts")
+  expect(await field.evaluate(el => getComputedStyle(el).fontFamily)).not.toMatch(/Georgia/)
+  await maya.getByRole("button", { name: "Send to Maya" }).click()
+  await expect(maya).toHaveAttribute("data-state", "sent")
+  if (await maya.getByTestId("rq-person-toggle").getAttribute("aria-expanded") !== "true") await maya.getByTestId("rq-person-toggle").click()
+  const subject = maya.getByTestId("digest-subject")
   await expect(subject).toHaveText("Club work · Reconcile September receipts")
   expect(await subject.evaluate(el => el.tagName)).toBe("P")
   const family = (sel: string) => page.locator(sel).first().evaluate(el => getComputedStyle(el).fontFamily)

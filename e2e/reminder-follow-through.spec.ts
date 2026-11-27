@@ -60,7 +60,8 @@ test("no reply produces one actionable follow-up, then an enabled task review in
   const noReply = page.getByTestId("rq-no-reply")
   await expect(noReply.getByRole("button", { name: "Follow up", exact: true })).toBeEnabled()
   await noReply.getByRole("button", { name: "Follow up", exact: true }).click()
-  await expect(page.getByTestId("digest-body")).toContainText("No reply to the previous reminder")
+  // The follow-up opens in the compose box (R-S0 §4); its rule-written text names the missing reply.
+  await expect(row(page, "jordan").getByTestId("rq-draft-body")).toHaveValue(/No reply to the previous reminder/)
   await expect(row(page, "jordan").getByTestId("rq-person-toggle")).toBeFocused()
   await approve(page, 2, "jordan")
   expect((await read(page)).reminderRuntime!.deliveries.map(d => d.reason)).toEqual(["start", "no_reply"])
