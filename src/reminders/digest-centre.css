@@ -10,6 +10,8 @@
 .dg-top-text { flex: 1 1 16rem; min-width: 0; margin: 0; font-size: var(--fs-base); }
 .dg-quiet { color: var(--muted); }
 .dg-top-note { margin: 0; font-size: var(--fs-md); color: var(--muted); }
+/* Step 0 (W1): the page's one status line stays mounted (so it is announced); empty, it takes no room in the card's grid. */
+.dg-top > .dg-feedback:empty { margin-top: calc(-1 * var(--s3)); }
 /* ---- People, one below the other (works for 10+ people) ---- */
 .dg-people { padding-top: var(--s4); padding-bottom: var(--s4); }
 .dg-list { list-style: none; margin: 0; padding: 0; display: grid; }
@@ -18,6 +20,9 @@
 .dg-person[data-state="reviewing"] { border-radius: var(--r-sm); background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); border-top-color: transparent; }
 .dg-person[data-state="reviewing"] + .dg-person { border-top-color: transparent; }
 .dg-person-head { display: flex; align-items: center; gap: var(--s4); padding-right: var(--s4); }
+/* Step 0 (W1): the name is an h3 around the disclosure button; it keeps the row's own type, not the serif heading style. */
+.dg-person-h { display: flex; flex: 1; min-width: 0; font: inherit; letter-spacing: inherit; }
+.dg-person-static { cursor: default; }
 /* The name is a disclosure for that person's email; the mode's action (or "Sent") sits at the end of the line. */
 .dg-person-toggle {
   display: flex; align-items: center; gap: var(--s5); flex: 1; min-width: 0; min-height: 44px;

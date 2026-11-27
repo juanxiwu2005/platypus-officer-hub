@@ -55,6 +55,7 @@ async function open(page: Page, mode?: ReminderMode, legacyHistory = false) {
   if (mode === "auto_email") await expect.poll(async () => (await demo(page)).reminderRuntime?.deliveries.length).toBe(3)
 }
 const person = (page: Page, id = "jordan") => page.locator(`[data-testid="rq-person"][data-recipient="${id}"]`)
+/** The former rail email panel (removed in step 0); kept only to check it never comes back. */
 const panel = (page: Page) => page.getByTestId("digest-panel")
 /** S2: open one person's combined email in place and wait until the rule-written email is ready. */
 async function openEmail(page: Page, id = "jordan") {
@@ -66,7 +67,6 @@ async function sendRow(page: Page, id = "jordan") {
   await person(page, id).getByTestId("rq-person-send").click()
   await expect(person(page, id)).toHaveAttribute("data-state", "sent")
 }
-const closePanel = async (page: Page) => { await panel(page).getByRole("button", { name: "Close email" }).click(); await closeRail(page) }
 async function openHistory(page: Page) {
   await page.getByTestId("open-history").click()
   await expect(page.getByTestId("reminder-history")).toBeVisible()
@@ -100,7 +100,7 @@ test("no mode: today's tasks are one email for Jordan, with a link to choose a m
   await choice.getByRole("radio", { name: "I review, Platypus sends" }).check()
   await expect.poll(async () => (await demo(page)).org.settings.reminderMode).toBe("review_then_auto")
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Reminders" }).click()
-  await expect(page.getByTestId("send-all-digests")).toHaveText("Send all")
+  await expect(page.getByTestId("send-all-digests")).toHaveText("Send 1 email")
 })
 
 test("I review, then I send: the row opens in Gmail → I sent this records one email for three tasks, by the president", async ({ page, isMobile }) => {
@@ -159,7 +159,8 @@ test("I review, Platypus sends: the row's Send records the whole email; every ta
 test("I review, Platypus sends: Send all N emails records every email in one store action", async ({ page }) => {
   await open(page, "review_then_auto")
   await page.getByTestId("send-all-digests").click()
-  await expect(page.getByText("Sent to 1 person.")).toBeVisible()
+  await expect(page.getByTestId("rq-feedback")).toHaveText("Sent to 1 person today.")
+  await expect(page.getByTestId("rq-summary-line")).toBeFocused()
   await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
   const saved = await demo(page)
   expect(saved.reminderRuntime!.deliveries).toHaveLength(3)
@@ -174,7 +175,8 @@ test("Send automatically: the email is recorded without a button, survives reloa
   await expect(page.getByTestId("send-all-digests")).toHaveCount(0)
   await expect(page.getByTestId("open-first-draft")).toHaveCount(0)
   await expect(person(page)).toHaveAttribute("data-state", "sent")
-  await expect(page.getByTestId("rq-summary")).toContainText("Sent automatically")
+  await expect(page.getByTestId("rq-summary-line")).toHaveText("Sent automatically to 1 person today.")
+  await expect(page.getByTestId("rq-summary")).not.toContainText("Nothing to send today.")
   await expect(page.getByTestId("rq-person-send")).toHaveCount(0)
   const saved = await demo(page)
   expect(saved.nudges).toEqual([])
@@ -208,10 +210,18 @@ test("Follow up: a recorded email starts the no-reply clock; Follow up opens tha
   await expect(wait.getByRole("button", { name: "Follow up" })).toBeEnabled()
   expect((await demo(page)).protocolLog.filter(e => e.kind === "reminder")).toEqual([])
   await wait.getByRole("button", { name: "Follow up" }).click()
-  await expect(panel(page).getByTestId("digest-body")).toBeVisible()
-  await panel(page).getByTestId("digest-send-next").click()
-  await expect(panel(page)).toContainText("All sent.")
-  await closePanel(page)
+  // Step 0: Follow up opens Jordan's row on the home page, with its email and its one action; the rail has no second send flow.
+  const toggle = person(page).getByTestId("rq-person-toggle")
+  await expect(toggle).toHaveAttribute("aria-expanded", "true")
+  await expect(toggle).toBeFocused()
+  await expect(toggle).toBeInViewport()
+  await expect(person(page).getByTestId("digest-body")).toBeVisible()
+  await expect(panel(page)).toHaveCount(0)
+  // A rail that covers the page (narrow screens) closes so the row is visible; beside the page, History stays open.
+  if ((page.viewportSize()?.width ?? 1280) < 1200) await expect(page.getByTestId("rail")).toBeHidden()
+  else await expect(page.getByTestId("reminder-history")).toBeVisible()
+  await expect(page).toHaveURL(/#\/$/)
+  await sendRow(page)
   const saved = await demo(page)
   const history = saved.reminderRuntime!.deliveries.filter(d => d.nodeId === "centre-room")
   expect(history).toHaveLength(2)

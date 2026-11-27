@@ -172,11 +172,20 @@ export interface DigestPerson {
   tasks: DigestTaskLine[]
   /** Not-done tasks this person owns that are not in today's email. */
   otherOpen: number
+  /** Tasks an email limit moved to this person's next email (the same blocked reasons as `DigestCentre.held`). */
+  held: number
 }
-export interface FixRow { id: string; nodeId: string; title: string; problem: string; tone: ChipTone; action: string; legacy: boolean; taskAvailable: boolean }
+/**
+ * One Fix first row. `opens` says what the button does (step 0, 2026-11-27): "task" only opens Task Details, "waiting" opens
+ * its waiting-details editor, "legacy" confirms the earlier reminders in place. `action` is the short visible label.
+ */
+export interface FixRow { id: string; nodeId: string; title: string; problem: string; tone: ChipTone; action: string; opens: "task" | "waiting" | "legacy"; legacy: boolean; taskAvailable: boolean }
 export interface DigestCentre {
   groups: ReminderDigestGroup[]
-  /** Recorded today first, then today's emails in engine order. One entry per email. */
+  /**
+   * Recorded today first, then today's emails in engine order, then people whose tasks all wait for their next email.
+   * One entry per person. The page keeps its own first-render order for a visit, so a sent row is marked in place, not moved.
+   */
   people: DigestPerson[]
   tasks: number; sentToday: number; sentWeek: number
   fix: FixRow[]
@@ -184,18 +193,45 @@ export interface DigestCentre {
   /** Tasks held by a per-person email limit; they go out in that person's next email. */
   held: number
 }
-/** [problem chip, action]. An empty problem means the action already names it (S2: "Waiting on whom?"). */
+/**
+ * [problem chip, visible action]. Step 0 (2026-11-27): a button says what it does. Task Details cannot open its owner picker
+ * directly, so "No owner" only opens the task ("Open task"; nothing claims the task for the viewer). An unresolved waiting
+ * task opens Task Details at its waiting-details editor ("Choose"). The chip names the problem.
+ */
+const OPEN = "Open task"
 const FIX: Record<string, [string, string]> = {
-  no_owner: ["No owner", "Assign"],
-  unresolved_waiting: ["", "Waiting on whom?"],
-  paused: ["Stuck", "Help"],
-  unavailable_recipient: ["No valid email", "Review"],
+  no_owner: ["No owner", OPEN],
+  unresolved_waiting: ["Waiting on whom?", "Choose"],
+  paused: ["Stuck", OPEN],
+  unavailable_recipient: ["No valid email", OPEN],
   legacy_history: ["Check earlier reminders", "I checked · allow future reminders"],
-  task_limit: ["Reminder limit reached", "Review"],
+  task_limit: ["Reminder limit reached", OPEN],
 }
 /** Not a problem to fix: the task was already in today's email, or it waits for this person's next email (email limits). */
 const NOT_A_PROBLEM = new Set(["already_sent_today"])
 const NEXT_EMAIL = new Set(["daily_limit", "daily_reserved", "weekly_limit", "weekly_reserved"])
+const countPeople = (n: number) => n === 1 ? "1 person" : `${n} people`
+
+/**
+ * The summary card's line after Send all (step 0, 2026-11-27). It counts today, not only this click: `sent` emails were
+ * recorded now, `earlier` people already had today's email before the click.
+ */
+export function sendAllFeedback(sent: number, earlier: number, error: string | null): string {
+  const parts: string[] = []
+  if (sent && !earlier && !error) parts.push(sent === 1 ? "Sent to 1 person today." : `Sent to all ${sent} today.`)
+  else if (sent) parts.push(`Sent to ${countPeople(sent)}.`)
+  if (sent && earlier) parts.push(`${earlier} ${earlier === 1 ? "was" : "were"} sent earlier today.`)
+  if (error) parts.push(error)
+  return parts.join(" ") || "These emails were not sent. Please try again."
+}
+
+/**
+ * History → Follow up opens that person's row on the home page (step 0): the page reads `?person=<recipientId>`, opens the
+ * row, scrolls it into view, focuses its toggle and then drops the parameter.
+ */
+export const PERSON_PARAM = "person"
+export const personRowPath = (recipientId: string) => `/?${PERSON_PARAM}=${encodeURIComponent(recipientId)}`
+
 export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]!.toUpperCase()).join("") || "?"
 export const firstName = (name: string) => name.split(/\s+/)[0] || name
 
@@ -222,6 +258,9 @@ export function digestCentre(state: DemoState, centre: ReminderCentre = reminder
   const latestSent = new Map<string, ReminderDigestSnapshot>()
   for (const d of sentToday) latestSent.set(d.recipientId, d)
   const titleOf = (nodeId: string) => state.nodes.find(n => n.id === nodeId)?.title
+  // Per person: the tasks a daily or weekly email limit moved to that person's next email.
+  const heldBy = new Map<string, Set<string>>()
+  for (const b of centre.blocked) if (b.recipientId && NEXT_EMAIL.has(b.blockedReason ?? "")) heldBy.set(b.recipientId, (heldBy.get(b.recipientId) ?? new Set()).add(b.nodeId))
   const person = (recipientId: string, fallback: string, group: ReminderDigestGroup | null): DigestPerson => {
     const name = state.people.find(p => p.id === recipientId)?.name ?? fallback
     const sent = latestSent.get(recipientId) ?? null
@@ -234,18 +273,22 @@ export function digestCentre(state: DemoState, centre: ReminderCentre = reminder
         title: runtime?.deliveries.find(d => d.digestId === sent!.id && d.nodeId === nodeId)?.taskTitle ?? titleOf(nodeId) ?? "Earlier task" }))
     const inEmail = new Set(tasks.map(t => t.nodeId))
     return { recipientId, name, initials: initials(name), group, sent, tasks,
-      otherOpen: openTasksOf(state, recipientId).filter(n => !inEmail.has(n.id)).length }
+      otherOpen: openTasksOf(state, recipientId).filter(n => !inEmail.has(n.id)).length, held: heldBy.get(recipientId)?.size ?? 0 }
   }
   const grouped = new Set(plan.groups.map(g => g.recipientId))
   const people = [
     ...[...latestSent.values()].filter(d => !grouped.has(d.recipientId)).map(d => person(d.recipientId, d.recipientName, null)),
     ...plan.groups.map(g => person(g.recipientId, g.recipientName, g)),
   ]
+  // A person with no email today whose tasks all wait for their next email still gets a row, so the held line is not lost.
+  const listed = new Set(people.map(p => p.recipientId))
+  for (const [recipientId] of heldBy) if (!listed.has(recipientId)) people.push(person(recipientId, "Former member", null))
   const held = new Set(centre.blocked.filter(b => NEXT_EMAIL.has(b.blockedReason ?? "")).map(b => b.nodeId)).size
   const fix = centre.blocked.filter(b => !NOT_A_PROBLEM.has(b.blockedReason ?? "") && !NEXT_EMAIL.has(b.blockedReason ?? "")).map(b => {
-    const [problem, action] = FIX[b.blockedReason ?? ""] ?? ["Review this task", "Review task"]
+    const [problem, action] = FIX[b.blockedReason ?? ""] ?? ["Review this task", OPEN]
     const tone: ChipTone = b.blockedReason === "paused" || b.blockedReason === "unavailable_recipient" ? "late" : "warn"
-    return { id: b.id, nodeId: b.nodeId, title: b.taskTitle, problem, tone, action, legacy: b.blockedReason === "legacy_history", taskAvailable: b.taskAvailable }
+    const opens: FixRow["opens"] = b.blockedReason === "legacy_history" ? "legacy" : b.blockedReason === "unresolved_waiting" ? "waiting" : "task"
+    return { id: b.id, nodeId: b.nodeId, title: b.taskTitle, problem, tone, action, opens, legacy: opens === "legacy", taskAvailable: b.taskAvailable }
   })
   // B3: a task already in today's email is not listed again as "coming up".
   const todayNodes = new Set(plan.groups.flatMap(g => g.candidates.map(c => c.nodeId)))
