@@ -174,6 +174,11 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   delete cleanWorkspace.matchingContext
   delete cleanWorkspace.activity // a new club starts a new activity record (R0); the prior club's events are not carried over
   delete cleanWorkspace.cheers // and no cheers from the prior club (R1)
+  // Nor the prior club's Playbook (its authors, votes and reads are the prior club's people), its earlier handoff rounds
+  // (they would feed "Start from your handoff notes") or its onboarding checklist (role IDs). Role terms restart from the new holders.
+  delete cleanWorkspace.playbook
+  delete cleanWorkspace.handoffHistory
+  delete cleanOrg.onboardingChecklist
   delete cleanOrg.matchingWorkspaceId
   // A deliberately new workspace starts its own template library and team IDs.
   delete cleanOrg.workflowTemplates
@@ -181,12 +186,15 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   delete cleanOrg.workflowTeams
   delete cleanOrg.workflowPresetTeamIds
   delete cleanOrg.workflowRoleTeams
-  const { reminderMode: _earlier, matchingMode: _matchingMode, ...kept } = s.org.settings; void _earlier; void _matchingMode
-  return applySchedule({ ...cleanWorkspace, viewerId: president.holderId!, org: { ...cleanOrg, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, ...(branches ? { branches: structuredClone(branches) } : {}), updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, reminderMode: reminderMode ?? DEFAULT_REMINDER_MODE, ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], archivedRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+  const { reminderMode: _earlier, matchingMode: _matchingMode, eventCreatorIds: earlierCreators, ...rest } = s.org.settings; void _earlier; void _matchingMode
+  // Chosen event creators are people: keep only those who are in the new club.
+  const creators = earlierCreators?.filter(id => people.some(p => p.id === id))
+  const kept = { ...rest, ...(creators ? { eventCreatorIds: creators } : {}) }
+  return applySchedule({ ...cleanWorkspace, viewerId: president.holderId!, org: { ...cleanOrg, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, ...(branches ? { branches: structuredClone(branches) } : {}), updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, reminderMode: reminderMode ?? DEFAULT_REMINDER_MODE, ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], roleTerms: [], archivedRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
 }
 
 /**
- * Start workspace (P3-A): the participant's club from setup, plus the sample scenario (three event templates, board tasks, risks,
+ * Start workspace (P3-A): the participant's club from setup, plus the sample scenario (three event templates, board tasks, risks, school-rule Playbook questions,
  * funding, contacts, handoff season) moved onto the participant's roles and officers. A refused setup changes nothing.
  */
 export function startWorkspace(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[], reminderMode?: ReminderMode | null, branches?: WorkflowBranch[]): DemoState {

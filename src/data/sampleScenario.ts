@@ -1,11 +1,13 @@
-import type { DemoState, HandoffSeason, Role, RoleFunction, RoleHandoff } from "./types"
+import type { DemoState, HandoffSeason, Playbook, Role, RoleFunction, RoleHandoff } from "./types"
 import { applySchedule } from "../engine/schedule"
 import { syncBudgetFlow } from "../engine/eventBudget"
+import { PLAYBOOK_CATEGORIES, playbookOf } from "./playbook"
 
 /**
  * The sample scenario (Phase 3, P3-A). A participant sets up their own club in the founder walkthrough; the workspace they then use
  * keeps their club (name, mission, goals, roles, officers, settings, event workflow) and borrows the scenario from the fictional sample
- * club: its three event templates with their steps, the board tasks, funding, contacts, the handoff season and the private updates.
+ * club: its three event templates with their steps, the board tasks, funding, contacts, the handoff season, the private updates and
+ * the school-rule questions of its Playbook.
  *
  * Every sample record that points at a sample role or officer is moved to the participant's role with the same function (fallback: the
  * president role) and to that role's officer (fallback: the president's officer). Dates are not copied as facts: applySchedule (the
@@ -42,6 +44,28 @@ export function sampleHandoff(roles: Role[], season: SampleSeason): { handoff: H
     return { roleId: role.id, outgoingId: role.holderId, interview: [...interview], entries: [], sources: [], fingerprint: "", source: "", model: null, confirmed: false, approved: false, checks: [], completed: false, reviewed: false, incomingId: null }
   })
   return { handoff: { id: `season:${season.from}`, from: season.from, to: season.to, roleIds: roles.map(r => r.id) }, handoffRoles }
+}
+
+const UNIVERSAL_CATEGORIES = new Set<string>(PLAYBOOK_CATEGORIES.map(c => c.id))
+
+/**
+ * The school-rule part of a sample Playbook, for a new club (audit D8). Only questions that came with the sample ("seed", written by
+ * nobody) and their "rule" answers (quoted from the school pack, written by nobody) are kept; the sample club's own club and experience
+ * answers, votes, reads, asked questions and club categories are not, since their people are not in the new club. Question roles are
+ * moved with `mapRoles` (the same role map as the tasks). Undefined when nothing is left, so the club starts with an empty Playbook.
+ */
+export function schoolRulePlaybook(sample: Playbook, mapRoles: (ids: string[]) => string[]): Playbook | undefined {
+  const answers = sample.answers.filter(a => a.kind === "rule" && a.authorId === null)
+  const questions = sample.questions.filter(q => q.origin === "seed" && q.createdBy === null && !q.mergedInto && answers.some(a => a.questionId === q.id))
+  if (!questions.length) return undefined
+  const kept = new Set(questions.map(q => q.id))
+  return {
+    questions: questions.map(q => {
+      const roleIds = q.roleIds === "all" ? "all" : mapRoles(q.roleIds)
+      return { ...q, roleIds: roleIds === "all" || roleIds.length ? roleIds : "all", policyIds: [...q.policyIds], checklistItemIds: [], category: UNIVERSAL_CATEGORIES.has(q.category) ? q.category : "timeline" }
+    }),
+    answers: answers.filter(a => kept.has(a.questionId)).map(({ share: _share, ...a }) => ({ ...a, votes: { up: [], down: [] } })),
+  }
 }
 
 export interface SampleMaps { role: Map<string, string>; person: Map<string, string> }
@@ -97,6 +121,7 @@ export function withSampleScenario(setup: DemoState, sample: DemoState): DemoSta
       waitingOnPersonId: n.waitingOnPersonId ? p(n.waitingOnPersonId) : n.waitingOnPersonId,
     }
   })
+  const playbook = schoolRulePlaybook(playbookOf(sample), rs)
   const handoff = sample.handoff ? sampleHandoff(roles, { from: sample.handoff.from, to: sample.handoff.to }) : { handoff: null, handoffRoles: [] }
 
   const merged: DemoState = {
@@ -111,6 +136,8 @@ export function withSampleScenario(setup: DemoState, sample: DemoState): DemoSta
     contacts: sample.contacts.map(c => ({ ...c, ownerRoleId: r(c.ownerRoleId) ?? c.ownerRoleId, introducedById: p(c.introducedById), createdBy: p(c.createdBy) })),
     interactions: sample.interactions.flatMap(i => { const by = p(i.byId); return by ? [{ ...i, byId: by }] : [] }),
     funding: sample.funding.map(f => ({ ...f })),
+    // The school rules from the sample Playbook, nothing the sample club's officers wrote (setup starts the club without one).
+    ...(playbook ? { playbook } : {}),
     handoff: handoff.handoff,
     handoffRoles: handoff.handoffRoles,
     feedback: [],
