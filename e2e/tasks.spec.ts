@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { ask, closeRail, demoClock, noOverflow, resetDemo, viewAs } from "./helpers"
 import { createUnclaimedTask, savedTask } from "./taskHelpers"
-import { enableUpdatedReminders } from "./reminderHelpers"
+import { draftTaskLinks, enableUpdatedReminders } from "./reminderHelpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -147,9 +147,10 @@ test("tampered and reset task entries cannot update any task", async ({ page, is
   await enableUpdatedReminders(page)
   // Concept F / S2: the first person's email, opened in place; each task line ends in its own "Open task" entry.
   await page.getByTestId("rq-person").first().getByTestId("rq-person-toggle").click()
-  const link = page.getByTestId("rq-person").first().getByTestId("digest-body").getByRole("link", { name: "Open task", exact: true }).first()
-  await expect(link).toHaveAttribute("href", /access=/)
-  const href = (await link.getAttribute("href"))!
+  // R-S0: the open email is an editable draft; its links are the task entries saved for it.
+  const recipient = (await page.getByTestId("rq-person").first().getAttribute("data-recipient"))!
+  const href = (await draftTaskLinks(page, recipient))[0]
+  expect(href).toMatch(/access=/)
   await page.goto(`${href}0`)
   await expect(page.getByRole("heading", { name: "Check your task link" })).toBeVisible()
   await expect(page.getByTestId("task-detail")).toHaveCount(0)

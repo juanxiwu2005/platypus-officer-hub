@@ -29,7 +29,7 @@ test("edit Maya's email: add a line, lose the link, put it back, undo and redo, 
   await enableUpdatedReminders(page, "review_then_auto")
   const draft = await openDraft(page, "maya")
   await expect(draft.getByTestId("rq-draft-to")).toHaveText("maya.chen@example.org")
-  await expect(draft.getByRole("textbox", { name: "Subject" })).toHaveValue("1 Platypus task need you")
+  await expect(draft.getByRole("textbox", { name: "Subject" })).toHaveValue("Club work · Reconcile September receipts")
   const body = draft.getByRole("textbox", { name: "Message" })
   const token = await firstToken(body)
   expect(await body.inputValue()).not.toMatch(/https?:/)

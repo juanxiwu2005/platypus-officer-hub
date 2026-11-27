@@ -34,7 +34,7 @@ const row = (page: Page, recipientId: string) => page.locator(`[data-testid="rq-
 /** Concept F / S2: one person's email opens in place on the page; the row's Send records it. */
 async function openEmail(page: Page, recipientId: string) {
   await row(page, recipientId).getByTestId("rq-person-toggle").click()
-  await expect(row(page, recipientId).getByTestId("digest-body")).toBeVisible()
+  await expect(row(page, recipientId).getByTestId("rq-draft-body")).toBeVisible()   // R-S0: an editable draft
 }
 /** With a recipient: the row's Send. Without: Send & next in the right rail (opened by History's Follow up). */
 async function approve(page: Page, count: number, recipientId?: string) {
@@ -99,7 +99,7 @@ test("helper promises survive refresh, are checked on the promised day, and prov
   if (info.project.name === "mobile") await expect(page.getByTestId("rail")).toBeHidden()
   await closeRail(page)
   await openEmail(page, "sam")
-  await expect(row(page, "sam").getByTestId("digest-body")).toContainText("Input was expected by")
+  await expect(row(page, "sam").getByTestId("rq-draft-body")).toHaveValue(/Input was expected by/)
   await approve(page, 2, "sam")
   expect((await read(page)).reminderRuntime!.deliveries[1].reason).toBe("waiting_followup")
   await page.goto(first.message!.taskUrl)
