@@ -9,6 +9,7 @@ import { fmtLong } from "../lib/dates"
 import { digestCentre, reminderCentre, type ReminderCentre as Centre } from "../reminders/centre"
 import { sendReminderDigests } from "../reminders/digest"
 import { PersonRow } from "../reminders/PersonRow"
+import { ProblemChip } from "../reminders/ReasonChip"
 import { YourReminders } from "../reminders/YourReminders"
 import { isReminderRuntime } from "../reminders/runtime"
 import { WeeklyLine } from "../components/cheers/WeeklyLine"
@@ -92,7 +93,7 @@ function ReminderCentre({ q }: { q: Centre }) {
       <header><h2 id="dg-fix-h">Fix first<span className="rq-n">{dc.fix.length}</span></h2></header>
       <ul className="rq-list">{dc.fix.map(x => <li key={x.id} className="dg-fix-row" data-testid="rq-row" data-node={x.nodeId}>
         <span className="dg-task-title">{x.title}</span>
-        {x.problem ? <span className={`dg-chip ${x.tone}`}>{x.problem}</span> : <span />}
+        {x.problem ? <ProblemChip problem={x.problem} /> : <span />}
         {x.legacy ? <button type="button" className="btn small" disabled={persistenceFailed} onClick={() => reviewLegacy(x.nodeId)}>{x.action}</button>
           : x.taskAvailable ? <button type="button" className="btn small" aria-label={`${x.action}: ${x.title}`} onClick={() => rail.show({ kind: "node", id: x.nodeId })}>{x.action}</button> : <span />}
       </li>)}</ul>

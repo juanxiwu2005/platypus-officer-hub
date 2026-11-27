@@ -37,8 +37,15 @@ test("the seed fits in a short page: 3 people for 5 tasks, grouped by person, pr
   await expect(page.getByTestId("rq-person-task")).toHaveCount(5)
   await expect(page.getByTestId("rq-person-send")).toHaveCount(3)
   await expect(page.getByTestId("rq-fix").getByTestId("rq-row")).toHaveCount(8)
-  // Every task line is one line.
-  for (const line of await page.getByTestId("rq-person-task").all()) expect((await line.boundingBox())!.height).toBeLessThan(44)
+  // A computer or an iPad: every task line is one line. A phone (R-S0 W2): the full title wraps and the reason sits under it.
+  for (const line of await page.getByTestId("rq-person-task").all()) {
+    const title = line.locator(".dg-task-title"), chip = line.getByTestId("rq-reason")
+    expect(await title.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0)
+    if (isMobile) expect((await chip.boundingBox())!.y).toBeGreaterThanOrEqual((await title.boundingBox())!.y + (await title.boundingBox())!.height - 1)
+    else expect((await line.boundingBox())!.height).toBeLessThan(44)
+  }
+  await expect(page.getByText("Late to start")).toHaveCount(0)
+  await expect(page.getByTestId("rq-people").getByText("No start update")).toHaveCount(3)
   if (!isMobile) {
     await page.setViewportSize({ width: 1440, height: 900 })
     expect(await page.locator("main").evaluate(m => m.scrollHeight)).toBeLessThan(1600)
@@ -81,3 +88,64 @@ test("a row expands to its real email in place; a row's Send records it once; Se
   await expect(page.getByTestId("rq-sent").getByTestId("rq-row")).toHaveCount(3)
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
 })
+
+// R-S0 W2: titles are never cut, reasons are one neutral chip, real statuses use the fixed pills, and there is no red risk mark.
+test("narrow screens wrap whole titles; reasons are neutral; statuses use the fixed pills; risk is text", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 640 })
+  await closeRail(page)
+  const people = page.getByTestId("rq-people")
+  await expect(people.locator("[data-testid=forecast], .risk")).toHaveCount(0)
+  const titles = people.locator(".dg-task-title")
+  await expect(titles).toHaveCount(5)
+  for (const title of await titles.all()) {
+    expect(await title.evaluate(el => ({ cut: el.scrollWidth > el.clientWidth, ellipsis: getComputedStyle(el).textOverflow }))).toEqual({ cut: false, ellipsis: "clip" })
+    const box = (await title.boundingBox())!
+    expect(box.x).toBeGreaterThanOrEqual(0)
+    expect(box.x + box.width).toBeLessThanOrEqual(320)
+  }
+  await expect(page.locator('[data-node="t-room"] .dg-task-title')).toHaveText("Book the spring weekly meeting room · At risk")
+  // "At risk" is read after the title and adds no tab stop.
+  await expect(people.getByTestId("rq-at-risk").first()).toHaveText("· At risk")
+  expect(await people.getByTestId("rq-at-risk").evaluateAll(list => list.every(el => !el.closest("button, a, [tabindex]:not([tabindex=\"-1\"])")))).toBe(true)
+  const chips = await page.getByTestId("rq-reason").evaluateAll(list => [...new Set(list.map(el => getComputedStyle(el).backgroundColor + getComputedStyle(el).color))])
+  expect(chips).toHaveLength(1)
+  const fix = page.getByTestId("rq-fix")
+  await expect(fix.getByText("No owner")).toHaveCount(0)
+  await expect(fix.locator('.pill[data-status="unclaimed"]')).toHaveText(["Not claimed", "Not claimed"])
+  await expect(fix.locator('.pill[data-status="blocked"]')).toHaveText(["Stuck", "Stuck"])
+  // The email subject is plain sans text; the page title keeps the serif.
+  await page.locator('[data-recipient="maya"]').getByTestId("rq-person-toggle").click()
+  const subject = page.locator('[data-recipient="maya"]').getByTestId("digest-subject")
+  await expect(subject).toHaveText("Club work · Reconcile September receipts")
+  expect(await subject.evaluate(el => el.tagName)).toBe("P")
+  const family = (sel: string) => page.locator(sel).first().evaluate(el => getComputedStyle(el).fontFamily)
+  expect(await family('[data-testid="digest-subject"]')).not.toMatch(/Georgia/)
+  expect(await family(".page-head h1")).toMatch(/Georgia/)
+  expect(await family("#dg-fix-h")).not.toMatch(/Georgia/)
+  expect(await noOverflow(page)).toBeLessThanOrEqual(0)
+})
+
+for (const [width, height] of [[390, 844], [320, 640]]) {
+  test(`phone ${width}px: the floating Ask button never covers an action`, async ({ page, isMobile }) => {
+    test.skip(!isMobile, "phone only: the Ask button is drawn below 1200px, on a touch screen")
+    await page.setViewportSize({ width, height })
+    const fab = page.locator(".ask-fab")
+    await expect(fab).toBeVisible()
+    // At the end of the page every button and link of the people list and Fix first sits above the Ask button.
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+    const covered = () => page.evaluate(() => {
+      const f = document.querySelector(".ask-fab")!.getBoundingClientRect()
+      return [...document.querySelectorAll<HTMLElement>("main button, main a[href]")].filter(el => el.getClientRects().length).filter(el => {
+        const b = el.getBoundingClientRect()
+        return b.right > f.left && b.left < f.right && b.bottom > f.top && b.top < f.bottom
+      }).map(el => el.textContent)
+    })
+    expect(await covered()).toEqual([])
+    // The people list alone (no Fix first after it): its last Send still clears the button.
+    await page.evaluate(() => document.querySelector<HTMLElement>("[data-testid=rq-fix]")!.remove())
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+    expect(await covered()).toEqual([])
+    const last = (await page.getByTestId("rq-person").last().boundingBox())!
+    expect(last.y + last.height).toBeLessThanOrEqual((await fab.boundingBox())!.y)
+  })
+}

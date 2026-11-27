@@ -88,7 +88,9 @@ test("top tasks and the reminder centre's risk marks come from the app; a person
   await page.route("**/api/nudge/draft", r => { aiCalls++; return r.fulfill({ json: { whyItMatters: "We build a stronger club together.", source: "ai" } }) })
   await enableUpdatedReminders(page, "review_then_self")   // the Gmail draft path; the sample club starts on review_then_auto
   const people = page.getByTestId("rq-people")
-  await expect(people.getByTestId("rq-person-task").first().getByTestId("forecast").getByRole("button")).toHaveAttribute("aria-label", /At risk/)
+  // R-S0 W2: the risk mark on this page is the text "At risk" after the title (no red mark, no extra tab stop).
+  await expect(people.getByTestId("rq-person-task").first().getByTestId("rq-at-risk")).toHaveText("· At risk")
+  await expect(people.getByTestId("forecast")).toHaveCount(0)
   await ask(page, "What are my top 5 tasks?")
   await expect(page.getByTestId("tasks-card")).toContainText("Your top")
   await closeRail(page)

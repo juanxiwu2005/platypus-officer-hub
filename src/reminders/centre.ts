@@ -206,7 +206,8 @@ export function reasonChip(c: ReminderCandidate, today: string): { label: string
   if (c.overdueDays > 0) return { label: `${c.overdueDays} day${c.overdueDays === 1 ? "" : "s"} overdue`, tone: "late" }
   if (c.reason === "overdue") return { label: "Overdue", tone: "late" }
   if (c.reason === "due") return { label: "Due today", tone: "warn" }
-  return { label: c.scheduledOn < today ? "Late to start" : "Starts today", tone: "warn" }
+  // R-S0: factual wording (REMINDER_EMAIL_RESEARCH_2026-11-18.md): no start update is recorded, not a judgement.
+  return { label: c.scheduledOn < today ? "No start update" : "Starts today", tone: "warn" }
 }
 
 export function openTasksOf(state: DemoState, personId: string) {

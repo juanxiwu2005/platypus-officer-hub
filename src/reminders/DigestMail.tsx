@@ -23,7 +23,8 @@ function MailBody({ body }: { body: string }) {
 export function Mail({ to, subject, body, label = "Email preview" }: { to: string | null; subject: string; body: string; label?: string }) {
   return <section className="dg-mail" aria-label={label} data-testid="digest-mail">
     <p className="dg-mail-to">To: {to ?? "no valid email address"}</p>
-    <h3>{subject}</h3>
+    {/* R-S0 W2: the subject is the email's text, not a page heading: plain sans text. */}
+    <p className="dg-mail-subject" data-testid="digest-subject">{subject}</p>
     <MailBody body={body} />
   </section>
 }

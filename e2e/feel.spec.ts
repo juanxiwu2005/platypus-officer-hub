@@ -1,6 +1,5 @@
 import { expect, test } from "@playwright/test"
 import { closeRail } from "./helpers"
-import { enableUpdatedReminders } from "./reminderHelpers"
 
 // S3 (2026-10-27): hover cards answer at once, cards with buttons can be used, and form fields get a
 // quiet focus style while keyboard focus stays visible everywhere.
@@ -13,9 +12,11 @@ test.beforeEach(async ({ page }) => {
 test("hover cards and flow-chart cards start showing with no delay", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop", "hover needs a pointer")
   const delay = (el: Element) => getComputedStyle(el).transitionDelay
-  await enableUpdatedReminders(page)   // a fresh demo opts in to the reminder centre through its shipped control
-  const dot = page.getByTestId("reminder-centre").getByTestId("forecast").first()   // FB-8: the risk marks in the reminder centre
-  await dot.locator("button").hover()
+  // R-S0 W2: the reminder centre shows risk as text (no hover card), so the card checked here is Team's workload meter.
+  await page.goto("/#/team")
+  await closeRail(page)
+  const dot = page.getByTestId("officers").locator(".hover").first()
+  await dot.getByRole("img", { name: /^Workload: / }).hover()
   const card = dot.locator(".hover-card")
   expect(await card.evaluate(delay)).toBe("0s, 0s")
   await expect(card).toBeVisible()

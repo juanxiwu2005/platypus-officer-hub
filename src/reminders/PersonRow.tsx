@@ -2,12 +2,12 @@ import { useEffect, useRef, useState } from "react"
 import { useStore } from "../data/store"
 import type { ReminderMode } from "../data/types"
 import type { Forecast } from "../engine/forecast"
-import { RiskDot } from "../components/ui"
 import { composeUrl } from "../lib/nudges"
 import { firstName, type DigestPerson } from "./centre"
 import { prepareReminderDigest, recordReminderDigests } from "./digest"
 import type { ReminderDelivery } from "./contracts"
 import { Mail, digestVia, usePreparedDigest } from "./DigestMail"
+import { ReasonChip } from "./ReasonChip"
 
 /**
  * One person's row: their tasks, a disclosure with the full email, and the mode's one action. Nothing is really sent.
@@ -57,10 +57,10 @@ export function PersonRow({ p, mode, reviewing, forecast, sendingAll }: { p: Dig
         : mode === "review_then_auto" ? <button type="button" className="btn small" data-testid="rq-person-send" aria-label={`Send to ${first}`} disabled={busy || sendingAll || persistenceFailed} onClick={event => record("platypus", event.detail)}>{busy ? "Sending…" : "Send"}</button>
         : null}
     </div>
+    {/* R-S0 W2: the full title wraps (never cut); "At risk" is plain text read after it, not a red mark or a tab stop. */}
     <ul className="dg-tasks">{p.tasks.map(t => <li key={t.id} className="dg-task" data-testid="rq-person-task" data-node={t.nodeId}>
-      <span className="rq-mark">{t.risk && forecast.nodes[t.nodeId] && <RiskDot result={forecast.nodes[t.nodeId]} />}</span>
-      <span className="dg-task-title">{t.title}</span>
-      {t.chip && <span className={`dg-chip ${t.tone}`}>{t.chip}</span>}
+      <span className="dg-task-title">{t.title}{t.risk && forecast.nodes[t.nodeId] && <>{" "}<span className="dg-risk" data-testid="rq-at-risk"><span aria-hidden="true">· </span>At risk</span></>}</span>
+      {t.chip && <ReasonChip label={t.chip} />}
     </li>)}</ul>
     <div id={region} className="dg-inline" data-testid="rq-person-email" hidden={!open}>
       {open && (p.group ? <>

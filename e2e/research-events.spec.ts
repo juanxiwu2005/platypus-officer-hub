@@ -55,16 +55,19 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   await search.press("Tab")
 
   // 3. A hover card read for about a second (a tap opens it on a phone, a tap elsewhere closes it).
-  await nav(page, /^Reminders/)
-  await expect(page.locator("main h1")).toHaveText("Reminders")
+  // R-S0 W2: the reminder page shows risk as the text "At risk" (no risk mark, so no hover card there); the card read here is
+  // Team's workload meter, a Hover card like the others. Then back to Reminders for the rest of the session.
+  await nav(page, "Team")
+  await expect(page.locator("main h1")).toHaveText("Team")
   await closeRail(page)
-  // FB-8: the home page is the reminder centre; its hover cards are the risk marks (the "Needs a nudge" card and its ⓘ are gone).
-  // Concept F: the marks sit on the task lines of each person's email.
-  const info = page.getByTestId("rq-people").getByTestId("rq-person-task").getByTestId("forecast").first().getByRole("button")
+  const info = page.getByTestId("officers").getByRole("img", { name: /^Workload: / }).first()
   if (phone(page)) { await info.tap(); await page.waitForTimeout(900); await page.locator("main h1").tap() }
   else { await info.hover(); await page.waitForTimeout(900); await page.mouse.move(2, 400) }
   // ...and a mouse pass that is too short to count.
   if (!phone(page)) { await info.hover(); await page.mouse.move(2, 400) }
+  await nav(page, /^Reminders/)
+  await expect(page.locator("main h1")).toHaveText("Reminders")
+  await closeRail(page)
 
   // 4. Away from the page: a flicker (nothing written), then two seconds in another tab.
   await away(page, 150)
@@ -109,10 +112,10 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   expect(p(visible).awayMs as number).toBeGreaterThanOrEqual(1900)
 
   // the hover card: one entry of at least half a second, named by its trigger and the heading it sits under; the short pass is not there
-  // A risk mark's trigger has its own name ("At risk: …"), so no `near` heading is added.
-  const hovers = log.filter(e => e.type === "ui.hover" && /^At risk: /.test(String(p(e).name)))
+  // The workload meter's trigger has its own name ("Workload: <band>").
+  const hovers = log.filter(e => e.type === "ui.hover" && /^Workload: /.test(String(p(e).name)))
   expect(hovers).toHaveLength(1)
-  expect(p(hovers[0])).toMatchObject({ route: "/", via: phone(page) ? "tap" : "mouse" })
+  expect(p(hovers[0])).toMatchObject({ route: "/team", via: phone(page) ? "tap" : "mouse" })
   expect(p(hovers[0]).ms as number).toBeGreaterThanOrEqual(800)
   expect(log.every(e => e.type !== "ui.hover" || (p(e).ms as number) >= 500)).toBe(true)
 

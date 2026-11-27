@@ -32,17 +32,19 @@
 .dg-name { flex: 0 1 auto; min-width: 0; font-weight: 700; font-size: var(--fs-base); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dg-state { flex: none; font-size: var(--fs-md); font-weight: 600; color: var(--muted); }
 .dg-state.sent { padding: var(--s1) var(--s4); border-radius: var(--r-pill); background: var(--good-soft); color: var(--good); }
-.dg-tasks { list-style: none; margin: 0; padding: 0 var(--s4) 0 var(--s4); display: grid; gap: var(--s1); }
-.dg-task { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; align-items: center; gap: var(--s5); min-height: 32px; font-size: var(--fs-md); }
-.dg-task .rq-mark { justify-content: center; }
-.dg-task-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dg-chip { flex: none; padding: var(--s1) var(--s4); border-radius: var(--r-pill); font-size: var(--fs-md); font-weight: 600; white-space: nowrap; }
-.dg-chip.late { background: var(--late-soft); color: var(--late); }
-.dg-chip.warn { background: var(--warn-soft); color: var(--warn); }
-.dg-chip.info { background: var(--accent-soft); color: var(--accent-ink); }
+/* R-S0 W2: task lines start under the person's name (toggle padding + avatar + gap), with no empty mark column. A title is
+   never cut: it wraps, and "At risk" follows it as quiet text. Below 600px the reason chip moves under the title. */
+.dg-tasks { list-style: none; margin: 0; padding: 0 var(--s4) 0 calc(var(--s4) + 32px + var(--s5)); display: grid; gap: var(--s1); }
+.dg-task { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--s5); min-height: 32px; font-size: var(--fs-md); }
+.dg-task-title { min-width: 0; overflow-wrap: anywhere; }
+.dg-risk { color: var(--muted); font-weight: 600; white-space: nowrap; }
+/* One neutral chip for every reminder reason ("5 days overdue", "No start update"): a fact about timing, not a status.
+   Real task statuses use StatusPill (src/reminders/ReasonChip.tsx). */
+.dg-chip { flex: none; justify-self: end; padding: var(--s1) var(--s4); border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface-2); color: var(--ink); font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
 /* ---- Fix first: one line each, task + problem + one button ---- */
 .dg-fix-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: var(--s5); min-height: 44px; padding: var(--s3) 0; border-top: 1px solid var(--line); font-size: var(--fs-md); }
 .dg-fix-row:first-child { border-top: 0; }
+.dg-fix-row .pill { justify-self: end; }
 
 /* ---- Inline email: opens in place under the person's tasks; only a token fade, nothing moves (AGENTS.md 6) ---- */
 .dg-inline:not([hidden]) { display: grid; gap: var(--s4); margin: var(--s4) var(--s4) 0; animation: dg-fade var(--dur-fast) var(--ease-out); }
@@ -60,7 +62,8 @@
 .dg-panel h3 { margin: 0; font-size: var(--fs-base); }
 .dg-mail { display: grid; gap: var(--s4); padding: var(--s6); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); font-size: var(--fs-md); overflow-wrap: anywhere; }
 .dg-mail-to { margin: 0; color: var(--muted); }
-.dg-mail h3 { margin: 0; padding-bottom: var(--s4); border-bottom: 1px solid var(--line); font-size: var(--fs-base); }
+/* The subject is the email's own text (R-S0 W2): sans, not a serif heading. */
+.dg-mail-subject { margin: 0; padding-bottom: var(--s4); border-bottom: 1px solid var(--line); font-family: var(--sans); font-size: var(--fs-base); font-weight: 700; }
 .dg-mail-body p { margin: 0 0 var(--s4); }
 .dg-mail-body p:last-child { margin-bottom: 0; }
 .dg-mail-body a { color: var(--accent-ink); font-weight: 600; }
@@ -89,11 +92,28 @@
   .dg-open-title { min-height: 32px; }
 }
 @media (max-width: 860px) {
-  /* A phone: task lines stay one line (the title shortens); a Fix first row puts its chip and button under the title. */
-  .dg-task { grid-template-columns: 20px minmax(0, 1fr) auto; gap: var(--s4); }
-  .dg-fix-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--s2); }
-  .dg-fix-row .dg-task-title { grid-column: 1 / -1; }
-  .dg-fix-row .dg-chip { justify-self: start; }
   .dg-top-row .btn { flex: 1 1 100%; justify-content: center; }
   .dg-inline:not([hidden]) { margin-inline: 0; }
+}
+/* A phone (R-S0 W2: 600px, so an iPad at 820px keeps one line per task): the whole title wraps and the reason chip or
+   status sits under it; a Fix first row puts its chip and button under the title. */
+@media (max-width: 600px) {
+  .dg-tasks { padding-left: var(--s4); gap: var(--s4); }
+  .dg-task { grid-template-columns: minmax(0, 1fr); row-gap: var(--s2); }
+  .dg-task .dg-chip { justify-self: start; }
+  .dg-fix-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--s2); }
+  .dg-fix-row .dg-task-title { grid-column: 1 / -1; }
+  .dg-fix-row :is(.dg-chip, .pill) { justify-self: start; }
+}
+
+/* Headings inside the page (R-S0 W2): sans with weight steps; the page title (h1, outside .rq) keeps the serif. Scoped to
+   the reminder page so other pages' h2/h3 rules are unchanged. */
+.rq :is(h2, h3), .rc-yours :is(h2, h3) { font-family: var(--sans); }
+.rq h2, .rc-yours h2 { font-weight: 700; }
+.rq h3, .rc-yours h3 { font-weight: 600; }
+
+/* The floating Ask button (below 1200px) never covers an action: the page ends with room for it plus the phone's home
+   indicator. The shell's own bottom padding covers the button's offset from the corner. */
+@media (max-width: 1199px) {
+  main:has(.dg, .rc-yours) { padding-bottom: calc(var(--fab-size) + env(safe-area-inset-bottom)); }
 }
