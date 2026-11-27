@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import { HashRouter } from "react-router-dom"
 import * as schedule from "../engine/schedule"
 import { computeForecast, forecastFor } from "../engine/forecast"
@@ -44,10 +44,13 @@ describe("S3: one forecast per state change", () => {
   it("does not recompute when switching pages, and recomputes once per change", async () => {
     window.location.hash = "#/"
     render(<StoreProvider initial={seedDemo("2026-10-22")}><HashRouter><App /></HashRouter></StoreProvider>)
-    // FB-8: the home page is the reminder centre (its risk marks use the same forecast); Events is under Plan in the navigation.
+    // FB-8: the home page is the reminder centre (its risk marks use the same forecast). Plan opens Tasks (audit I1);
+    // Events is the other half of Plan's switch.
     await screen.findByTestId("reminder-centre")
     expect(runs()).toBe(1)
     fireEvent.click(screen.getByRole("link", { name: /^Plan/ }))
+    await screen.findByRole("heading", { level: 1, name: "Tasks" })
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Plan" })).getByRole("link", { name: "Events" }))
     await screen.findByRole("heading", { level: 1, name: "Events" })
     fireEvent.click(screen.getByRole("link", { name: "Reminders" }))
     await screen.findByTestId("reminder-centre")

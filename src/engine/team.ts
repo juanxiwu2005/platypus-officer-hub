@@ -3,14 +3,10 @@ import { addDays, fromISO } from "../lib/dates"
 import { minutes } from "../data/settings"
 import { validDate } from "../lib/commands"
 import { personalWorkDay } from "./calendar"
+import { isInActionHorizon, myOpenWork } from "../data/myWork"
 
-/** Shared with Tasks: a two-week action horizon includes overdue work and
- * undated administrative tasks, but not the rest of the semester's plan. */
-export function isInActionHorizon(n: Node, today: string) {
-  const through = addDays(today, 14)
-  const dates = [n.latestStart, n.clubDeadline].filter((date): date is string => !!date)
-  return !dates.length || dates.some(date => date <= through)
-}
+/** Shared with Tasks and the Plan badge (src/data/myWork.ts): a two-week action horizon. */
+export { isInActionHorizon }
 
 /** Relative effort is deliberately based on the step's own estimate first; the tier only calibrates that estimate. */
 export const tierWeight = (n: Node) => ({ light: 1, medium: 1.35, heavy: 1.75 }[n.tier])
@@ -29,7 +25,8 @@ const urgency = (s: DemoState, n: Node) => {
 
 export function workload(s: DemoState, personId: string) {
   const through = addDays(s.today, 14)
-  const nodes = s.nodes.filter(n => n.ownerId === personId && n.status !== "done" && isInActionHorizon(n, s.today))
+  // The same open work as the person's Plan badge and "My tasks" view, without unowned work (it is nobody's load yet).
+  const nodes = myOpenWork(s, personId)
   const person = s.people.find(p => p.id === personId)
   const busySoon = !!person?.busyWeeks.some(w => w <= through && addDays(w, 6) >= s.today)
   const load = nodes.reduce((sum, n) => sum + effort(n) * impact(s, n) * urgency(s, n), 0) * (busySoon ? 1.2 : 1)

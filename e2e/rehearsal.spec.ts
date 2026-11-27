@@ -83,6 +83,8 @@ test("keyboard only: claim a task, change its status and finish it without a mou
   const id = await createUnclaimedTask(page, "Prepare the keyboard rehearsal")
   await viewAs(page, "jordan")
   await closeRail(page)
+  // Open work with no owner is in Team tasks for an officer; only the president and VP carry it in My tasks (audit D1).
+  await page.getByRole("combobox", { name: "Task scope" }).selectOption("team")
   const card = page.getByTestId("my-tasks").getByRole("button", { name: "Prepare the keyboard rehearsal" })
   await card.focus()
   await page.keyboard.press("Enter")

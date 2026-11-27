@@ -6,8 +6,8 @@ import { PageHead } from "../components/Page"
 import { Bts, BtsTr } from "../components/Bts"
 import { useRail } from "../components/rail/RailContext"
 import { FollowupPanel } from "../components/FollowupPanel"
-import { daysBetween, fmtShort, fromISO, toISO } from "../lib/dates"
-import { isInActionHorizon } from "../engine/team"
+import { daysBetween, fmtShort } from "../lib/dates"
+import { inMyTasks, isInTaskHorizon } from "../data/myWork"
 import { newTaskNotice } from "../data/board"
 import { Avatar, Empty, NodePill } from "../components/ui"
 import { canLead } from "../data/changeReview"
@@ -19,15 +19,8 @@ import { TaskDueFields } from "../components/rail/TaskFields"
 import { planTaskPath, resolvePlanEntry } from "../reminders/planEntry"
 import { useTaskAccess } from "../reminders/useTaskAccess"
 
-/** The Tasks page is an action horizon, not the whole semester's project plan. */
-export function isInTaskHorizon(node: Node, today: string): boolean {
-  if (node.status === "done") {
-    const day = fromISO(today)
-    day.setDate(day.getDate() - ((day.getDay() + 6) % 7) - 7) // Monday of last week
-    return (node.completedOn ?? node.lastUpdate ?? "") >= toISO(day)
-  }
-  return isInActionHorizon(node, today)
-}
+/** The Tasks page is an action horizon, not the whole semester's project plan (src/data/myWork.ts). */
+export { isInTaskHorizon }
 
 export default function Tasks() {
   const { state, dispatch } = useStore()
@@ -47,9 +40,9 @@ export default function Tasks() {
   useEffect(() => { if (!notice) return; const t = setTimeout(() => { setNotice(""); setUndoId(null) }, undoId ? 8000 : 3200); return () => clearTimeout(t) }, [notice, undoId])
   const say = (text: string) => { setUndoId(null); setNotice(text) }
 
-  // A teammate who is explicitly holding up a task sees it in To do as well as
-  // receiving an Update. Ownership stays with the original task owner.
-  const visible = state.nodes.filter(n => (scope === "team" || n.ownerId === person.id || n.waitingOnPersonId === person.id || (n.status === "unclaimed" && !n.ownerId)) && isInTaskHorizon(n, state.today))
+  // "My tasks" is the same list the Plan badge counts (src/data/myWork.ts): mine, tasks a teammate is waiting on me for,
+  // and, for the president or VP, open work with no owner yet.
+  const visible = state.nodes.filter(n => scope === "team" ? isInTaskHorizon(n, state.today) : inMyTasks(state, n, person.id))
   if (params.has("access")) {
     if (entry.checking) return <p role="status">Opening task…</p>
     if (entry.error || !entry.node) return <section className="card"><h1>Check your task link</h1><p role="alert">{entry.error ?? "This task is unavailable."}</p><Link to="/events">Open Plan</Link></section>
