@@ -5,18 +5,12 @@ import { groundedAnswer, RULE_REFUSAL, type RuleAnswer } from "./ruleAnswers"
 import { aiSnapshot, formSnapshot, knownDates } from "./aiContext"
 import { sanitizeCards, type PlanPrefill, type TaskScope, type WireCard } from "./chatCards"
 import { defaultTaskDue } from "../engine/taskDates"
-import { checkReview, localReview, reviewPayload, type EventReview, type ReviewRisk } from "./eventReview"
+import type { EventReview, ReviewRisk } from "./eventReview"
 import { forecastFor, forecastQueue } from "../engine/forecast"
 import { computeSchedule } from "../engine/schedule"
-import { workload } from "../engine/team"
 import { eventStrip } from "./today"
-import { visibleContacts } from "../data/crm"
-import { checkPreflight, EMPTY_PACKAGE } from "./preflight"
-import { WEEK_ONE } from "./handbook"
-import { addDays, daysBetween } from "./dates"
 import { RULES, ruleSourceName } from "../data/rules"
-import { canLead, officers } from "../data/permissions"
-import { answerSet, PLAYBOOK_CATEGORIES, playbookOf, questionsFor } from "../data/playbook"
+import { canLead } from "../data/permissions"
 import type { PlaybookAskContext } from "./playbookAsk"
 
 interface PolicyAnswer { inScope: boolean; answer: string; citations: string[]; model: string | null; provider?: string }
@@ -206,42 +200,8 @@ const tasksCard = (s: DemoState, viewerId: string, scope: TaskScope, limit: numb
   return { kind: "tasks", title: !lead && scope === "risk" && !focusEventId ? "At risk" : t.title, nodeIds: t.nodes.map(n => n.id), remind: t.remind && lead }
 }
 
-/** The viewer's open tasks whose Due date (the rule engine's club deadline) falls within the next 7 days, late ones included. */
-function dueThisWeek(s: DemoState, viewerId: string): ChatCard {
-  const end = addDays(s.today, 7)
-  const nodes = s.nodes.filter(n => n.ownerId === viewerId && n.status !== "done" && n.clubDeadline && n.clubDeadline <= end)
-    .sort((a, b) => a.clubDeadline!.localeCompare(b.clubDeadline!) || a.id.localeCompare(b.id))
-  return nodes.length ? { kind: "tasks", title: "Due this week", nodeIds: nodes.map(n => n.id) } : textCard("Nothing of yours is due in the next 7 days.")
-}
-
-const cut = (text: string, max = 140) => text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text
-const PLAYBOOK_LIST = 5
-
-/** "Summarize the funding answers": each question in the named Playbook category with its best answer (club, then school rule, then tip). */
-function playbookSummary(t: string, s: DemoState): ChatCard {
-  const lower = t.toLowerCase()
-  const category = [...PLAYBOOK_CATEGORIES, ...(playbookOf(s).categories ?? [])].find(c => lower.includes(c.label.toLowerCase()) || lower.includes(c.id.toLowerCase()))
-  const questions = questionsFor(s, { category: category?.id ?? null })
-  const label = category?.label ?? "Playbook"
-  if (!questions.length) return textCard(`No ${label} questions in the Playbook yet.`)
-  const lines = questions.slice(0, PLAYBOOK_LIST).map((q, i) => {
-    const a = answerSet(s, q.id), best = a.club ?? a.rule ?? a.experience
-    return `${i + 1}. ${q.text} ${best ? cut(best.text) : "No answer yet."}`
-  })
-  const more = questions.length - PLAYBOOK_LIST
-  return textCard([`${label}: ${questions.length} question${questions.length === 1 ? "" : "s"}.`, ...lines, ...(more > 0 ? [`${more} more on the Playbook page.`] : [])].join("\n"))
-}
-
-/** "What should a new treasurer read first?": the Playbook questions tagged for that role (the viewer's own when none is named), then those for everyone. */
-function playbookReadFirst(t: string, s: DemoState, viewerId: string): ChatCard {
-  const lower = t.toLowerCase()
-  const role = s.roles.find(r => lower.includes(r.displayName.toLowerCase())) ?? s.roles.find(r => r.id === s.people.find(p => p.id === viewerId)?.roleId)
-  const all = questionsFor(s)
-  const forRole = role ? all.filter(q => q.roleIds !== "all" && q.roleIds.includes(role.id)) : []
-  const picks = [...forRole, ...all.filter(q => q.roleIds === "all")].slice(0, PLAYBOOK_LIST)
-  if (!picks.length) return textCard("The Playbook has no questions yet.")
-  return textCard([`Start with these${role ? ` for the ${role.displayName}` : ""}:`, ...picks.map((q, i) => `${i + 1}. ${q.text}`)].join("\n"))
-}
+/** The local answers that load with their first question (assistantLocal.ts), outside the startup bundle. */
+const local = () => import("./assistantLocal")
 
 async function ruleReply(question: string, s: DemoState, signal?: AbortSignal): Promise<Reply> {
   let answer: Pick<RuleAnswer, "inScope" | "answer" | "citations" | "model" | "provider">, label: string
@@ -396,30 +356,19 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   if (TOP_TASK_RE.test(t)) return { cards: [tasksCard(s, viewerId, /team|club|everyone/i.test(t) ? "team" : "mine", limit)], source: "Ranked by risk, then start date" }
   if (STUCK_RE.test(t)) return { cards: [tasksCard(s, viewerId, "stuck", limit)], source: "Platypus" }
   if (NUDGE_RE.test(t)) return { cards: [tasksCard(s, viewerId, "risk", 3, focusEvent?.id)], source: "Forecast" }
-  if (DUE_WEEK_RE.test(t)) return { cards: [dueThisWeek(s, viewerId)], source: "Rule engine dates" }
-  if (PLAYBOOK_SUMMARY_RE.test(t)) return { cards: [playbookSummary(t, s)], source: "Playbook" }
-  if (READ_FIRST_RE.test(t)) return { cards: [playbookReadFirst(t, s, viewerId)], source: "Playbook" }
+  if (DUE_WEEK_RE.test(t)) return { cards: [(await local()).dueThisWeek(s, viewerId)], source: "Rule engine dates" }
+  if (PLAYBOOK_SUMMARY_RE.test(t)) return { cards: [(await local()).playbookSummary(t, s)], source: "Playbook" }
+  if (READ_FIRST_RE.test(t)) return { cards: [(await local()).playbookReadFirst(t, s, viewerId)], source: "Playbook" }
   // With no event in view, "Who is up next?" reads the next upcoming event (a chip on Events must not end in a refusal).
   const nextEvent = focusEvent ?? s.events.filter(e => e.date >= s.today).sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))[0]
   if (NEXT_RE.test(t) && nextEvent) return { cards: [{ kind: "tasks", title: `Next in ${nextEvent.name}`, nodeIds: eventStrip(s.nodes.filter(n => n.eventId === nextEvent.id)).map(n => n.id), remind: canLeadAs(s, viewerId) }], source: "Platypus" }
-  if (OVERLOAD_RE.test(t)) {
-    const rows = officers(s).map(p => ({ p, w: workload(s, p.id) })).sort((a, b) => b.w.load - a.w.load)
-    const needingSupport = rows.filter(r => r.w.band === "Needs support")
-    return { cards: [textCard(needingSupport.length ? `${needingSupport.map(r => r.p.name.split(" ")[0]).join(", ")} could use help in the next two weeks.` : `No one needs support in the next two weeks. ${rows[0].p.name.split(" ")[0]} has the most work.`)], source: "Workload" }
-  }
-  if (PARTNER_RE.test(t)) {
-    const due = visibleContacts(s).filter(c => !c.lastContact || daysBetween(c.lastContact, s.today) >= c.cadenceDays)
-    return { cards: [textCard(due.length ? `Due for a touch: ${due.map(c => c.name).join(", ")}.` : "Every partner is within their contact interval.")], source: "Partners" }
-  }
+  if (OVERLOAD_RE.test(t)) return { cards: [(await local()).overloadAnswer(s)], source: "Workload" }
+  if (PARTNER_RE.test(t)) return { cards: [(await local()).partnersDue(s)], source: "Partners" }
   if (MISSING_RE.test(t)) {
-    const f = s.funding.find(x => x.eventId === focusEvent?.id) ?? s.funding[0]
-    if (f) {
-      const e = s.events.find(x => x.id === f.eventId)
-      const r = checkPreflight({ ...EMPTY_PACKAGE, amount: f.amount, attendees: e?.headcount ?? 0, ...f.application })
-      return { cards: [textCard(r.ready ? `${e?.name}: the checklist is complete. The office still reviews it.` : `${e?.name} still needs: ${r.issues.map(i => i.text).join(" ")}`)], source: "Pre-submission check" }
-    }
+    const card = (await local()).fundingMissing(s, focusEvent?.id)
+    if (card) return { cards: [card], source: "Pre-submission check" }
   }
-  if (WEEKONE_RE.test(t)) return { cards: [textCard(WEEK_ONE.map((w, i) => `${i + 1}. ${w.text}`).join("\n"))], source: `SEO onboarding + ${ruleSourceName("R16")}` }
+  if (WEEKONE_RE.test(t)) return { cards: [(await local()).weekOne()], source: `SEO onboarding + ${ruleSourceName("R16")}` }
   if (DATES_RE.test(t)) return { cards: [textCard(`Dates work back from the ASU deadline: ${s.org.settings.clubBufferBusinessDays} days early for the club, each officer's extra days and busy weeks, and ASU holidays.`)], source: "Rule engine" }
   if (REMIND_RE.test(t)) {
     const lower = t.toLowerCase()
@@ -459,6 +408,8 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
  * wrote and suggests risks; it never adds steps. Without AI, the rule engine's own warnings are shown instead.
  */
 export async function reviewEvent(s: DemoState, eventId: string, signal?: AbortSignal): Promise<Reply> {
+  // The review checks load with the first review, outside the startup bundle.
+  const { checkReview, localReview, reviewPayload } = await import("./eventReview")
   const p = reviewPayload(s, eventId)
   if (!p) return { cards: [textCard("That event is no longer in the plan.")], source: "Platypus" }
   let review: EventReview, label: string
