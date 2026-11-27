@@ -10,8 +10,14 @@
 .task-identity > .who { display: inline-flex; gap: var(--s3); align-items: center; min-width: 0; white-space: normal; }
 .task-compact-due { display: inline-flex; align-items: baseline; gap: var(--s3); white-space: nowrap; }
 .task-progress { min-width: 140px; flex: 1; }
-.task-progress > label { display: block; }
+.task-status-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); }
+.task-status-row > label { display: block; flex: 1 1 140px; min-width: 0; }
+.task-done-slot { display: contents; }
 .task-progress select { width: 100%; min-width: 140px; min-height: 44px; }
+/* I3: one-click completion in the fixed Done green (white text keeps AA contrast). */
+.task-mark-done { min-height: 44px; background: var(--task-done); border-color: var(--task-done); color: var(--on-solid); font-weight: 600; }
+.task-mark-done:hover { background: color-mix(in srgb, var(--task-done) 85%, var(--ink)); }
+.task-done-slot > .btn { min-height: 44px; }
 .task-progress-form { display: grid; gap: var(--s5); width: 100%; margin-top: var(--s5); }
 .task-progress-form label { display: grid; gap: var(--s3); }
 .task-progress-form input, .task-progress-form textarea { width: 100%; min-width: 0; }

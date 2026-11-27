@@ -55,9 +55,18 @@ describe("universal work on actual task nodes", () => {
       expect(save(bad, input(s))).toBe(bad)
     }
   })
-  it("rejects empty completion, mismatched file contents, executable files and excessive attachments", () => {
+  it("completes without a note (I3), but rejects an empty correction of a Done task or an empty budget result", () => {
+    const s = fixture(), empty = { details: " ", attachments: [], submit: true }
+    const done = save(s, { ...input(s), ...empty })
+    expect(done.nodes[0].status).toBe("done")
+    expect(taskWork(done.nodes[0])?.submissions).toMatchObject([{ authorId: "jordan", details: "", attachmentIds: [] }])
+    expect(save(done, { ...input(done), ...empty })).toBe(done)
+    const budget = { ...s, nodes: [{ ...s.nodes[0], stepKey: "budgetRequest" }] }
+    expect(save(budget, { ...input(budget), ...empty })).toBe(budget)
+  })
+  it("rejects mismatched file contents, executable files and excessive attachments", () => {
     const s = fixture()
-    for (const change of [{ details: " ", attachments: [], submit: true }, { attachments: [{ ...file, size: 99 }] }, { attachments: [{ ...file, name: "run.html" }] }, { attachments: Array.from({ length: 6 }, (_, i) => ({ ...file, id: `file-${i}` })) }]) expect(save(s, { ...input(s), ...change })).toBe(s)
+    for (const change of [{ attachments: [{ ...file, size: 99 }] }, { attachments: [{ ...file, name: "run.html" }] }, { attachments: Array.from({ length: 6 }, (_, i) => ({ ...file, id: `file-${i}` })) }]) expect(save(s, { ...input(s), ...change })).toBe(s)
   })
   it("accepts three files totalling 5 MB, rejects either size limit, and keeps earlier submission files", () => {
     const s = fixture(), mb = 1024 * 1024
