@@ -12,11 +12,14 @@ All values here were read directly from these two files on 2026-10-29. Contrast 
 | --- | --- | --- |
 | `--fs-xs` | 12px | Smallest supporting text: labels, badges, footnotes |
 | `--fs-sm` | 13px | Tables, secondary information, small buttons |
-| `--fs-md` | 14px | Regular body text, inputs (AGENTS.md §7.4: at least 14px is the goal; 12–13 is only for supporting text) |
+| `--fs-md` | 14px | Regular body text, inputs on desktop (AGENTS.md §7.4: at least 14px is the goal; 12–13 is only for supporting text) |
 | `--fs-base` | 15px | Base page font size |
 | `--fs-lg` | 18px | Small headings |
 | `--fs-xl` | 21px | Section headings |
 | `--fs-2xl` | 26px | Large numbers, emphasis |
+| `--fs-input` | 16px | Text fields, selects and text areas **on touch screens only** (`@media (pointer: coarse)` in `src/styles.css`). iPhone Safari zooms the page when it focuses a field under 16px; desktop keeps the component sizes (14–15px). Batch 1, audit V4 |
+
+The touch-screen field rule lifts its specificity with `:not(#fs-input-guard, …)` (one id) so it beats every class-based component rule without `!important`; fields already larger than 16px (the workflow name field, `--fs-xl`) are excluded. `src/test/controlContrast.test.ts` fails if a component rule would win.
 
 Page titles `h1` use a fixed `var(--fs-2xl)` (26px); on mobile, `.page-head h1` uses `var(--fs-xl)`. **They no longer scale continuously with viewport width** (the previously documented `clamp(26px, 3.2vw, 34px)` has long differed from the code; DX-27 corrected the documentation to match. A clamp version requires a separate decision from Juanxi). Sizes in `font:` shorthands (`15px/1.55` on `body`, `600 13.5px/1.3` on `.board-col > header h2`) have not been tokenized and are known exceptions.
 
@@ -76,7 +79,8 @@ Lowest to highest:
 | `--lane` | #f6f4ef | #141918 | Swimlane/track background |
 | `--ink` | #1b1f1d | #eceeed | Body text |
 | `--muted` | #5b625e | #a2aaa6 | Secondary text |
-| `--line` | #e5e2da | #2a312f | 1px border (intentionally subtle; **do not darken**) |
+| `--line` | #e5e2da | #2a312f | 1px border of cards and dividers (intentionally subtle; **do not darken**; never a form-control border) |
+| `--control-line` | #848b87 | #6b7571 | Border of inputs, selects, text areas and other form controls, the hover border of borderless table cells, and the off track of `.switch` (Batch 1, audit V5/V6). Must stay ≥ 3:1 on every background (WCAG 1.4.11) |
 | `--accent` | #0f766e | #3fb8a8 | Brand color |
 | `--accent-ink` | #0b5a54 | #7fd6ca | Brand-colored text |
 | `--accent-soft` | #e4f1ef | #14302c | Soft brand background |
@@ -103,6 +107,18 @@ Contrast (text pairs, light / dark):
 | `--late` on `--late-soft` | 5.53 | 6.36 |
 | `--good` on `--good-soft` | 4.56 | 7.45 |
 | `--on-accent` on `--accent` | 5.47 (white) | 7.01 |
+
+Form controls (Batch 1; graphics, required 3:1; minimum across `--bg`, `--surface`, `--surface-2`, `--lane`):
+
+| Item | Light | Dark |
+| --- | --- | --- |
+| `--line` as a control border (before) | 1.29 on surface | 1.30 on surface |
+| `--control-line` | **3.09** (bg 3.34, surface 3.49, surface-2 3.09, lane 3.17) | **3.35** (bg 3.93, surface 3.62, surface-2 3.35, lane 3.73) |
+| `.switch` thumb (`--surface`) on its off track (`--control-line`) | 3.49 | 3.62 |
+| Focus halo `--accent-soft` alone (before) | 1.16 on surface | 1.22 on surface |
+| Focus ring `--accent` (`--focus-ring`, and the inner ring of borderless cells) | **4.85** on surface-2, 4.72 on its halo | **6.56** on surface-2, 5.80 on its halo |
+
+`--focus-ring` (`0 0 0 1px var(--accent), 0 0 0 4px var(--accent-soft)`) is the box-shadow of a focused text field: together with the field's `--accent` border it draws a solid 2px accent ring inside the soft halo. Borderless fields inside a clipping box (Settings › Roles & teams cells, the reminder email draft) use an inner `inset 0 0 0 2px var(--accent)` ring instead, because an outer ring would be clipped. `src/test/controlContrast.test.ts` recomputes these ratios from `src/styles.css` and fails if a form-control rule draws its border with `--line`.
 
 Graphic contrast (after N5; minimum across the `--bg`, `--surface`, and `--lane` backgrounds; required ratio 3:1):
 
@@ -156,7 +172,7 @@ These levels were **derived from the existing interface, rather than designed fr
 1. **New styles must use tokens.** This applies to colors, font sizes, radii, layers, and spacing.
 2. **If a new value is truly needed, first add a token in `:root` (deciding whether to override it in both dark-theme blocks), then use it; do not hardcode it.**
 3. Calculate contrast before adding color tokens: text ≥ 4.5:1, graphics ≥ 3:1. Calculate light and dark separately; check all three light backgrounds (`--bg`, `--surface`, `--lane`) and use the minimum.
-4. Do not darken `--line`, merge the two color systems in 5.3, or give `--info` a user-status meaning.
+4. Do not darken `--line` (use `--control-line` for form-control borders), merge the two color systems in 5.3, or give `--info` a user-status meaning.
 5. **Dark mode:** currently follows the system (`prefers-color-scheme: dark`). CSS already supports forced overrides with `data-theme="light"` / `data-theme="dark"`, but **there is no UI toggle yet**. When adding tokens, update both dark blocks together (the `@media` block and `:root[data-theme="dark"]`).
 6. After changes, run `npm run check` as directed by AGENTS.md.
 

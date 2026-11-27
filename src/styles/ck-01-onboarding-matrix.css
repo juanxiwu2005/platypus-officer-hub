@@ -148,7 +148,7 @@
   font-size: var(--fs-md); line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere;
 }
 .tbl.ck-table textarea.ck-name { font-weight: 600; }
-.tbl.ck-table :is(textarea.ck-title, textarea.ck-name):hover { border-color: var(--line); background: var(--surface); }
+.tbl.ck-table :is(textarea.ck-title, textarea.ck-name):hover { border-color: var(--control-line); background: var(--surface); }
 .tbl.ck-table :is(textarea.ck-title, textarea.ck-name):focus-visible { border-color: var(--accent); background: var(--surface); outline: 2px solid var(--accent); outline-offset: 0; }
 /* The rule tag sits on its own line under the title, so it never takes width from it. */
 .ck-title-cell { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s1); }

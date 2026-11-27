@@ -9,7 +9,7 @@
 .ob-gt-nav .btn { min-height: 44px; justify-content: center; }
 .ob-gt-skip { display: grid; gap: var(--s2); margin-inline-start: auto; justify-items: end; text-align: end; }
 
-.ob-team :is(input:not([type="checkbox"]), select, textarea) { box-sizing: border-box; width: 100%; min-width: 0; padding: var(--s4) var(--s5); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-md); }
+.ob-team :is(input:not([type="checkbox"]), select, textarea) { box-sizing: border-box; width: 100%; min-width: 0; padding: var(--s4) var(--s5); border: 1px solid var(--control-line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-md); }
 .ob-team ::placeholder { color: var(--muted); opacity: 1; }
 .ob-team textarea { resize: vertical; }
 
