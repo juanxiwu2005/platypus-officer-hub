@@ -1,6 +1,6 @@
 # Reminders step 0 and editable emails: contract (R-S0)
 
-**Status:** approved by Juanxi on November 27, 2026 (America/Phoenix); in progress. Baseline `2c5c312` plus Stage A (this file, and `PersonRow` and `YourReminders` moved out of `src/pages/Today.tsx` without behavior changes). Source review: [Reminders interaction review](https://claude.ai/artifact/3biTLyJ94vj6Z6EBbBet9L) (Chinese, private to the owner), four read-only agents on November 27.
+**Status:** approved by Juanxi on November 27, 2026 (America/Phoenix); delivered on `1d5f10a`, awaiting acceptance (see `docs/PROGRESS.md`). Baseline `2c5c312` plus Stage A (this file, and `PersonRow` and `YourReminders` moved out of `src/pages/Today.tsx` without behavior changes). Source review: [Reminders interaction review](https://claude.ai/artifact/3biTLyJ94vj6Z6EBbBet9L) (Chinese, private to the owner), four read-only agents on November 27.
 
 ## 1. Juanxi's decisions
 
