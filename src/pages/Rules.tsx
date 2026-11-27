@@ -61,7 +61,7 @@ export default function Rules() {
     <PageHead path="/rules" actions={<div className="seg" role="group" aria-label="Policy category">{CATEGORIES.map(category => <button key={category.id} type="button" aria-pressed={tab === category.id} onClick={() => { setTab(category.id); setPage(0) }}>{category.label}</button>)}</div>} />
     <section className="card">
       <div className="toolbar">
-        <label className="field-inline">Search sources<input type="search" value={query} onChange={e => { setQuery(e.target.value); setPage(0) }} /></label>
+        <label className="field-inline">Search rules<input type="search" value={query} onChange={e => { setQuery(e.target.value); setPage(0) }} /></label>
         {wide
           ? <span className="small muted" role="status">{matches.length === 1 ? "1 source" : `${matches.length} sources`}</span>
           : <nav className="action-row" aria-label="Source pages">

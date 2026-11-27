@@ -65,7 +65,7 @@ test("when on: dates show where they come from on Reminders, Events and Tasks", 
   // FB-8: the home page is the reminder centre; its send days and Due come from the rule engine (the Events strip moved off home).
   // Concept F: the people list keeps the rule engine's order, and the page note says which dates the checks use.
   await expect(page.getByTestId("rq-people").locator(".bts")).toContainText("Rule engine")
-  await expect(page.getByTestId("rq-people").locator(".bts")).toContainText("Tasks keep the rule engine's order: overdue, due, past due, then starts and follow-ups.")
+  await expect(page.getByTestId("rq-people").locator(".bts")).toContainText("Order: overdue, due, other late tasks, then starts and follow-ups.")
   await expect(page.getByTestId("reminder-centre").locator(".bts").first()).toContainText("Start by and Due dates")
   await page.goto("/#/events")
   await expect(page.locator("main .bts").first()).toBeVisible()

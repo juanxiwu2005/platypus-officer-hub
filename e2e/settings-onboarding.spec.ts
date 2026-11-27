@@ -65,7 +65,7 @@ test("the starter loads, its totals match the model, and taking an Everyone item
   expect([countEveryone(saved, ids), countForRole(saved, "r-fin")]).toEqual([13, 17])
   await expect(matrix(page).getByRole("columnheader", { name: "Treasurer", exact: true })).toBeVisible()
   const handbookTag = row(page, "Complete anti-hazing training").locator('[data-source-id="ASU-R-004"]')
-  await expect(handbookTag).toHaveText("Student Club and Organization Handbook 2026-2027")
+  await expect(handbookTag).toHaveText("ASU rule")
   await expect(handbookTag).toHaveAttribute("title", "Student Club and Organization Handbook 2026-2027")
   await expect(matrix(page)).not.toContainText("ASU-R-")
 

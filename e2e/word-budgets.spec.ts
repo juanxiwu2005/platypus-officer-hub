@@ -74,7 +74,7 @@ test("Rules search finds archived records and keyboard controls open sources and
   await context.route("https://eventreg.asu.edu/", r => r.fulfill({ contentType: "text/html", body: "<h1>Official Registry test destination</h1>" }))
   await page.goto("/#/rules")
   await closeRail(page)
-  const search = page.getByRole("searchbox", { name: "Search sources", exact: true })
+  const search = page.getByRole("searchbox", { name: "Search rules", exact: true })
   const last = POLICY_CATALOG.at(-1)!
   await search.fill(last.recordId)
   await expect(page.locator("[data-policy-id]")).toHaveCount(1)

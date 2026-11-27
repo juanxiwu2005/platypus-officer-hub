@@ -144,7 +144,7 @@ function ReminderCentre({ q }: { q: Centre }) {
       <h2 id="dg-people-h" className="sr-only">Emails by person</h2>
       <ul className="dg-list" aria-busy={busy || automaticReminders.busy}>{rows.map(p => <PersonRow key={p.recipientId} p={p} mode={q.mode} forecast={forecast} sendingAll={busy}
         reveal={reveal?.id === p.recipientId ? reveal.n : 0} onAction={() => setFeedback("")} onSent={setFeedback} />)}</ul>
-      <BtsRow><Bts label="Rule engine">Tasks keep the rule engine's order: overdue, due, past due, then starts and follow-ups.</Bts></BtsRow>
+      <BtsRow><Bts label="Rule engine">Order: overdue, due, other late tasks, then starts and follow-ups.</Bts></BtsRow>
     </section>}
     {ready && dc.fix.length > 0 && <section className="card rq-section dg-fix" aria-labelledby="dg-fix-h" data-testid="rq-fix">
       {/* Read as "Fix first, 8", not "Fix first8". */}
