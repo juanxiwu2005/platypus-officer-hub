@@ -163,7 +163,8 @@ export function Chain({ stops, label, showLabels = true, compact }: { stops: Sto
 }
 
 export function Avatar({ name, size = "md", title }: { name: string | null | undefined; size?: "sm" | "md"; title?: string }) {
-  const text = name ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "?"
+  // No owner: a centred person outline in the dashed ring, not a "?" glyph that sits off-centre (DESIGN_TOKENS §12).
+  const text = name ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="5.5" r="2.75" /><path d="M2.75 14c.6-2.6 2.7-4.25 5.25-4.25S12.65 11.4 13.25 14" /></svg>
   return <span className={`avatar ${size === "sm" ? "sm" : ""}${name ? "" : " empty"}`} title={title ?? name ?? "No owner"} aria-label={title ?? name ?? "No owner"}>{text}</span>
 }
 

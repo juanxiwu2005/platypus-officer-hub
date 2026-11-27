@@ -20,20 +20,11 @@
 .new-task-form input, .new-task-form select {
   width: 100%;
   min-width: 0;
-  min-height: 40px;
-  padding: var(--s3) var(--s4);
-  border: 1px solid var(--control-line);
-  border-radius: var(--r-sm);
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  font-size: var(--fs-base);
 }
 .new-task-due { display: grid; gap: var(--s2); }
 .new-task-due > p { margin: 0; }
 .new-task-form > [role="alert"] { grid-column: 1 / -1; margin: 0; }
 .new-task-buttons { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: var(--s4); }
-.new-task-buttons .btn { min-height: 40px; }
 .board-notice .link { margin-left: var(--s4); }
 
 @media (max-width: 860px) {

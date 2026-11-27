@@ -6,7 +6,7 @@
 .dg-top-row { display: flex; align-items: center; gap: var(--s5); flex-wrap: wrap; }
 /* "Choose how reminders go out" is a link styled as the primary button. DX-04's touch rule for `a.small` (inline-block,
    negative margin) would leave its text at the top of the box; keep it flex-centred like the other summary actions. */
-.dg-top-row a.btn { display: inline-flex; justify-content: center; margin-block: 0; padding-block: var(--s3); }
+.dg-top-row a.btn { display: inline-flex; justify-content: center; margin-block: 0; }
 .dg-top-text { flex: 1 1 16rem; min-width: 0; margin: 0; font-size: var(--fs-base); }
 .dg-quiet { color: var(--muted); }
 .dg-top-note { margin: 0; font-size: var(--fs-md); color: var(--muted); }

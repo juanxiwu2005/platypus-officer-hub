@@ -85,7 +85,7 @@ function lastCompoundIsControl(selector: string) {
         if (node.type === "class" && controlClasses.has(node.value)) hit = true
       }
       check(n)
-      if (n.type === "pseudo" && n.value === ":is") n.walk(check)
+      if (n.type === "pseudo" && (n.value === ":is" || n.value === ":where")) n.walk(check)
     }
   }).processSync(selector)
   return hit
@@ -147,7 +147,9 @@ describe("form controls on touch screens", () => {
         }
       })
     }
-    expect(checked).toBeGreaterThan(20)
+    // CT-01 (DESIGN_TOKENS §12) moved field size and chrome into one zero-specificity base rule, so far fewer page rules
+    // set a font size on a field than before; the scan must still see the base rule and the page rules that remain.
+    expect(checked).toBeGreaterThan(10)
     expect(losers).toEqual([])
   })
 })
@@ -165,7 +167,8 @@ describe("form-control borders", () => {
         if (/var\(--line\)/.test(d.value)) offenders.push(`${path.relative(root, f)}:${d.source?.start?.line} ${rule.selector}`)
       })
     }
-    expect(controlBorders).toBeGreaterThan(20)
+    // CT-01: one base rule draws every field border with --control-line; the remaining hits are composite wrappers.
+    expect(controlBorders).toBeGreaterThan(6)
     expect(offenders).toEqual([])
   })
   it("Settings > Roles & teams inline cells show a border on hover and an inner accent ring on focus", () => {

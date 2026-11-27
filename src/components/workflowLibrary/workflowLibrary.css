@@ -7,7 +7,7 @@
 .wfl-header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4) var(--s5); padding-bottom: var(--s5); border-bottom: 1px solid var(--line); }
 .wfl-header h2 { margin: 0; font-size: var(--fs-lg); }
 .wfl-picker { display: flex; }
-.wfl-picker select { min-width: 220px; max-width: 100%; padding: var(--s3) var(--s5); border: 1px solid var(--control-line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-md); }
+.wfl-picker select { min-width: 220px; max-width: 100%; }
 .wfl-badges { display: flex; flex-wrap: wrap; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
 .wfl-header-end { margin-left: auto; }
 

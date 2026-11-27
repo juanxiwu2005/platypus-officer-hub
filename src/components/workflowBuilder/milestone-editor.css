@@ -15,8 +15,8 @@
 .wfm-segment.is-selected, .wfm-segment.is-drop-target { outline: 2px solid var(--accent); outline-offset: var(--s1); }
 .wfm-segment.is-drop-target { background: var(--accent-soft); }
 .wfm-branch-head { position: relative; justify-content: space-between; z-index: var(--z-sticky); padding: var(--s2) var(--s4); }
-.wfm-branch-head select { width: 160px; min-width: 0; max-width: calc(100% - 84px); min-height: 36px; font-size: var(--fs-md); border-radius: var(--r-pill); padding: var(--s2) var(--s4); background: var(--surface); }
-.wfm-branch-edit, .wfm-branch-add { flex-shrink: 0; width: 34px; min-height: 36px; padding: 0; border: 0; background: transparent; color: var(--accent-ink); font-size: var(--fs-md); cursor: pointer; }
+.wfm-branch-head select { width: 160px; min-width: 0; max-width: calc(100% - 84px); }
+.wfm-branch-edit, .wfm-branch-add { flex-shrink: 0; width: var(--control-h); min-height: var(--control-h); padding: 0; border: 0; background: transparent; color: var(--accent-ink); font-size: var(--fs-md); cursor: pointer; }
 .wfm-lines { position: absolute; inset: 0; z-index: var(--z-raised); pointer-events: none; overflow: visible; }
 .wfm-main-track, .wfm-branch-track { fill: none; stroke: var(--mline-main); stroke-width: 2; }
 .wfm-main-track { stroke-width: 2.5; }
@@ -51,7 +51,3 @@
   .wfm-legend > span:last-child { margin-left: 0; }
 }
 
-@media (pointer: coarse) {
-  .wfm-branch-head select { min-height: 44px; }
-  .wfm-branch-edit, .wfm-branch-add { width: 44px; min-height: 44px; }
-}

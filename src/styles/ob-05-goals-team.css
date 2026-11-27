@@ -1,15 +1,17 @@
 /* OB-05: the Team screen of the founder flow (its Goals screen was removed in ob-6, S6). Tokens only (docs/DESIGN_TOKENS.md). Adding, removing and changing rows is frequent, so nothing here moves
    (no transitions). */
 .ob-team { width: 100%; max-width: 720px; box-sizing: border-box; }
+/* The founder flow is a large-tier pane: 44px fields and buttons on every pointer (DESIGN_TOKENS §12). */
+.ob-team, .ob-gt-nav { --control-h: var(--control-h-lg); --control-px: var(--s6); --field-px: var(--s5); --control-r: var(--r-md); }
 .ob-gt-head { display: grid; gap: var(--s3); }
 .ob-gt-head h1 { font-size: var(--fs-xl); }
 .ob-gt-head .ob-lead { font-size: var(--fs-md); }
 .ob-gt-error { margin: 0; padding: var(--s5); border-radius: var(--r-md); background: var(--late-soft); color: var(--late); font-size: var(--fs-md); }
 .ob-gt-nav { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }
-.ob-gt-nav .btn { min-height: 44px; justify-content: center; }
+.ob-gt-nav .btn { justify-content: center; }
 .ob-gt-skip { display: grid; gap: var(--s2); margin-inline-start: auto; justify-items: end; text-align: end; }
 
-.ob-team :is(input:not([type="checkbox"]), select, textarea) { box-sizing: border-box; width: 100%; min-width: 0; padding: var(--s4) var(--s5); border: 1px solid var(--control-line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-md); }
+.ob-team :is(input:not([type="checkbox"]), select, textarea) { width: 100%; min-width: 0; }
 .ob-team ::placeholder { color: var(--muted); opacity: 1; }
 .ob-team textarea { resize: vertical; }
 
@@ -21,13 +23,13 @@
 .ob-role { align-items: center; row-gap: var(--s3); }
 .ob-role-title-wrap { grid-column: 1; grid-row: 1; position: relative; min-width: 0; padding-inline-start: calc(var(--ob-depth) * var(--s7)); }
 .ob-role-branch { position: absolute; inset-inline-start: calc((var(--ob-depth) - 1) * var(--s7)); top: 50%; color: var(--muted); transform: translateY(-50%); }
-.ob-role :is(.ob-role-person, .ob-role-boss) { height: 44px; min-height: 44px; }
+.ob-role :is(.ob-role-person, .ob-role-boss) { height: var(--control-h); }
 /* The title is a one-row text box that grows to fit (Team.tsx, RoleTitle): a long title wraps instead of being cut off. */
-.ob-team .ob-role-title { display: block; width: 100%; min-height: 44px; overflow: hidden; resize: none; line-height: 1.4; overflow-wrap: anywhere; padding-block: calc((44px - 1.4em - 2px) / 2); }   /* one line sits in the middle like the boxes beside it */
+.ob-team .ob-role-title { display: block; width: 100%; overflow: hidden; resize: none; line-height: 1.4; overflow-wrap: anywhere; padding-block: calc((var(--control-h) - 1.4em - 2px) / 2); }   /* one line sits in the middle like the boxes beside it */
 .ob-role-person { grid-column: 2; grid-row: 1; }
 .ob-role-boss, .ob-role-top { grid-column: 3; grid-row: 1; }
-.ob-role-top { display: flex; align-items: center; min-height: 44px; color: var(--muted); padding-inline: var(--s5); }
-.ob-role-x { grid-column: 4; grid-row: 1; padding: 0; min-width: 44px; min-height: 44px; justify-content: center; }
+.ob-role-top { display: flex; align-items: center; min-height: var(--control-h); color: var(--muted); padding-inline: var(--s5); }
+.ob-role-x { grid-column: 4; grid-row: 1; padding: 0; min-width: var(--control-h); justify-content: center; }
 .ob-role-duties-toggle { grid-column: 1 / 4; grid-row: 2; justify-self: start; min-height: 32px; padding-inline: var(--s5); color: var(--accent-ink); }
 .ob-role-duties { grid-column: 1 / -1; grid-row: 3; display: grid; gap: var(--s2); padding-bottom: var(--s3); }
 .ob-role-duties .cap { font-size: var(--fs-sm); color: var(--muted); }

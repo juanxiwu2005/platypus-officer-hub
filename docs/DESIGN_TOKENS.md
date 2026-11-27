@@ -28,8 +28,8 @@ Page titles `h1` use a fixed `var(--fs-2xl)` (26px); on mobile, `.page-head h1` 
 | Token | Value | Elements |
 | --- | --- | --- |
 | `--r-xs` | 4px | Very small blocks: Gantt bars, sharp corners of chat bubbles, small tags |
-| `--r-sm` | 8px | Inputs, small tags, color swatches, menu items, focus outlines |
-| `--r-md` | 12px | Buttons, navigation items, cards (task, Board, hover, flowchart), notification bars |
+| `--r-sm` | 8px | Small and medium controls (buttons, fields, selects) through `--control-r`, small tags, color swatches, menu items, focus outlines |
+| `--r-md` | 12px | Large controls through `--control-r`, navigation items, cards (task, Board, hover, flowchart), notification bars |
 | `--r-lg` | 14px | Largest panels; equivalent to the old `--radius` variable (retain it; do not delete) |
 | `--r-pill` | 999px | Pill shapes |
 | `--r-circle` | 50% | Circles (dots, avatars) |
@@ -185,6 +185,7 @@ These rules are now checked automatically by both `npm run check` and GitHub CI;
 | Stylelint | `npm run lint:css` (covers `src/styles.css` and `src/styles/*.css`) | `font-size` must be `var(--fs-*)` (or `inherit`); `border-radius` must be `0`, `inherit`, `var(--radius)`, or `var(--r-*)`; `z-index` must be `var(--z-*)`; **no hex colors** outside the three `:root` theme blocks; **no duplicate selectors**; only 3 `font:` shorthand forms allowed (see below) |
 | ESLint | `npm run lint:js` (ts/tsx under `src/`) | Inline `style={{...}}` may contain only CSS variables (`--xxx`) and data-derived `left/top/width/height`; everything else must use a class in `styles.css` |
 | Word count | `npm run words` | Only **reports** actual words per page (including hover cards and collapsed content); does not fail for exceeding a limit or require deleting words. Enable `--enforce` after Juanxi decides the limits. |
+| Control sizing | `src/test/controlSizing.test.ts` (unit tests) | A rule that gives a button, text field or select its own padding, height, min-height, radius or line-height, or uses the `background` shorthand on a select, outside the reasoned allowlist in the test (section 12) |
 | Accessibility | `e2e/a11y.spec.ts` (desktop + mobile) | WCAG 2.0/2.1/2.2 A/AA, including 24×24 touch targets; right-rail focus management |
 
 **Intentional exceptions (with individual reasons):**
@@ -237,4 +238,52 @@ Choose among these three levels for new shadows. If they are insufficient, add a
 - Small files must pass `npm run lint:css` like `styles.css` (`font-size`/radius/layer/hex rules). Files after `dx-01` also prohibit `transition: all`, hardcoded durations, transitions on layout properties, and **`!important`**. Desktop `.hover-card` must have no delay (`src/test/dxStyleGuard.test.ts` contains intentionally invalid samples proving these guards fail as expected).
 - `dx-00-tokens.css` is the exception: it defines tokens, so explicit durations are allowed.
 - Package changes and rollback instructions: `docs/design-upgrade/README.md` and `docs/design-upgrade/ROLLBACK_LOG.md`.
+- **Exception (CT-01, 2026-11-27):** the control-sizing pass in section 12 removed one-off control sizes from many package files in place (`fb-04`, `fb-05`, `ob-05`, `ob-06`, `ob-07`, `ch-01`) so that every control follows one rule. Each removed line is listed in `docs/PROGRESS.md`; rolling back one package's file does not restore its old sizes.
 - Merging these small files back into `styles.css` is step 3 of DX-27, **requires Juanxi's explicit agreement**, and **has not been done**. R1 quick disable will no longer work after consolidation.
+
+## 12. Controls: size tiers, rows, radius, selects, spacing (CT-01, since 2026-11-27)
+
+Buttons, text fields and selects come in three sizes. A page never sizes one control by hand: it puts its controls in a container and, if it needs a size other than the default, sets the tier on that container. The base rules in `src/styles.css` (the "Controls" block) own every control's height, inline padding, border, radius and colors.
+
+### 12.1 Tokens
+
+| Token | Desktop | Touch (`pointer: coarse`) | Use |
+| --- | --- | --- | --- |
+| `--control-h-sm` | 28px | 32px | Small tier: tables, small cards, dense toolbars, the demo strip |
+| `--control-h-md` | 36px | 44px | Medium tier, the default: pages, forms, panels, Task Details |
+| `--control-h-lg` | 44px | 44px | Large tier: onboarding, the member walkthrough, the emailed one-task page |
+| `--control-h` | md | md | The current tier's height; every button, field and select reads it |
+| `--control-px` | `--s5` (md) | | Inline padding of a button (sm `--s4`, lg `--s6`) |
+| `--field-px` | `--s4` (md) | | Inline padding of a text field or select (sm `--s3`, lg `--s5`) |
+| `--control-r` | `--r-sm` | | One radius for every control of a tier (sm and md `--r-sm`, lg `--r-md`) |
+| `--control-gap` | `--s4` (8px) | | Gap between controls in one row |
+| `--select-arrow-w` | 28px | | Room on the right of a select for its drawn arrow |
+
+Set a tier with a class (`.ctl-sm`, `.ctl-md`, `.ctl-lg`) or, in a package file, by setting the same four custom properties on the container: `--control-h: var(--control-h-lg); --control-px: var(--s6); --field-px: var(--s5); --control-r: var(--r-md);`. `.tbl`, `.mini-card`, `.crm-card` and `.task-card` are small-tier containers already.
+
+### 12.2 Rules
+
+1. **One tier per row and per pane.** Controls that sit next to each other have the same height. A select beside a button is the same height as the button; a field beside a field matches it. Mixing tiers in one row is the inconsistency this section exists to remove.
+2. **The container sets the tier; the control does not.** A page rule may set layout (`width`, `flex`, `max-width`, grid placement) on a control. It may not set `padding`, `height`, `min-height`, `border-radius` or `line-height` on a button, field or select (the guard test fails). Use the tier instead.
+3. **Fields and buttons share one height and one radius per tier.** Height comes from `--control-h`, radius from `--control-r`.
+4. **Radius by size, and nested radius.** Small and medium controls use `--r-sm` (8px); large controls use `--r-md` (12px). A control is always less round than the card it sits in (cards use 12-14px), so a control's corner reads as inside the card's corner.
+5. **Selects are drawn, not native.** Safari and Chrome on macOS ignore `height` and `padding` on a native `<select>`, so it rendered about 22px tall next to 36px buttons. Every select uses `appearance: none` and a chevron drawn with two `--muted` gradients. Set `background-color`, never the `background` shorthand, on a select: the shorthand erases the arrow. The menu that opens is still the system's own, so keyboard, screen-reader and touch behavior are unchanged.
+6. **Touch.** On a touch screen the medium tier is 44px (Apple's 44pt minimum target) and the small tier 32px, matching the DX-04 touch rules. A desktop page that stays medium therefore needs no separate touch rule.
+7. **Spacing.** Between controls in one row: `--control-gap` (8px). Label to its field: `--s3` or `--s4` (6-8px). Between stacked fields: `--s5`-`--s6` (12-16px). A row of controls is `.ctl-row` (flex, centred, wraps on a narrow screen).
+8. **Optical alignment.** Align a row's items on their centres, not their text baselines, so a button, a select and an avatar line up. A quiet button (`btn-quiet`) at the start or end of a row may use a small negative margin so its text, not its invisible box, lines up with the text above. An icon-only button (`.icon-btn`) is a square as wide as the tier's height, with the icon centred.
+9. **Badges, chips and avatars sit one step below the controls around them.** A chip is a pill at the small-tier height; an avatar is 20-26px. Both centre their content with flex or grid and `line-height: 1`, never with a tall line-height. The "no owner" avatar shows a centred person outline in its dashed ring, not a "?" character (a character's line box puts it off centre).
+10. **Primary actions.** At most one primary button per group, as Primer advises; the large tier is for focus flows, used sparingly.
+
+### 12.3 Allowed exceptions
+
+These keep their own size, each for the reason given in `src/test/controlSizing.test.ts`: checkboxes, radios and the toggle switch; the Ask composer text areas (`.command`, `.ask-form`); the inner field of a composite field whose wrapper takes the field size (`.owner-picker`, `.ch-field`); editors inside a table or matrix cell (`.ck-table`); the invisible menu over a status chip (`.ck-select`); the workflow title edited at heading size (`.wfl-name`); the DX-04 touch floors. A text area may set its own `min-height` (its height is about how much text it holds). Add a new exception to the test's allowlist with a reason, and list it here.
+
+### 12.4 Sources
+
+- Apple, UI Design Dos and Don'ts (developer.apple.com/design/tips): "Create controls that measure at least 44 points x 44 points".
+- Apple, SwiftUI `controlSize(_:)`: sets the control size for "controls in this view", which is the model for setting a tier on a container.
+- Mario Guzman, a third-party summary of Apple's macOS layout guidelines (marioaguzman.github.io/design/layoutguidelines): "Avoid mixing different sizes of controls in the same window or pane"; similar controls have consistent widths; at least 6pt between stacked regular controls.
+- Radix Themes, Text Field: "Use matching component sizes when composing Text Field with buttons"; ghost buttons use a negative margin "to optically align themselves against their siblings".
+- Primer, Button: three sizes (small, medium as the default, large used sparingly) and at most one primary button per group.
+
+The pixel heights above are Platypus's own choice; none of these pages gives pixel heights for its tiers or rules for focus rings. Material's pages could not be read (they load only with JavaScript) and are not cited.

@@ -56,21 +56,23 @@
 .ch-seg .chip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
 /* R1.1 points: − [number] + */
 .ch-stepper { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
-.ch-step { min-width: 40px; min-height: 40px; padding: 0; justify-content: center; font-size: var(--fs-lg); line-height: 1; }
-.ch-points { width: 7.5em; min-height: 40px; border: 1px solid var(--control-line); border-radius: var(--r-md); padding: var(--s3) var(--s4); background: var(--surface); font-size: var(--fs-md); font-weight: 600; color: var(--ink); text-align: center; font-variant-numeric: tabular-nums; }
+.ch-step { min-width: var(--control-h); padding: 0; justify-content: center; font-size: var(--fs-lg); line-height: 1; }
+.ch-points { width: 7.5em; font-weight: 600; text-align: center; font-variant-numeric: tabular-nums; }
 .ch-stepper .ch-hint { margin-left: var(--s2); }
-.ch-field { display: flex; align-items: center; gap: var(--s4); border: 1px solid var(--line); border-radius: var(--r-md); padding: 0 0 0 var(--s5); background: var(--surface); }
+/* One field drawn by its wrapper (avatar + menu): the wrapper takes the field size and chrome, the menu inside has none. */
+.ch-field { display: flex; align-items: center; gap: var(--s4); box-sizing: border-box; min-height: var(--control-h); border: 1px solid var(--control-line); border-radius: var(--control-r); padding: 0 0 0 var(--field-px); background: var(--surface); }
 .ch-field:focus-within { border-color: var(--accent); }
-.ch-field select { flex: 1; min-width: 0; border: 0; background: transparent; font-size: var(--fs-md); padding: var(--s4) var(--s5) var(--s4) 0; color: var(--ink); }
+.ch-field select { flex: 1; min-width: 0; min-height: calc(var(--control-h) - 2px); border: 0; background-color: transparent; padding-left: 0; }
 .ch-field select:focus { outline: none; }
-.ch-select, .ch-add { width: 100%; border: 1px solid var(--control-line); border-radius: var(--r-md); padding: var(--s4) var(--s5); background: var(--surface); font-size: var(--fs-md); color: var(--ink); }
-.ch-add { width: auto; border-style: dashed; border-radius: var(--r-pill); padding: var(--s2) var(--s5); font-size: var(--fs-sm); color: var(--muted); }
+.ch-select { width: 100%; }
+/* "+ Add" is a chip-shaped menu among recipient chips, so it takes the chip shape and the small height. */
+.ch-add { width: auto; min-height: var(--control-h-sm); border-style: dashed; border-radius: var(--r-pill); font-size: var(--fs-sm); color: var(--muted); }
 .ch-more { margin-top: var(--s3); }
 .ch-recips { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--s3); flex-wrap: wrap; align-items: center; }
 .ch-recips > li:not(.ch-add-li) { display: inline-flex; align-items: center; gap: var(--s3); border: 1px solid var(--line); border-radius: var(--r-pill); padding: var(--s1) var(--s1) var(--s1) var(--s1); font-size: var(--fs-sm); background: var(--surface); }
 .ch-remove { border: 0; background: transparent; color: var(--muted); cursor: pointer; min-width: 24px; min-height: 24px; border-radius: var(--r-circle); font-size: var(--fs-xs); }
 .ch-remove:hover { color: var(--ink); }
-.ch-note { width: 100%; min-height: 86px; border: 1px solid var(--control-line); border-radius: var(--r-md); padding: var(--s5); background: var(--surface); font-size: var(--fs-md); line-height: 1.5; color: var(--ink); resize: vertical; }
+.ch-note { width: 100%; min-height: 86px; resize: vertical; }
 .ch-note:focus { border-color: var(--accent); outline: none; box-shadow: var(--focus-ring); }
 .ch-count { display: flex; justify-content: space-between; gap: var(--s4); font-size: var(--fs-xs); color: var(--muted); margin-top: var(--s2); }
 /* R1.1 trophy picker: one quiet tile per emoji; the chosen one is outlined. */

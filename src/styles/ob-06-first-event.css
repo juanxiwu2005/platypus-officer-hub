@@ -43,8 +43,8 @@
 .ob6-foot { justify-content: space-between; }
 
 @media (pointer: coarse), (max-width: 600px) {
-  .ob6 :is(.btn, .chip, .ob6-seg button, .ob6-details > summary) { min-height: 44px; }
-  .ob6 :is(select, input:not([type="checkbox"])) { min-height: 44px; }
+  .ob6 { --control-h: var(--control-h-lg); --control-px: var(--s6); --field-px: var(--s5); --control-r: var(--r-md); }
+  .ob6 :is(.chip, .ob6-seg button, .ob6-details > summary) { min-height: 44px; }
   .ob6-seg { flex-wrap: nowrap; }
 }
 @media (max-width: 600px) { .ob6-node { flex-basis: 96px; } }
