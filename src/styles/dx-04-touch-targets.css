@@ -29,6 +29,6 @@
   .risk { position: relative; }
   .risk::after { content: ""; position: absolute; inset: -9px; }
   /* A text link in a card header: taller to hit, but the line stays where it was. */
-  a.small { display: inline-block; padding-block: 5px; margin-block: -5px; }
+  a.small:not(.btn) { display: inline-block; padding-block: 5px; margin-block: -5px; }   /* a button-styled link keeps its own flex centring (DESIGN_TOKENS §12) */
   .btn.small:not(.icon-btn) { min-width: 32px; }
 }
