@@ -9,7 +9,7 @@ import { applySchedule, computeSchedule } from "../engine/schedule"
 import { addDays, fmtShort } from "../lib/dates"
 import { makeTaskAccessGrant, taskAccessToken, taskAccessUrl, usableTaskAccessGrant, verifyTaskAccessGrant } from "./taskAccess"
 import type { ReminderRuntime } from "./contracts"
-import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
+import { buildReminderFacts, buildReminderInput, reminderPeople, reminderSenderName } from "./facts"
 import { buildReminderMail } from "./mail"
 import { planReminders } from "./engine"
 import SingleTaskPage from "./SingleTaskPage"
@@ -225,7 +225,7 @@ describe("the standalone owner task", () => {
     const helper = await makeTaskAccessGrant(waiting, NODE, candidate.waitingRequestId)
     const prepared = reducer(waiting, {type: "issueTaskAccessGrant", grant: helper})
     const facts = buildReminderFacts(prepared, NODE)!, people = reminderPeople(prepared)
-    const mail = buildReminderMail({today: waiting.today, facts, candidate, recipient: people.find(p => p.id === candidate.recipientId)!, request: prepared.reminderRuntime!.waitingRequests[0], requesterName: people.find(p => p.id === facts.ownerId)?.name, taskUrl: taskAccessUrl("https://demo.example.org", helper)})
+    const mail = buildReminderMail({today: waiting.today, facts, candidate, recipient: people.find(p => p.id === candidate.recipientId)!, request: prepared.reminderRuntime!.waitingRequests[0], requesterName: people.find(p => p.id === facts.ownerId)?.name, taskUrl: taskAccessUrl("https://demo.example.org", helper), senderName: reminderSenderName(prepared)})
     const delivered = reducer(prepared, { type: "confirmPlannedReminder", candidateId: candidate.id, via: waiting.org.settings.reminderMode === "review_then_auto" ? "platypus" : "manual", message: {...mail, channel: "email", preparedOn: waiting.today, accessId: helper.id} })
     expect(delivered.reminderRuntime!.deliveries).toHaveLength(1)
     const { state, token } = await issued(delivered)

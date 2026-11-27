@@ -14,9 +14,9 @@ const TASKS: DraftTask[] = [
   { nodeId: "room", title: "Book the spring weekly meeting room", url: url("room") },
   { nodeId: "quote", title: "Collect catering quotes", url: url("quote") },
 ]
-const RULE_BODY = `Hi Jordan,\n\n2 tasks could use an update today.\n\n1. Book the spring weekly meeting room\nTask due: Nov 3\nThe planned start has passed.\nOpen task: ${TASKS[0].url}\n\n2. Collect catering quotes\nTask due: Nov 5\nToday is our planned start date.\nOpen task: ${TASKS[1].url}\n\nIf anything is in the way, share an update so we can help.\nThank you for your work on these.`
+const RULE_BODY = `Hi Jordan,\n\n2 tasks could use an update today.\n\n1. Book the spring weekly meeting room\nTask due: Nov 3\nThis was planned to start Oct 29. Need anything?\nOpen task: ${TASKS[0].url}\n\n2. Collect catering quotes\nTask due: Nov 5\nThis is planned to start today. Need anything?\nOpen task: ${TASKS[1].url}\n\nIf anything is in the way, share an update so we can help.\nThank you for your work on these.\nAlex`
 const base = (patch: Partial<DraftBase> = {}): DraftBase => ({ groupId: "g1", recipientId: "jordan", day: "2026-10-31", intendedEmail: "jordan@example.org",
-  subject: "2 Platypus tasks need you", body: RULE_BODY, taskUrls: TASKS.map(t => t.url), nodeIds: TASKS.map(t => t.nodeId), ...patch })
+  subject: "2 club tasks for today", body: RULE_BODY, taskUrls: TASKS.map(t => t.url), nodeIds: TASKS.map(t => t.nodeId), ...patch })
 const titles: Record<string, string> = { room: TASKS[0].title, quote: TASKS[1].title }
 const titleOf = (id: string) => titles[id] ?? "Task"
 const fresh = () => createDraft(base(), titleOf)
@@ -106,7 +106,7 @@ describe("limits", () => {
   })
 
   it("checkDigestEdit, the reducer's half: exact URLs once each, followed by a space or the end, and the same limits", () => {
-    const rule = { subject: "2 Platypus tasks need you", body: RULE_BODY }
+    const rule = { subject: "2 club tasks for today", body: RULE_BODY }
     const edited = fromTokens(`A personal line.\n\n${body}`, links)
     expect(checkDigestEdit(rule, rule, TASKS)).toBe("same")
     expect(checkDigestEdit({ subject: "Hi Jordan", body: edited }, rule, TASKS)).toEqual({ subject: "Hi Jordan", body: edited })
@@ -267,7 +267,7 @@ describe("resolving a draft against the email about to be recorded (review P2-3)
     expect(edit!.body).toContain(`Open task: ${reissued[1]}`)
     expect(edit!.body).not.toContain(TASKS[1].url)
     expect(edit!.body.endsWith(" Thanks!")).toBe(true)
-    expect(checkDigestEdit(edit, { subject: "2 Platypus tasks need you", body: RULE_BODY }, [TASKS[0], { ...TASKS[1], url: reissued[1] }])).toEqual(edit)
+    expect(checkDigestEdit(edit, { subject: "2 club tasks for today", body: RULE_BODY }, [TASKS[0], { ...TASKS[1], url: reissued[1] }])).toEqual(edit)
     expect(findDraft("g1", "jordan", "2026-10-31")!.notice).toBeNull()
   })
 

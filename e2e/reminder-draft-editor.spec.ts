@@ -29,7 +29,7 @@ test("edit Maya's email: add a line, lose the link, put it back, undo and redo, 
   await enableUpdatedReminders(page, "review_then_auto")
   const draft = await openDraft(page, "maya")
   await expect(draft.getByTestId("rq-draft-to")).toHaveText("maya.chen@example.org")
-  await expect(draft.getByRole("textbox", { name: "Subject" })).toHaveValue("Club work · Reconcile September receipts")
+  await expect(draft.getByRole("textbox", { name: "Subject" })).toHaveValue("Reconcile September receipts, due Oct 26")
   const body = draft.getByRole("textbox", { name: "Message" })
   const token = await firstToken(body)
   expect(await body.inputValue()).not.toMatch(/https?:/)
@@ -86,7 +86,7 @@ test("I review, then I send: Open in Gmail carries the edited draft and To; coll
   await gmail.close()
   expect(url.host).toBe("mail.google.com")
   expect(url.searchParams.get("to")).toBe("jordan.patel@example.org")
-  expect(url.searchParams.get("su")).toBe("3 Platypus tasks need you")
+  expect(url.searchParams.get("su")).toBe("3 club tasks for today")
   const mailed = url.searchParams.get("body")!
   expect(mailed).toContain(`P.S. ${LINE}`)
   expect(mailed).not.toContain("[Open task:")

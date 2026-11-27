@@ -60,8 +60,8 @@ test("no reply produces one actionable follow-up, then an enabled task review in
   const noReply = page.getByTestId("rq-no-reply")
   await expect(noReply.getByRole("button", { name: "Follow up", exact: true })).toBeEnabled()
   await noReply.getByRole("button", { name: "Follow up", exact: true }).click()
-  // The follow-up opens in the compose box (R-S0 §4); its rule-written text names the missing reply.
-  await expect(row(page, "jordan").getByTestId("rq-draft-body")).toHaveValue(/No reply to the previous reminder/)
+  // The follow-up opens in the compose box (R-S0 §4); its rule-written text asks again for an update.
+  await expect(row(page, "jordan").getByTestId("rq-draft-body")).toHaveValue(/Checking in again on this one\. Could you share a quick update\?/)
   await expect(row(page, "jordan").getByTestId("rq-person-toggle")).toBeFocused()
   await approve(page, 2, "jordan")
   expect((await read(page)).reminderRuntime!.deliveries.map(d => d.reason)).toEqual(["start", "no_reply"])
@@ -101,7 +101,7 @@ test("helper promises survive refresh, are checked on the promised day, and prov
   if (info.project.name === "mobile") await expect(page.getByTestId("rail")).toBeHidden()
   await closeRail(page)
   await openEmail(page, "sam")
-  await expect(row(page, "sam").getByTestId("rq-draft-body")).toHaveValue(/Input was expected by/)
+  await expect(row(page, "sam").getByTestId("rq-draft-body")).toHaveValue(/is still waiting on your input, expected by/)
   await approve(page, 2, "sam")
   expect((await read(page)).reminderRuntime!.deliveries[1].reason).toBe("waiting_followup")
   await page.goto(first.message!.taskUrl)
