@@ -70,7 +70,7 @@ export default function Handoff() {
     </form>} />
     <section className="card season">
       <Chain label="Handoff season" stops={stops} />
-      <BtsRow><Bts label="Rule engine">Five checkpoints from the season start date: the interview, handbook, first-week and day-30 dates are worked out from it. A checkpoint is done once the next one's date has come, now once its own date has come.</Bts></BtsRow>
+      <BtsRow><Bts label="Rule engine">Five checkpoints from the season start date: the interview, handbook, first-week and day-30 dates are worked out from it. A checkpoint is done when the next checkpoint's date arrives, not its own.</Bts></BtsRow>
     </section>
     <section className="relay-grid" data-testid="role-handbooks" aria-label="Role handbooks">
       {rolesByRisk.map(({ role, risk }) => {

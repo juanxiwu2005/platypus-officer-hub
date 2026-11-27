@@ -50,7 +50,7 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   // 2. Edit a field: type into the sources search on Rules, then leave it.
   await nav(page, "Rules")
   await expect(page.locator("main h1")).toHaveText("Rules")
-  const search = page.getByLabel("Search sources")
+  const search = page.getByLabel("Search rules")
   await search.fill(TYPED)
   await search.press("Tab")
 
@@ -100,8 +100,8 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   const mine = session.filter(e => ["ui.task", "ui.visibility", "ui.edit"].includes(e.type)).map(e => ({ type: e.type, ...p(e) }))
   expect(mine).toEqual([
     { type: "ui.task", task: 1, event: "start", route: "/" },
-    { type: "ui.edit", route: "/rules", field: "Search sources", kind: "search", area: "main", event: "start" },
-    { type: "ui.edit", route: "/rules", field: "Search sources", kind: "search", area: "main", event: "end", ms: expect.any(Number) },
+    { type: "ui.edit", route: "/rules", field: "Search rules", kind: "search", area: "main", event: "start" },
+    { type: "ui.edit", route: "/rules", field: "Search rules", kind: "search", area: "main", event: "end", ms: expect.any(Number) },
     { type: "ui.visibility", state: "hidden", via: "tab", route: "/" },
     { type: "ui.visibility", state: "visible", via: "tab", awayMs: expect.any(Number), route: "/" },
     { type: "ui.task", task: 1, event: "done", implicit: true, ms: expect.any(Number), route: "/" },
@@ -142,7 +142,7 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   // the timeline reads well
   const descs = (file.timeline as { desc: string }[]).map(r => r.desc)
   expect(descs).toContain("Started study task 1 on /")
-  expect(descs).toContain('Started typing in search field "Search sources" on /rules')
+  expect(descs).toContain('Started typing in search field "Search rules" on /rules')
   expect(descs.some(d => /^Came back after \d+\.\d s away \(another tab or app\) on \/$/.test(d))).toBe(true)
   expect(descs.some(d => /^Ended study task 1 after .* \(next task started\)$/.test(d))).toBe(true)
 })

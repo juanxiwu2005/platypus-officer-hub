@@ -13,9 +13,10 @@ import { eventStrip } from "./today"
 import { visibleContacts } from "../data/crm"
 import { checkPreflight, EMPTY_PACKAGE } from "./preflight"
 import { WEEK_ONE } from "./handbook"
-import { daysBetween } from "./dates"
+import { addDays, daysBetween } from "./dates"
 import { RULES, ruleSourceName } from "../data/rules"
-import { officers } from "../data/permissions"
+import { canLead, officers } from "../data/permissions"
+import { answerSet, PLAYBOOK_CATEGORIES, playbookOf, questionsFor } from "../data/playbook"
 import type { PlaybookAskContext } from "./playbookAsk"
 
 interface PolicyAnswer { inScope: boolean; answer: string; citations: string[]; model: string | null; provider?: string }
@@ -120,6 +121,9 @@ const OVERLOAD_RE = /\boverload|\bworkload\b|\btoo much\b|\bbusiest\b|工作量/
 const PARTNER_RE = /\bpartners?\b.*\b(touch|contact|reach)|\bneeds? a touch\b|\bwho should (we|i) (contact|call|email)\b|联系/i
 const REMIND_RE = /^(remind|nudge|ping|chase)\b/i
 const MISSING_RE = /\bwhat'?s missing\b|\bready to submit\b|\bmissing in (this|the) (request|application)\b/i
+const DUE_WEEK_RE = /\bdue this week\b|\bdue in the next (?:7|seven) days\b/i
+const PLAYBOOK_SUMMARY_RE = /\bsummari[sz]e\b.*\banswers?\b/i
+const READ_FIRST_RE = /\bread first\b/i
 const WEEKONE_RE = /\bweek one\b|\bfirst week\b|\bnew officer\b|新干部|交接/i
 const DATES_RE = /\bhow (are|do) (deadlines|dates).*(calculat|work|set)|\bwhy (this|that) date\b/i
 const STEP_RE = /\babout this step\b|\bexplain this (step|task)\b|\bwhat should happen next\b/i
@@ -186,7 +190,7 @@ export function taskList(s: DemoState, viewerId: string, scope: TaskScope, limit
   const forecast = forecastFor(s)
   if (scope === "risk") {
     const pool = focusEventId ? s.nodes.filter(n => n.eventId === focusEventId && n.status !== "done" && (forecast.nodes[n.id]?.probability ?? 1) < .8).sort((a, b) => forecast.nodes[a.id].probability - forecast.nodes[b.id].probability).slice(0, limit) : forecastQueue(s, forecast)
-    return { title: focusEventId ? "At risk in this event" : "Needs a nudge", nodes: pool, remind: true }
+    return { title: focusEventId ? "At risk in this event" : "Needs a reminder", nodes: pool, remind: true }
   }
   if (scope === "stuck") return { title: "Stuck or waiting", nodes: s.nodes.filter(n => n.status === "blocked" || n.status === "waiting").slice(0, limit), remind: true }
   if (scope === "team") return { title: "Team priorities", nodes: s.nodes.filter(n => n.status !== "done").sort((a, b) => (forecast.nodes[a.id]?.probability ?? 1) - (forecast.nodes[b.id]?.probability ?? 1) || (a.latestStart ?? "9999").localeCompare(b.latestStart ?? "9999")).slice(0, limit), remind: true }
@@ -197,7 +201,46 @@ export function taskList(s: DemoState, viewerId: string, scope: TaskScope, limit
 const textCard = (text: string): ChatCard => ({ kind: "text", text })
 const tasksCard = (s: DemoState, viewerId: string, scope: TaskScope, limit: number, focusEventId?: string): ChatCard => {
   const t = taskList(s, viewerId, scope, limit, focusEventId)
-  return { kind: "tasks", title: t.title, nodeIds: t.nodes.map(n => n.id), remind: t.remind && canLeadAs(s, viewerId) }
+  const lead = canLeadAs(s, viewerId)
+  // Only the president or VP prepares reminders, so others see the same at-risk list without the word.
+  return { kind: "tasks", title: !lead && scope === "risk" && !focusEventId ? "At risk" : t.title, nodeIds: t.nodes.map(n => n.id), remind: t.remind && lead }
+}
+
+/** The viewer's open tasks whose Due date (the rule engine's club deadline) falls within the next 7 days, late ones included. */
+function dueThisWeek(s: DemoState, viewerId: string): ChatCard {
+  const end = addDays(s.today, 7)
+  const nodes = s.nodes.filter(n => n.ownerId === viewerId && n.status !== "done" && n.clubDeadline && n.clubDeadline <= end)
+    .sort((a, b) => a.clubDeadline!.localeCompare(b.clubDeadline!) || a.id.localeCompare(b.id))
+  return nodes.length ? { kind: "tasks", title: "Due this week", nodeIds: nodes.map(n => n.id) } : textCard("Nothing of yours is due in the next 7 days.")
+}
+
+const cut = (text: string, max = 140) => text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text
+const PLAYBOOK_LIST = 5
+
+/** "Summarize the funding answers": each question in the named Playbook category with its best answer (club, then school rule, then tip). */
+function playbookSummary(t: string, s: DemoState): ChatCard {
+  const lower = t.toLowerCase()
+  const category = [...PLAYBOOK_CATEGORIES, ...(playbookOf(s).categories ?? [])].find(c => lower.includes(c.label.toLowerCase()) || lower.includes(c.id.toLowerCase()))
+  const questions = questionsFor(s, { category: category?.id ?? null })
+  const label = category?.label ?? "Playbook"
+  if (!questions.length) return textCard(`No ${label} questions in the Playbook yet.`)
+  const lines = questions.slice(0, PLAYBOOK_LIST).map((q, i) => {
+    const a = answerSet(s, q.id), best = a.club ?? a.rule ?? a.experience
+    return `${i + 1}. ${q.text} ${best ? cut(best.text) : "No answer yet."}`
+  })
+  const more = questions.length - PLAYBOOK_LIST
+  return textCard([`${label}: ${questions.length} question${questions.length === 1 ? "" : "s"}.`, ...lines, ...(more > 0 ? [`${more} more on the Playbook page.`] : [])].join("\n"))
+}
+
+/** "What should a new treasurer read first?": the Playbook questions tagged for that role (the viewer's own when none is named), then those for everyone. */
+function playbookReadFirst(t: string, s: DemoState, viewerId: string): ChatCard {
+  const lower = t.toLowerCase()
+  const role = s.roles.find(r => lower.includes(r.displayName.toLowerCase())) ?? s.roles.find(r => r.id === s.people.find(p => p.id === viewerId)?.roleId)
+  const all = questionsFor(s)
+  const forRole = role ? all.filter(q => q.roleIds !== "all" && q.roleIds.includes(role.id)) : []
+  const picks = [...forRole, ...all.filter(q => q.roleIds === "all")].slice(0, PLAYBOOK_LIST)
+  if (!picks.length) return textCard("The Playbook has no questions yet.")
+  return textCard([`Start with these${role ? ` for the ${role.displayName}` : ""}:`, ...picks.map((q, i) => `${i + 1}. ${q.text}`)].join("\n"))
 }
 
 async function ruleReply(question: string, s: DemoState, signal?: AbortSignal): Promise<Reply> {
@@ -353,7 +396,12 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   if (TOP_TASK_RE.test(t)) return { cards: [tasksCard(s, viewerId, /team|club|everyone/i.test(t) ? "team" : "mine", limit)], source: "Ranked by risk, then start date" }
   if (STUCK_RE.test(t)) return { cards: [tasksCard(s, viewerId, "stuck", limit)], source: "Platypus" }
   if (NUDGE_RE.test(t)) return { cards: [tasksCard(s, viewerId, "risk", 3, focusEvent?.id)], source: "Forecast" }
-  if (NEXT_RE.test(t) && focusEvent) return { cards: [{ kind: "tasks", title: `Next in ${focusEvent.name}`, nodeIds: eventStrip(s.nodes.filter(n => n.eventId === focusEvent.id)).map(n => n.id), remind: canLeadAs(s, viewerId) }], source: "Platypus" }
+  if (DUE_WEEK_RE.test(t)) return { cards: [dueThisWeek(s, viewerId)], source: "Rule engine dates" }
+  if (PLAYBOOK_SUMMARY_RE.test(t)) return { cards: [playbookSummary(t, s)], source: "Playbook" }
+  if (READ_FIRST_RE.test(t)) return { cards: [playbookReadFirst(t, s, viewerId)], source: "Playbook" }
+  // With no event in view, "Who is up next?" reads the next upcoming event (a chip on Events must not end in a refusal).
+  const nextEvent = focusEvent ?? s.events.filter(e => e.date >= s.today).sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))[0]
+  if (NEXT_RE.test(t) && nextEvent) return { cards: [{ kind: "tasks", title: `Next in ${nextEvent.name}`, nodeIds: eventStrip(s.nodes.filter(n => n.eventId === nextEvent.id)).map(n => n.id), remind: canLeadAs(s, viewerId) }], source: "Platypus" }
   if (OVERLOAD_RE.test(t)) {
     const rows = officers(s).map(p => ({ p, w: workload(s, p.id) })).sort((a, b) => b.w.load - a.w.load)
     const needingSupport = rows.filter(r => r.w.band === "Needs support")
@@ -430,15 +478,27 @@ export async function reviewEvent(s: DemoState, eventId: string, signal?: AbortS
   return { cards, source: label, changeSet }
 }
 
-export const SUGGESTIONS: Record<string, string[]> = {
-  "/": ["What are my top 5 tasks?", "Plan a new event", "Who needs a nudge?"],
-  "/events": ["What is at risk in this event?", "Who is up next?", "Plan a new event"],
-  "/tasks": ["Add a task", "What are my top 5 tasks?", "What is stuck?"],
-  "/team": ["Who is overloaded?", "Who needs a nudge?", "What are my top 5 tasks?"],
-  "/funding": ["What's missing in this request?", "When is the USG food request due?", "Plan a new event"],
-  "/handoff": ["What does a new officer need in week one?", "What are my top 5 tasks?", "Who needs a nudge?"],
-  "/partners": ["Who needs a touch?", "Plan a new event", "What are my top 5 tasks?"],
-  "/rules": ["Can we use an outside caterer?", "Can we run a raffle?", "Does the advisor need to attend?"],
-  "/settings": ["How are deadlines calculated?", "Who is overloaded?", "What are my top 5 tasks?"],
+/**
+ * Suggestion chips for the Ask panel, chosen by page and by role (audit C7). Each one is answered by the app itself
+ * (respond's local shortcuts), so a chip never ends in "I couldn't match that", with AI on or off. Only the president
+ * or vice president can prepare reminders (canLead, as in ReminderComposer), so only they get the reminder chip.
+ */
+const REMINDER_CHIP = "Who needs a reminder?"
+const DUE_CHIP = "What's due this week?"
+const PLAYBOOK_CHIPS = ["Can members bring homemade food?", "Summarize the funding answers", "What should a new treasurer read first?"]
+const PAGE_SUGGESTIONS: Record<string, { lead: string[]; member: string[] }> = {
+  "/": { lead: [REMINDER_CHIP, DUE_CHIP, "Plan a new event"], member: [DUE_CHIP, "What are my top 5 tasks?", "Plan a new event"] },
+  "/events": { lead: ["What is at risk in this event?", "Who is up next?", "Plan a new event"], member: ["What is at risk in this event?", "Who is up next?", "Plan a new event"] },
+  "/tasks": { lead: ["Add a task", "What are my top 5 tasks?", "What is stuck?"], member: ["Add a task", "What are my top 5 tasks?", "What is stuck?"] },
+  "/team": { lead: ["Who is overloaded?", REMINDER_CHIP, "What is stuck?"], member: ["Who is overloaded?", "What is stuck?", DUE_CHIP] },
+  "/playbook": { lead: PLAYBOOK_CHIPS, member: PLAYBOOK_CHIPS },
+  "/handoff": { lead: ["What does a new officer need in week one?", "What should a new treasurer read first?", REMINDER_CHIP], member: ["What does a new officer need in week one?", "What should a new treasurer read first?", DUE_CHIP] },
+  "/rules": { lead: ["Can we use an outside caterer?", "Can we run a raffle?", "Does the advisor need to attend?"], member: ["Can we use an outside caterer?", "Can we run a raffle?", "Does the advisor need to attend?"] },
+  "/settings": { lead: ["How are deadlines calculated?", "Who is overloaded?", "What is stuck?"], member: ["How are deadlines calculated?", "Who is overloaded?", "What is stuck?"] },
+}
+/** The chips for this page and viewer; an unknown page gets the home page's. */
+export function suggestionsFor(page: string, s: DemoState): string[] {
+  const chips = PAGE_SUGGESTIONS[page] ?? PAGE_SUGGESTIONS["/"]
+  return canLead(s) ? chips.lead : chips.member
 }
 export const ruleById = (id: string) => RULES.find(r => r.id === id)

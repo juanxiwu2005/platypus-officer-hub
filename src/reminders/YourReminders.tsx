@@ -35,7 +35,7 @@ export function YourReminders({ q }: { q: Centre }) {
   }, [q.runtimeState, state, viewerId])
   return <section className="card rq-section rc-yours" aria-labelledby="rq-yours-h" data-testid="your-reminders">
     <header><h2 id="rq-yours-h">Your reminders</h2></header>
-    <BtsRow><Bts label="Rule engine">Planned checks use the stored task dates. Recorded reminders follow the saved recipient.</Bts></BtsRow>
+    <BtsRow><Bts label="Rule engine">Reminders follow each task's dates and go to the person who must act.</Bts></BtsRow>
     {q.runtimeState === "invalid" && <p className="rq-note">The saved reminder plan needs review. No reminders will run.</p>}
     {automaticReminders.error && <p role="alert" className="rq-note">Automatic reminders could not be saved. Please let your president or VP know.</p>}
     {today.length > 0 && <p className="rc-today" data-testid="your-today">Today you get 1 email about: {today.join(", ")}</p>}

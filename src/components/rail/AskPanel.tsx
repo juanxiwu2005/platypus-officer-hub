@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation } from "react-router-dom"
 import { useStore, useViewer } from "../../data/store"
 import type { Event, EventCheck, EventChecks } from "../../data/types"
-import { newEventForm, respond, reviewEvent, STOPPED_FORM_SOURCE, SUGGESTIONS, ruleById, type ChatCard, type ChatMsg, type Focus, type Reply } from "../../lib/assistant"
+import { newEventForm, respond, reviewEvent, STOPPED_FORM_SOURCE, suggestionsFor, ruleById, type ChatCard, type ChatMsg, type Focus, type Reply } from "../../lib/assistant"
 import { PAGES } from "../../routes"
 import { fmtLong, fmtShort } from "../../lib/dates"
 import { FINALS, findPeriod } from "../../engine/calendar"
@@ -245,7 +245,7 @@ export function AskPanel() {
     dispatch({ type: "createTasks", id, sentence: c.title, tasks, date: c.due, buffered: false, source: "Your task form" })
     patchCard(msgId, index, { ...c, done: true, changeSetId: id })
   }
-  const suggestions = SUGGESTIONS[location.pathname] ?? SUGGESTIONS["/"]
+  const suggestions = suggestionsFor(location.pathname, state)
   // The same row sits with the greeting before the first message, and at the foot of the panel afterwards (never both).
   const suggestionRow = <div className="chips" aria-label="Suggestions">{suggestions.map(s => <button key={s} type="button" className="chip" onClick={() => send(s, "suggestion")} disabled={busy}>{s}</button>)}</div>
 
@@ -256,7 +256,7 @@ export function AskPanel() {
     </header>
     {activeFocus && <div className="focus-chip" data-testid="focus-chip"><span>Looking at: {activeFocus.title}</span><button type="button" aria-label="Stop using this context" onClick={() => { if (activeFocus.kind === "playbook-question") rail.clearAskContext(); else setFocusOff(`${activeFocus.kind}:${activeFocus.id}`) }}>×</button></div>}
     {!messages.length && <div className="ask-welcome" data-testid="ask-welcome">
-      <p className="ask-hello">Hi {person.name.split(" ")[0]}. What do you need?</p>
+      <p className="ask-hello">Hi {person.name.split(" ")[0]}. Ask about this page or your tasks.</p>
       {suggestionRow}
     </div>}
     <div className={`ask-list${messages.length ? "" : " is-empty"}`} ref={list} aria-live="polite">
@@ -270,7 +270,7 @@ export function AskPanel() {
     </div>
     {messages.length > 0 && suggestionRow}
     <form className="ask-form" onSubmit={e => { e.preventDefault(); void send(text) }}>
-      <textarea id="ask-input" ref={input} rows={2} maxLength={1000} value={text} placeholder="Ask or tell Platypus…" aria-label="Message Platypus"
+      <textarea id="ask-input" ref={input} rows={2} maxLength={1000} value={text} placeholder="Ask a question or describe a task…" aria-label="Message Platypus"
         onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(text) } }} />
       <button className="btn btn-primary" type="submit" disabled={busy || !text.trim()} aria-label="Send">Send</button>
     </form>

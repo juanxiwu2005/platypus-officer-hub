@@ -15,10 +15,10 @@ test("Rules: an empty search offers Clear filters", async ({ page }) => {
   const count = () => page.locator(".rule-row").count()
   const before = await count()
   expect(before).toBeGreaterThan(0)
-  await page.getByLabel("Search sources").fill("zzzz-no-such-source")
+  await page.getByLabel("Search rules").fill("zzzz-no-such-source")
   await expect(page.getByText("No matching source.")).toBeVisible()
   await page.getByRole("button", { name: "Clear filters" }).click()
-  await expect(page.getByLabel("Search sources")).toHaveValue("")
+  await expect(page.getByLabel("Search rules")).toHaveValue("")
   expect(await count()).toBe(before)
 })
 
