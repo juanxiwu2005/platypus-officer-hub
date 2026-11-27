@@ -151,7 +151,7 @@ test("Reminders: summary, people and Fix first in place of the risk rows, event 
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
   await closeRail(page)
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: /^Plan/ }).click()
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Events")
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tasks")
 })
 
 test("server errors fall back clearly, and hostile AI output changes nothing", async ({ page }) => {

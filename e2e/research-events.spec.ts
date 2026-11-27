@@ -79,7 +79,7 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   await expect(page.getByTestId("demo-task")).toHaveText("· Task 2")
   await pill.focus()
   await page.keyboard.press("Enter")
-  for (let i = 0; i < 7; i++) await page.keyboard.press("Tab")        // 1 … 6, then Done
+  for (let i = 0; i < 9; i++) await page.keyboard.press("Tab")        // View as, AI features, 1 … 6, then Done
   await expect(tasks.getByRole("button", { name: "Task done" })).toBeFocused()
   await page.keyboard.press("Enter")
   await expect(pill).toBeFocused()

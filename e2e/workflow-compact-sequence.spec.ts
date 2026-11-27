@@ -86,6 +86,8 @@ async function createEvent(page: Page, name: string, templateId: string, version
   const definition = (await savedTemplate(page, templateId)).versions.find(item => item.version === version)!
   await closeRail(page)
   await page.getByRole("navigation", { name: "Sections", exact: true }).getByRole("link", { name: /^Plan/ }).click()
+  // Plan opens Tasks first (batch 1); new events are made from the Events view.
+  await page.getByRole("navigation", { name: "Plan" }).getByRole("link", { name: "Events" }).click()
   await page.getByTestId("new-event").click()
   const form = page.getByTestId("plan-form").last()
   await form.getByLabel("Event name", { exact: true }).fill(name)

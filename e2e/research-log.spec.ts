@@ -63,7 +63,7 @@ async function session(page: Page) {
   await panel.getByRole("button", { name: "Close reminder" }).click()
   // 3. Click a few things: a page link, a drop-down, the demo clock (a data change with its earlier value)
   await closeRail(page)
-  // FB-8: Tasks is under Plan: the Plan link opens Events, the "Events | Tasks" switch opens Tasks.
+  // FB-8: Tasks is under Plan. Since batch 1 the Plan link opens Tasks first; the "Events | Tasks" switch still records its click.
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: /^Plan/ }).click()
   await page.getByRole("navigation", { name: "Plan" }).getByRole("link", { name: "Tasks" }).click()
   await expect(page.locator("main h1")).toHaveText("Tasks")
@@ -140,7 +140,7 @@ test("a short session is exported whole: walkthrough, a reminder, clicks, a rule
   i = find(i, e => e.type === "ui.change" && p(e).name === "Preferred channel" && p(e).value === "Gmail" && p(e).area === "reminder", "the channel chosen")
   i = find(i, e => e.type === "ui.click" && p(e).name === "Open Gmail draft" && p(e).external === true && p(e).href === "mail.google.com/mail/", "the draft link")
   i = find(i, e => e.type === "ui.click" && p(e).name === "Close reminder", "the composer closed")
-  i = find(i, e => e.type === "ui.click" && p(e).role === "link" && /^Plan/.test(String(p(e).name)) && p(e).to === "/events" && p(e).area === "nav", "the Plan link")
+  i = find(i, e => e.type === "ui.click" && p(e).role === "link" && /^Plan/.test(String(p(e).name)) && p(e).to === "/tasks" && p(e).area === "nav", "the Plan link")
   i = find(i, e => e.type === "ui.click" && p(e).role === "link" && p(e).name === "Tasks" && p(e).to === "/tasks", "the Tasks switch")
   i = find(i, e => e.type === "ui.change" && p(e).name === "Task scope" && p(e).value === "Team tasks", "the task scope chosen")
   i = find(i, e => e.type === "advanceClock" && e.applied && (e.before as { today?: string })?.today !== undefined, "the demo clock, with its earlier value")
