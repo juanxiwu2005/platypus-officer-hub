@@ -144,8 +144,17 @@ export function recordReminderDigests(store: Store, prepared: PreparedDigest[], 
   return record(store, withEdits(Array.isArray(prepared) ? prepared : [], edits), via, reminderBatchContext(store.getState()))
 }
 
-/** Prepare and record several groups ("Send all", automatic mode): prepare everything first, then one dispatch. */
-export async function sendReminderDigests(store: Store, groupIds: string[], origin: string, via: "platypus" | "automatic", isCurrent: () => boolean = () => true, edits?: DigestEdits): Promise<DigestRecordResult> {
+/**
+ * Edits worked out from the freshly prepared emails (Send all, R-S0): each person's draft is checked against the email that
+ * is about to be recorded, never against the one the draft was made from. A blocker stops the whole send, named.
+ */
+export type DigestEditResolver = (prepared: PreparedDigest[]) => { edits: DigestEdits; blocker: string | null }
+
+/**
+ * Prepare and record several groups ("Send all", automatic mode): prepare everything first, then one dispatch.
+ * `edits` is either fixed edits by group id or a resolver that is given the prepared emails before anything is recorded.
+ */
+export async function sendReminderDigests(store: Store, groupIds: string[], origin: string, via: "platypus" | "automatic", isCurrent: () => boolean = () => true, edits?: DigestEdits | DigestEditResolver): Promise<DigestRecordResult> {
   const requested = [...new Set(groupIds)]
   const failed = (error: string): DigestRecordResult => ({ recordedGroupIds: [], failedGroupIds: requested, error })
   const state = store.getState()
@@ -158,7 +167,13 @@ export async function sendReminderDigests(store: Store, groupIds: string[], orig
   }
   if (!isCurrent()) return failed("The reminder preparation changed. Please review the latest plan.")
   if (!prepared.length) return failed("These emails were not recorded. Check saving and the latest plan, then try again.")
-  const result = record(store, withEdits(prepared, edits), via, context)
+  let fixed = typeof edits === "function" ? undefined : edits
+  if (typeof edits === "function") {
+    const resolved = edits(prepared)
+    if (resolved.blocker) return failed(resolved.blocker)
+    fixed = resolved.edits
+  }
+  const result = record(store, withEdits(prepared, fixed), via, context)
   const failedGroupIds = requested.filter(id => !result.recordedGroupIds.includes(id))
   return { recordedGroupIds: result.recordedGroupIds, failedGroupIds, error: failedGroupIds.length ? result.error ?? "Some emails changed or reached a limit. Only the saved records are shown." : null }
 }
@@ -202,7 +217,7 @@ function recordGroup(s: DemoState, prepared: PreparedDigest, via: DigestVia): De
   }
   const expected = digestFor(working, group, messages.map(m => m.taskUrl))
   if (!expected || canonical(expected) === null || canonical(expected) !== canonical(prepared.digest)) return null
-  const sent = sentText(working, expected, prepared.edit)
+  const sent = sentText(working, expected, prepared.edit, via)
   if (!sent) return null
   if (!v2(working)) return null
   const confirmed = confirmReminderDigest(buildReminderInput(working, working.reminderRuntime), group.candidates.map(c => c.id), via, messages)
@@ -213,9 +228,13 @@ function recordGroup(s: DemoState, prepared: PreparedDigest, via: DigestVia): De
 }
 
 const wordsIn = (value: string) => value.trim().split(/\s+/).filter(Boolean).length
-/** The text to save: the rule-written email ({}), an accepted edit, or null when an edit was given but fails the checks. */
-function sentText(s: DemoState, expected: PreparedDigest["digest"], edit: unknown): Partial<ReminderDigestSnapshot> | null {
+/**
+ * The text to save: the rule-written email ({}), an accepted edit, or null when an edit was given but fails the checks.
+ * Nobody reviews an automatic email, so an edit is never accepted with "automatic" or in "Send automatically" mode (R-S0 §5).
+ */
+function sentText(s: DemoState, expected: PreparedDigest["digest"], edit: unknown, via: DigestVia): Partial<ReminderDigestSnapshot> | null {
   if (edit === undefined) return {}
+  if (via === "automatic" || s.org.settings.reminderMode === "auto_email") return null
   const titleOf = draftTitleOf(s)
   const checked = checkDigestEdit(edit, expected, expected.nodeIds.map((nodeId, i) => ({ nodeId, title: titleOf(nodeId), url: expected.taskUrls[i] })))
   if (checked === "same") return {}

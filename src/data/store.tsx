@@ -48,6 +48,7 @@ import { recordReminderBatch } from "../reminders/batch"
 import type { ReminderBatch } from "../reminders/deliveryContracts"
 import { applyReminderDigests, withoutEditedText, type ReminderDigestBatch } from "../reminders/digest"
 import { useAutomaticReminders } from "../reminders/useAutomaticReminders"
+import { draftsAfterAction } from "../reminders/draftLoader"
 import type { ReminderMailSnapshot, TaskAccessGrant, TaskAccessUpdate } from "../reminders/accessContracts"
 import { taskAccessIssueValid, usableTaskAccessGrant } from "../reminders/taskAccess"
 import { applyTaskAccessUpdate } from "../reminders/taskAccessActions"
@@ -1200,7 +1201,10 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
     if ((held && boot.notice?.kind === "migration_blocked") || !storageUnchanged(true)) return
     const before = rootRef.current!
     if (["completeSetup", "replace"].includes(action.type) && before.app.matching && !backUp(JSON.stringify(before.app), `matching-${before.app.org.matchingWorkspaceId ?? "prior"}`)) { setSaveFailed(true); return }
-    const at = Date.now(); commit(loggedReducer(before, { action, at, session: sessionAt(at) }))
+    const at = Date.now(), next = loggedReducer(before, { action, at, session: sessionAt(at) })
+    commit(next)
+    // Unsent reminder drafts belong to this club, viewer and sending mode (R-S0): reset, import and View as clear them.
+    draftsAfterAction(action.type, before.app, next.app)
   }, [commit, sessionAt, held, boot.notice, storageUnchanged])
   const tryDispatch = useCallback((action: Action) => {
     if (held || !storageUnchanged()) return false
@@ -1210,6 +1214,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
     if (!persistApp(next.app)) { saved.current.app = false; setSaveFailed(true); return false }
     savedApp.current = next.app; saved.current.app = true
     commit(next); setSaveFailed(!saved.current.log)
+    draftsAfterAction(action.type, before.app, next.app)
     return true
   }, [held, commit, sessionAt, storageUnchanged, persistApp])
   const getState = useCallback(() => rootRef.current!.app, [])

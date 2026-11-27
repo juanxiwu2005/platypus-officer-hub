@@ -10,12 +10,19 @@ import { installEditCapture, installUiCapture, type UiEvent } from "../lib/uiLog
 import Today from "../pages/Today"
 import { ReminderHistoryPanel } from "./DigestPanel"
 import { clearDrafts } from "./draft"
+import { planReminderDigests } from "./digest"
 
 // R-S0 §4 on the shipped seed club (Sat Oct 31): Maya 1 task, Jordan 3, Priya 1. Real prepare and record; nothing is sent.
 const LINE = "Thanks for jumping on this one."
 let latest: DemoState
 let log: () => LogEntry[]
-function Observer() { const store = useStore(); latest = store.state; log = store.getLog; return null }
+let store: ReturnType<typeof useStore>
+function Observer() { store = useStore(); latest = store.state; log = store.getLog; return null }
+/** Rename one of this person's tasks, as an officer would in Task Details. */
+const rename = (recipientId: string, index: number, title: string) => {
+  const nodeId = planReminderDigests(latest).groups.find(g => g.recipientId === recipientId)!.candidates[index].nodeId
+  act(() => { expect(store.tryDispatch({ type: "updateNode", id: nodeId, patch: { title } })).toBe(true) })
+}
 const club = (mode: ReminderMode) => {
   const s = seedDemo(undefined, "v2")
   return reducer({ ...s, org: { ...s.org, settings: { ...s.org.settings, reminderMode: mode } } }, { type: "upgradeReminderPlan" })
@@ -140,6 +147,106 @@ describe("the editable email in a person's row", () => {
     const snaps = latest.reminderRuntime!.digests!
     expect(snaps.map(d => [d.recipientId, d.edited ?? false])).toEqual([["maya", false], ["jordan", true], ["priya", false]])
     expect(snaps[1].body.endsWith(LINE)).toBe(true)
+  })
+
+  it("Send all is disabled while a draft cannot go out, and the summary's status line says why", async () => {
+    show("review_then_auto")
+    const sendAll = screen.getByTestId("send-all-digests") as HTMLButtonElement
+    expect(sendAll.disabled).toBe(false)
+    await openRow("maya", "Maya Chen")
+    type(bodyOf("maya"), bodyOf("maya").value.replace(/\[Open task: [^\]]+\]/, ""))
+    expect(sendAll.disabled).toBe(true)
+    expect(screen.getByTestId("rq-feedback").textContent).toBe("Put back the task link in Maya's email first.")
+    expect(sendAll.getAttribute("aria-describedby")).toBe(screen.getByTestId("rq-feedback").id)
+    fireEvent.click(row("maya").getByTestId("rq-draft-putback"))
+    expect(sendAll.disabled).toBe(false)
+    expect(screen.getByTestId("rq-feedback").textContent).toBe("")
+  })
+
+  it("a task renamed after the edit, with the row closed: Send all stops, named, and the row shows the change when it opens", async () => {
+    show("review_then_auto")
+    await openRow("jordan", "Jordan Patel")
+    type(bodyOf("jordan"), `${bodyOf("jordan").value}\n${LINE}`)
+    fireEvent.click(row("jordan").getByRole("button", { name: "Email to Jordan Patel" }))
+    rename("jordan", 0, "Book the large spring meeting room")
+    fireEvent.click(screen.getByTestId("send-all-digests"))
+    await waitFor(() => expect(screen.getByTestId("rq-feedback").textContent).toBe("Jordan's email changed. Open it and review before sending."), { timeout: 8000 })
+    expect(latest.reminderRuntime!.digests ?? []).toEqual([])
+    expect((screen.getByTestId("send-all-digests") as HTMLButtonElement).disabled).toBe(true)
+    await openRow("jordan", "Jordan Patel")
+    expect(row("jordan").getByTestId("rq-draft-changed").textContent).toContain("This email's tasks changed.")
+    expect(bodyOf("jordan").value).toContain("[Open task: Book the large spring meeting room]")
+    expect(bodyOf("jordan").value.endsWith(LINE)).toBe(true)
+    // Seen: Send all is back, and the edit goes out with the current task links.
+    await waitFor(() => expect((screen.getByTestId("send-all-digests") as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(screen.getByTestId("send-all-digests"))
+    await waitFor(() => expect(latest.reminderRuntime!.digests).toHaveLength(3), { timeout: 8000 })
+    const jordan = latest.reminderRuntime!.digests!.find(d => d.recipientId === "jordan")!
+    expect(jordan.edited).toBe(true)
+    expect(jordan.body.endsWith(LINE)).toBe(true)
+    for (const link of jordan.taskUrls) expect(jordan.body).toContain(`Open task: ${link}`)
+  })
+
+  it("a task renamed after the edit: a collapsed row's Send stops and asks for a review, then sends after it", async () => {
+    show("review_then_auto")
+    await openRow("maya", "Maya Chen")
+    type(bodyOf("maya"), `${bodyOf("maya").value}\n${LINE}`)
+    fireEvent.click(row("maya").getByRole("button", { name: "Email to Maya Chen" }))
+    rename("maya", 0, "Reconcile the October receipts")
+    fireEvent.click(row("maya").getByRole("button", { name: "Send to Maya" }), { detail: 1 })
+    await row("maya").findByText("This email changed. Open it and review before sending.", undefined, { timeout: 8000 })
+    expect(latest.reminderRuntime!.digests ?? []).toEqual([])
+    expect((row("maya").getByRole("button", { name: "Send to Maya" }) as HTMLButtonElement).disabled).toBe(true)
+    await openRow("maya", "Maya Chen")
+    expect(row("maya").getByTestId("rq-draft-changed")).toBeTruthy()
+    await waitFor(() => expect((row("maya").getByRole("button", { name: "Send to Maya" }) as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(row("maya").getByRole("button", { name: "Send to Maya" }), { detail: 1 })
+    await waitFor(() => expect(latest.reminderRuntime!.digests).toHaveLength(1), { timeout: 8000 })
+    expect(latest.reminderRuntime!.digests![0]).toMatchObject({ edited: true, recipientId: "maya" })
+  })
+
+  it("review_then_self: typing after Open in Gmail hides I sent this until Gmail gets the new text", async () => {
+    show("review_then_self")
+    await openRow("maya", "Maya Chen")
+    fireEvent.click(row("maya").getByRole("link", { name: "Open in Gmail" }))
+    expect(row("maya").getByTestId("rq-person-sent-self")).toBeTruthy()
+    type(bodyOf("maya"), `${bodyOf("maya").value}\n${LINE}`)
+    expect(row("maya").queryByTestId("rq-person-sent-self")).toBeNull()
+    fireEvent.click(row("maya").getByTestId("rq-draft-undo"))
+    expect(row("maya").queryByTestId("rq-person-sent-self")).toBeNull()
+    const gmail = row("maya").getByRole("link", { name: "Open in Gmail" })
+    const mailed = new URL(gmail.getAttribute("href")!).searchParams.get("body")
+    fireEvent.click(gmail)
+    fireEvent.click(row("maya").getByTestId("rq-person-sent-self"), { detail: 1 })
+    await waitFor(() => expect(latest.reminderRuntime!.digests).toHaveLength(1), { timeout: 8000 })
+    expect(latest.reminderRuntime!.digests![0].body).toBe(mailed)
+  })
+
+  it("Reset demo, an imported file and View as clear every draft", async () => {
+    show("review_then_auto")
+    const editMaya = async () => {
+      await openRow("maya", "Maya Chen")
+      type(bodyOf("maya"), `${bodyOf("maya").value}\n${LINE}`)
+      fireEvent.click(row("maya").getByRole("button", { name: "Email to Maya Chen" }))
+    }
+    const reopened = async () => {
+      await openRow("maya", "Maya Chen")
+      const body = bodyOf("maya").value
+      fireEvent.click(row("maya").getByRole("button", { name: "Email to Maya Chen" }))
+      return body
+    }
+    await editMaya()
+    expect(await reopened()).toContain(LINE)
+    const saved = latest
+    act(() => store.reset())
+    expect(await reopened()).not.toContain(LINE)
+    await editMaya()
+    act(() => store.dispatch({ type: "replace", state: saved }))
+    expect(await reopened()).not.toContain(LINE)
+    await editMaya()
+    const viewer = latest.viewerId, other = latest.people.find(p => p.id !== viewer)!.id
+    act(() => { store.dispatch({ type: "setViewer", viewerId: other }); store.dispatch({ type: "setViewer", viewerId: viewer }) })
+    expect(await reopened()).not.toContain(LINE)
   })
 
   it("auto_email keeps the read-only preview", async () => {
