@@ -9,6 +9,7 @@ import { isBudgetControlledNode } from "../engine/eventBudget"
 import { taskWorkActor } from "./authorization"
 import { saveFailedText } from "./data"
 import { TaskTargetForm } from "./TaskTargetForm"
+import { doneSlotKey, useDoneSlotRef } from "./completion"
 
 /** The six fixed status names (S3, 2026-11-23); the same words as every StatusPill. */
 export const TASK_STATUS = Object.fromEntries(STATUS_ORDER.map(s => [s, STATUS_DEFAULTS[s].label])) as Record<NodeStatus, string>
@@ -20,6 +21,7 @@ export function TaskProgress({ node, actorId, authorization, initialReply, readO
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
   const label = (status: NodeStatus) => TASK_STATUS[status]
+  const doneSlot = useDoneSlotRef(doneSlotKey(node.id, actorId, authorization))
   const editable =!readOnly && taskWorkActor(state, node.id, authorization) === actorId && state.people.some(p => p.id === actorId && isOfficer(p)) && (!node.ownerId || node.ownerId === actorId || isPresident(state, actorId)) && !(node.status === "done" && isBudgetControlledNode(node))
   function update(reply: Exclude<TaskReply, "extension"> | "claim", value: ReplyInput = {}) {
     setError(""); setNotice("")
@@ -47,9 +49,9 @@ export function TaskProgress({ node, actorId, authorization, initialReply, readO
     setForm(value === "waiting-edit" ? "waiting" : value); setError(""); setNotice("")
   }
   return <div className="task-progress" data-testid="single-task-status">
-    {!editable || (node.status === "unclaimed" && !!node.ownerId && node.ownerId !== actorId) ? <span className={`task-status-label${node.status === "done" ? " good-text" : ""}`}>{label(node.status)}</span> : node.status === "unclaimed" ? <button type="button" className="btn small" onClick={() => update("claim")}>I've got it</button> : <label><span className="sr-only">Task status</span><select aria-label="Task status" value={node.status} onChange={e => { const v = e.target.value; if (v === "waiting" || v === "waiting-edit" || v === "extension") { openForm(v) } else update(v === "blocked" ? "help" : v === "accepted" ? "todo" : "working") }}>
+    {!editable || (node.status === "unclaimed" && !!node.ownerId && node.ownerId !== actorId) ? <span className={`task-status-label${node.status === "done" ? " good-text" : ""}`}>{label(node.status)}</span> : node.status === "unclaimed" ? <button type="button" className="btn small" onClick={() => update("claim")}>I've got it</button> : <div className="task-status-row"><label><span className="sr-only">Task status</span><select aria-label="Task status" value={node.status} onChange={e => { const v = e.target.value; if (v === "waiting" || v === "waiting-edit" || v === "extension") { openForm(v) } else update(v === "blocked" ? "help" : v === "accepted" ? "todo" : "working") }}>
       {node.status === "done" && <option value="done" disabled>{label("done")}</option>}<option value="accepted">{label("accepted")}</option><option value="in_progress">{label("in_progress")}</option><option value="blocked">{label("blocked")}</option><option value="waiting">{label("waiting")}</option>{node.status === "waiting" && <option value="waiting-edit">Update waiting details…</option>}{node.status !== "done" && <option value="extension">Need more time…</option>}
-    </select></label>}
+    </select></label><span className="task-done-slot" ref={doneSlot} /></div>}
     {editable && form === "waiting" && <form className="task-progress-form" onSubmit={e => { e.preventDefault(); const recipient = officers(getState()).find(p => p.id === person && p.id !== actorId && p.id !== node.ownerId); if (!input.waitingOn?.trim() || (person !== "other" && !recipient)) { setError("Choose a current teammate or another dependency and describe the help needed."); return }; update("waiting", { waitingOn: input.waitingOn, waitingOnPersonId: recipient?.id ?? null }) }}>
       <label>Waiting on<select value={person} onChange={e => setPerson(e.target.value)}>{officers(state).filter(p => p.id !== actorId && p.id !== node.ownerId).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}<option value="other">Another dependency</option></select></label><label>What help or input is needed?<textarea aria-label="What help or input is needed?" value={input.waitingOn} maxLength={180} required onChange={e => setInput({ ...input, waitingOn: e.target.value })} /></label><div className="task-inline-actions"><button type="submit" className="btn small">Save waiting status</button><button type="button" className="btn btn-quiet small" onClick={() => setForm("")}>Cancel</button></div>
     </form>}
