@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation, useSearchParams } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
+import { isPresident } from "../data/permissions"
 import { PageHead } from "../components/Page"
 import { Bts, BtsRow } from "../components/Bts"
 import { useRail } from "../components/rail/RailContext"
 import { forecastFor } from "../engine/forecast"
 import { fmtLong } from "../lib/dates"
-import { digestCentre, reminderCentre, type ReminderCentre as Centre } from "../reminders/centre"
+import { digestCentre, PERSON_PARAM, reminderCentre, sendAllFeedback, type DigestPerson, type FixRow, type ReminderCentre as Centre } from "../reminders/centre"
 import { sendReminderDigests } from "../reminders/digest"
 import { PersonRow } from "../reminders/PersonRow"
 import { YourReminders } from "../reminders/YourReminders"
@@ -25,18 +26,43 @@ export default function Today() {
 const people = (n: number) => n === 1 ? "1 person" : `${n} people`
 
 /**
+ * Rows keep the order of this visit's first render (step 0, 2026-11-27): a sent row is marked in place and never moves under
+ * the pointer; someone new joins at the end. The data functions stay pure; only the page remembers the order.
+ */
+function useVisitOrder(list: DigestPerson[]): DigestPerson[] {
+  const ids = list.map(p => p.recipientId)
+  const [order, setOrder] = useState(ids)
+  const merged = ids.every(id => order.includes(id)) ? order : [...order, ...ids.filter(id => !order.includes(id))]
+  useEffect(() => { if (merged !== order) setOrder(merged) }, [merged, order])
+  return [...list].sort((a, b) => merged.indexOf(a.recipientId) - merged.indexOf(b.recipientId))
+}
+
+/**
  * Concept F (Juanxi 2026-11-19), simplified in S2 (2026-11-22): one email per person. Each row expands in place to show
- * that person's email; the row's action follows the sending mode. The right rail still opens from History's Follow up.
+ * that person's email; the row's action follows the sending mode. History's Follow up opens a row here (`?person=`).
+ * Step 0 (2026-11-27): one polite status line, always mounted, in the summary card (or the plan card when reminders cannot run).
  */
 function ReminderCentre({ q }: { q: Centre }) {
-  const { state, tryDispatch, getState, persistenceFailed, automaticReminders } = useStore()
+  const { state, tryDispatch, getState, persistenceFailed, automaticReminders, exportData } = useStore()
   const rail = useRail()
   const forecast = useMemo(() => forecastFor(state), [state])
   const dc = useMemo(() => digestCentre(state, q), [state, q])
+  const rows = useVisitOrder(dc.people)
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState("")
+  const summary = useRef<HTMLParagraphElement>(null)
   const alive = useRef(true)
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
+  // History → Follow up: open that person's row, then drop the parameter so a reload does not reopen it.
+  const [params, setParams] = useSearchParams()
+  const location = useLocation()
+  const wanted = params.get(PERSON_PARAM)
+  const [reveal, setReveal] = useState<{ id: string; n: number } | null>(null)
+  useEffect(() => {
+    if (!wanted) return
+    setReveal(r => ({ id: wanted, n: (r?.n ?? 0) + 1 }))
+    setParams(p => { p.delete(PERSON_PARAM); return p }, { replace: true })
+  }, [wanted, location.key, setParams])
   const reviewLegacy = (nodeId: string) => {
     const saved = tryDispatch({ type: "reviewLegacyReminder", nodeId })
     const runtime = getState().reminderRuntime
@@ -46,55 +72,76 @@ function ReminderCentre({ q }: { q: Centre }) {
   }
   const sendAll = async () => {
     if (busy || persistenceFailed || !dc.groups.length) return
+    const earlier = dc.people.filter(p => p.sent && !p.group).length
     setBusy(true); setFeedback("")
     try {
       const result = await sendReminderDigests({ getState, tryDispatch }, dc.groups.map(g => g.id), window.location.origin, "platypus", () => alive.current)
-      const sent = result.recordedGroupIds.length
-      if (alive.current) setFeedback([sent ? `Sent to ${people(sent)}.` : "", result.error ?? ""].filter(Boolean).join(" ") || "These emails were not sent. Please try again.")
+      if (alive.current) setFeedback(sendAllFeedback(result.recordedGroupIds.length, earlier, result.error))
     } catch { if (alive.current) setFeedback("These emails were not sent. Please try again.") }
-    finally { if (alive.current) setBusy(false) }
+    finally {
+      if (alive.current) { setBusy(false); summary.current?.focus() }   // Send all may disappear: focus never falls to the page body
+    }
   }
-  const reviewing = rail.open && rail.tab === "details" && rail.detail?.kind === "reminderDigest" ? rail.detail.recipientId : null
+  // Task Details opens at its waiting form (reply "waiting") for the president or the task's owner; others get the task itself.
+  const canChooseWaiting = (x: FixRow) => isPresident(state) || state.nodes.find(n => n.id === x.nodeId)?.ownerId === state.viewerId
+  const openFix = (x: FixRow) => rail.show(x.opens === "waiting" && canChooseWaiting(x) ? { kind: "task", id: x.nodeId, reply: "waiting" } : { kind: "node", id: x.nodeId })
   const ready = q.runtimeState === "active"
   const n = dc.groups.length
   const history = q.sent.length + q.replies.length + q.noReply.length > 0
+  const auto = q.mode === "auto_email"
+  const autoSent = dc.people.filter(p => p.sent?.via === "automatic").length
+  const notSent = auto && automaticReminders.error ? dc.people.filter(p => p.group).map(p => p.name) : []
+  const status = <p role="status" className="dg-top-note dg-feedback" data-testid="rq-feedback">{automaticReminders.busy ? "Preparing automatic reminders…" : feedback}</p>
   // With no sending mode chosen, the next step is to choose one; it only navigates, so saving failures do not block it.
   const action = !ready ? null
     : q.mode === null ? <Link to="/settings?reminders=1" className="btn btn-primary small" data-testid="choose-mode">Choose how reminders go out</Link>
-    : q.mode === "review_then_auto" && n > 0 ? <button type="button" className="btn btn-primary small" data-testid="send-all-digests" disabled={busy || persistenceFailed} onClick={sendAll}>{busy ? "Sending…" : "Send all"}</button>
-    : q.mode === "auto_email" && dc.sentToday > 0 ? <span className="dg-state sent" data-testid="rq-auto-status">Sent automatically</span>
+    : q.mode === "review_then_auto" && n > 0 ? <button type="button" className="btn btn-primary small" data-testid="send-all-digests" disabled={busy || persistenceFailed} onClick={sendAll}>{busy ? "Sending…" : `Send ${n} email${n === 1 ? "" : "s"}`}</button>
     : null
-  return <div className="rq dg" data-testid="reminder-centre" data-mode={q.mode ?? "none"} aria-busy={busy || automaticReminders.busy}>
+  const headline = auto && autoSent > 0 ? `Sent automatically to ${people(autoSent)} today.` : n ? `${people(n)} to remind` : "Nothing to send today."
+  return <div className="rq dg" data-testid="reminder-centre" data-mode={q.mode ?? "none"} data-busy={busy || automaticReminders.busy}>
     <BtsRow><Bts label="Rule engine">Checks use each task's Start by and Due dates; a final check is 3 days overdue. One email per person per day.</Bts></BtsRow>
     {q.runtimeState === "invalid" && <section className="card rc-plan" data-testid="reminder-plan-status" aria-label="Reminder plan">
       <h2>Reminder plan needs review</h2>
-      <p>The saved reminder plan is unavailable. It has been kept for recovery; no reminders will run.</p>
+      <p>The saved reminder plan can't be read, so no reminders run. It is kept unchanged for recovery.</p>
+      <button type="button" className="btn small" onClick={exportData}>Download saved data</button>
+      {status}
     </section>}
-    {automaticReminders.busy && <p role="status" className="rq-note">Preparing automatic reminders…</p>}
+    {q.runtimeState === "legacy" && <section className="card rc-plan" data-testid="reminder-plan-status" aria-label="Reminder plan">
+      <h2>Reminders are paused</h2>
+      <p>This saved data still uses an older reminder plan. Reloading updates it and keeps all history.</p>
+      <button type="button" className="btn small" onClick={() => window.location.reload()}>Reload</button>
+      {status}
+    </section>}
     {automaticReminders.error && <div className="rc-save-error" role="alert"><p>{automaticReminders.error}</p><button type="button" className="btn small" disabled={automaticReminders.busy} onClick={automaticReminders.retry}>Retry automatic reminders</button></div>}
-    {feedback && <p role="status" className="rq-note">{feedback}</p>}
     {persistenceFailed && <p role="alert" className="rq-note">Can't save in this browser.</p>}
     {/* Cheers (R1, F7): president and VP, Monday to Wednesday. */}
     <WeeklyLine />
     {ready && <section className="card dg-top" data-testid="rq-summary" aria-label="Today's reminder emails">
       <div className="dg-top-row">
-        <p className="dg-top-text"><b>{n ? `${people(n)} to remind` : "Nothing to send today."}</b></p>
+        <p className="dg-top-text" ref={summary} tabIndex={-1} data-testid="rq-summary-line"><b>{headline}</b></p>
         {action}
       </div>
+      {notSent.length > 0 && <p className="dg-top-note" data-testid="rq-auto-failed">Not sent: {notSent.join(", ")}</p>}
       {!n && dc.nextCheck && <p className="dg-top-note" data-testid="rq-next">Next check: {fmtLong(dc.nextCheck.on)} · {dc.nextCheck.count} planned this week</p>}
+      {status}
     </section>}
-    {ready && dc.people.length > 0 && <section className="card dg-people" aria-labelledby="dg-people-h" data-testid="rq-people">
+    {ready && rows.length > 0 && <section className="card dg-people" aria-labelledby="dg-people-h" data-testid="rq-people">
       <h2 id="dg-people-h" className="sr-only">Emails by person</h2>
-      <ul className="dg-list">{dc.people.map(p => <PersonRow key={p.recipientId} p={p} mode={q.mode} reviewing={reviewing === p.recipientId} forecast={forecast} sendingAll={busy} />)}</ul>
+      <ul className="dg-list" aria-busy={busy || automaticReminders.busy}>{rows.map(p => <PersonRow key={p.recipientId} p={p} mode={q.mode} forecast={forecast} sendingAll={busy}
+        reveal={reveal?.id === p.recipientId ? reveal.n : 0} onAction={() => setFeedback("")} onSent={setFeedback} />)}</ul>
       <BtsRow><Bts label="Rule engine">Tasks keep the rule engine's order: overdue, due, past due, then starts and follow-ups.</Bts></BtsRow>
     </section>}
     {ready && dc.fix.length > 0 && <section className="card rq-section dg-fix" aria-labelledby="dg-fix-h" data-testid="rq-fix">
-      <header><h2 id="dg-fix-h">Fix first<span className="rq-n">{dc.fix.length}</span></h2></header>
+      {/* Read as "Fix first, 8", not "Fix first8". */}
+      <header><h2 id="dg-fix-h" aria-label={`Fix first, ${dc.fix.length}`}>Fix first<span className="rq-n">{dc.fix.length}</span></h2></header>
       <ul className="rq-list">{dc.fix.map(x => <li key={x.id} className="dg-fix-row" data-testid="rq-row" data-node={x.nodeId}>
         <span className="dg-task-title">{x.title}</span>
         {x.problem ? <span className={`dg-chip ${x.tone}`}>{x.problem}</span> : <span />}
-        {x.legacy ? <button type="button" className="btn small" disabled={persistenceFailed} onClick={() => reviewLegacy(x.nodeId)}>{x.action}</button>
-          : x.taskAvailable ? <button type="button" className="btn small" aria-label={`${x.action}: ${x.title}`} onClick={() => rail.show({ kind: "node", id: x.nodeId })}>{x.action}</button> : <span />}
+        {x.opens === "legacy" ? <button type="button" className="btn small" disabled={persistenceFailed} onClick={() => { setFeedback(""); reviewLegacy(x.nodeId) }}>{x.action}</button>
+          : x.taskAvailable ? x.opens === "waiting" && canChooseWaiting(x)
+            ? <button type="button" className="btn small" aria-label={`Choose who this waits on: ${x.title}`} onClick={() => openFix(x)}>{x.action}</button>
+            : <button type="button" className="btn small" aria-label={`Open task: ${x.title}`} onClick={() => openFix(x)}>{x.opens === "waiting" ? "Open task" : x.action}</button>
+          : <span />}
       </li>)}</ul>
     </section>}
     {history && <p className="dg-history-link" data-testid="rq-history">

@@ -36,9 +36,9 @@ async function openEmail(page: Page, recipientId: string) {
   await row(page, recipientId).getByTestId("rq-person-toggle").click()
   await expect(row(page, recipientId).getByTestId("digest-body")).toBeVisible()
 }
-/** With a recipient: the row's Send. Without: Send & next in the right rail (opened by History's Follow up). */
-async function approve(page: Page, count: number, recipientId?: string) {
-  await (recipientId ? row(page, recipientId).getByTestId("rq-person-send") : page.getByTestId("digest-send-next")).click()
+/** The row's Send. Step 0: History's Follow up opens that row on the home page too, so there is no other send flow. */
+async function approve(page: Page, count: number, recipientId: string) {
+  await row(page, recipientId).getByTestId("rq-person-send").click()
   await expect.poll(async () => (await read(page)).reminderRuntime!.deliveries.length).toBe(count)
 }
 async function openHistory(page: Page) {
@@ -61,7 +61,8 @@ test("no reply produces one actionable follow-up, then an enabled task review in
   await expect(noReply.getByRole("button", { name: "Follow up", exact: true })).toBeEnabled()
   await noReply.getByRole("button", { name: "Follow up", exact: true }).click()
   await expect(page.getByTestId("digest-body")).toContainText("No reply to the previous reminder")
-  await approve(page, 2)
+  await expect(row(page, "jordan").getByTestId("rq-person-toggle")).toBeFocused()
+  await approve(page, 2, "jordan")
   expect((await read(page)).reminderRuntime!.deliveries.map(d => d.reason)).toEqual(["start", "no_reply"])
   await simulateDate(page, addDays(initial.today, 4))
   await openHistory(page)

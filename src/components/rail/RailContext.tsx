@@ -10,9 +10,7 @@ export type Detail =
   | { kind: "node"; id: string }
   | { kind: "task"; id: string; reply?: string | null }
   | { kind: "nudge"; id: string }
-  /** Today's combined email for one person (concept F): preview, send and that person's open tasks. */
-  | { kind: "reminderDigest"; recipientId: string }
-  /** Recorded reminder emails, replies and no-reply follow-ups. */
+  /** Recorded reminder emails, replies and no-reply follow-ups. Follow up opens the person's row on the home page (step 0). */
   | { kind: "reminderHistory" }
   | { kind: "funding"; eventId: string }
   | { kind: "event"; eventId: string }
@@ -62,7 +60,9 @@ interface RailValue {
 
 const RailCtx = createContext<RailValue | null>(null)
 const OPEN_KEY = "platypus.v1.railOpen"
-const wide = () => typeof window !== "undefined" && window.matchMedia?.("(min-width: 1200px)").matches
+const wide = () => typeof window !== "undefined" && !!window.matchMedia?.("(min-width: 1200px)").matches
+/** True when the rail sits beside the page; on narrower screens it covers the page. */
+export const railBesidePage = wide
 
 function initialOpen(): boolean {
   if (!wide()) return false

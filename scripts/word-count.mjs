@@ -60,7 +60,7 @@ async function openReminderCentre(page) {
   await page.getByTestId("reminder-centre").waitFor({ state: "attached", timeout: 10_000 })
   // The home row must measure the real reminder centre; if it never appears, this throws and the check fails loudly.
   await page.getByTestId("rq-summary").waitFor({ state: "visible", timeout: 10_000 })
-  await page.locator('[data-testid="reminder-centre"][aria-busy="false"]').waitFor({ timeout: 10_000 })
+  await page.locator('[data-testid="reminder-centre"][data-busy="false"]').waitFor({ timeout: 10_000 })   // step 0: aria-busy is on the people list only
   await page.waitForTimeout(900)
 }
 

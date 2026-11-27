@@ -165,10 +165,10 @@ test("Send all persists complete unique-link snapshots, survives reload, and rec
   await activate(page)
   // Two people, so two emails.
   await expect(page.getByTestId("rq-summary")).toContainText("2 people to remind")
-  await expect(page.getByTestId("send-all-digests")).toHaveText("Send all")
+  await expect(page.getByTestId("send-all-digests")).toHaveText("Send 2 emails")
   await page.getByTestId("send-all-digests").click()
   await expect.poll(async () => (await read(page)).reminderRuntime!.deliveries.length).toBe(2)
-  await expect(page.getByTestId("reminder-centre")).toContainText("Sent to 2 people.")
+  await expect(page.getByTestId("rq-feedback")).toHaveText("Sent to all 2 today.")
   const saved = await read(page), deliveries = saved.reminderRuntime!.deliveries
   for (const delivery of deliveries) completeMail(delivery, saved)
   expect(new Set(deliveries.map(d => d.candidateId)).size).toBe(2)
