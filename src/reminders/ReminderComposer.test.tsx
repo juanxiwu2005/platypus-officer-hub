@@ -8,7 +8,7 @@ import { applySchedule } from "../engine/schedule"
 import type { DemoState, ReminderMode } from "../data/types"
 import ReminderComposer from "./ReminderComposer"
 import { makeTaskAccessGrant, taskAccessUrl } from "./taskAccess"
-import { buildReminderFacts, reminderPeople } from "./facts"
+import { buildReminderFacts, reminderPeople, reminderSenderName } from "./facts"
 import { buildReminderMail } from "./mail"
 
 const NODE = "mail-room"
@@ -43,7 +43,7 @@ describe("real reminder composer state integration", () => {
     vi.stubGlobal("fetch", fetch)
     show({ ...fixture(), aiEnabled: true })
     await waitFor(() => expect(preview().getByRole("link", { name: "Open task" })).toBeTruthy())
-    expect(preview().getByRole("heading", { name: "Speaker Night · Reserve a room" })).toBeTruthy()
+    expect(preview().getByRole("heading", { name: /^Speaker Night: Reserve a room, due [A-Z][a-z]{2} \d{1,2}$/ })).toBeTruthy()
     expect(preview().getAllByRole("link")).toHaveLength(1)
     expect(preview().getByRole("link").getAttribute("href")).toContain("/#/events?event=")
     expect(screen.getByTestId("nudge-body").textContent).toContain("40 attendees")
@@ -96,7 +96,7 @@ describe("real reminder composer state integration", () => {
     show({ ...waiting, viewerId: "alex" })
     await screen.findByRole("link", { name: "Open Gmail draft" })
     expect(screen.getByRole("heading", { level: 2 }).textContent).toBe("Sam Okafor")
-    expect(screen.getByTestId("nudge-body").textContent).toContain("Jordan Patel is waiting for your input")
+    expect(screen.getByTestId("nudge-body").textContent).toContain("Jordan is waiting on your input.")
     expect(screen.getByTestId("nudge-body").textContent).not.toContain("Reserve a room for 40 attendees")
     expect(latest.taskAccessGrants!.at(-1)).toMatchObject({ scope: "waiting", ownerId: "jordan", recipientId: "sam" })
     fireEvent.click(emailDraft())
@@ -211,7 +211,7 @@ describe("real reminder composer state integration", () => {
     const grant = await makeTaskAccessGrant(s, NODE)
     const issued = reducer(s, { type: "issueTaskAccessGrant", grant })
     const recipient = reminderPeople(issued).find(p => p.id === "jordan")!
-    const mail = buildReminderMail({ today: issued.today, facts: buildReminderFacts(issued, NODE)!, recipient, taskUrl: taskAccessUrl(window.location.origin, grant) })
+    const mail = buildReminderMail({ today: issued.today, facts: buildReminderFacts(issued, NODE)!, recipient, taskUrl: taskAccessUrl(window.location.origin, grant), senderName: reminderSenderName(issued) })
     const snapshot = { ...mail, channel: "email" as const, preparedOn: issued.today, accessId: grant.id }
     const first = reducer(issued, { type: "confirmNudgeSent", nodeId: NODE, text: mail.text, channel: "email", via: "platypus", message: snapshot })
     expect(first.reminderRuntime!.deliveries).toHaveLength(1)

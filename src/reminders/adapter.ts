@@ -87,7 +87,7 @@ export function confirmPlannedReminder(s: DemoState, candidateId: string, via: R
   if (!remindersEnabled(s)) return s
   if (s.reminderRuntime!.version === 2 && !message) return s
   const candidate = planReminders(buildReminderInput(s, s.reminderRuntime!)).ready.find(c => c.id === candidateId)
-  const snapshot = message && candidate ? validatedReminderMessage(s, message, candidate.nodeId, candidateId) : null
+  const snapshot = message && candidate ? validatedReminderMessage(s, message, candidate.nodeId, candidateId, via) : null
   if (message && !snapshot) return s
   const runtime = confirmReminderDelivery(buildReminderInput(s, s.reminderRuntime!), candidateId, via)
   if (runtime === s.reminderRuntime) return s

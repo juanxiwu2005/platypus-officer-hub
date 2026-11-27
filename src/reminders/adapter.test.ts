@@ -4,7 +4,7 @@ import { loadState, reducer, saveState, STORAGE_KEY } from "../data/store"
 import type { DemoState, ReminderMode } from "../data/types"
 import { applySchedule } from "../engine/schedule"
 import { addDays } from "../lib/dates"
-import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
+import { buildReminderFacts, buildReminderInput, reminderPeople, reminderSenderName } from "./facts"
 import { buildReminderMail } from "./mail"
 import { makeTaskAccessGrant, taskAccessUrl } from "./taskAccess"
 import { planReminders } from "./engine"
@@ -37,7 +37,7 @@ async function record(s: DemoState) {
   const issued = reducer(s, {type: "issueTaskAccessGrant", grant})
   const facts = buildReminderFacts(issued, candidate.nodeId)!
   const people = reminderPeople(issued)
-  const mail = buildReminderMail({today: s.today, facts, candidate, recipient: people.find(p => p.id === candidate.recipientId)!, taskUrl: taskAccessUrl("https://demo.example.org", grant)})
+  const mail = buildReminderMail({today: s.today, facts, candidate, recipient: people.find(p => p.id === candidate.recipientId)!, taskUrl: taskAccessUrl("https://demo.example.org", grant), senderName: reminderSenderName(issued)})
   return reducer(issued, {type: "confirmPlannedReminder", candidateId: candidate.id, via: "manual", message: {...mail, channel: "email", preparedOn: s.today, accessId: grant.id}})
 }
 

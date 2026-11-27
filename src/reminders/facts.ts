@@ -1,8 +1,8 @@
 import type { DemoState, Event, Node } from "../data/types"
-import { isOfficer } from "../data/permissions"
+import { canLead, isOfficer } from "../data/permissions"
 import { fmtShort, fromISO, toISO } from "../lib/dates"
 import { taskActionLink } from "./actionLinks"
-import type { ReminderInput, ReminderPerson, ReminderRuntime, ReminderTaskFacts } from "./contracts"
+import type { ReminderDelivery, ReminderInput, ReminderPerson, ReminderRuntime, ReminderTaskFacts } from "./contracts"
 
 const text = (value: string) => value.trim().replace(/\s+/g, " ")
 const sentence = (value: string) => /[.!?]$/.test(value) ? value : `${value}.`
@@ -90,6 +90,15 @@ export function reminderPeople(state: DemoState): ReminderPerson[] {
       channel: person.channels[0] ?? "email",
     }
   })
+}
+
+/**
+ * Who signs a reminder email (C2, 2026-11-27): the president or VP who is preparing it, by their saved name. An automatic
+ * email is prepared by nobody, so it has no sign-off; the app never signs one with a name it guessed.
+ */
+export function reminderSenderName(state: DemoState, via?: ReminderDelivery["via"]): string | null {
+  if (via === "automatic" || !canLead(state)) return null
+  return state.people.find(p => p.id === state.viewerId)?.name ?? null
 }
 
 /** Adapt facts without effects or runtime changes. */

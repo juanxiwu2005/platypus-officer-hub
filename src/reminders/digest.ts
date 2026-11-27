@@ -6,7 +6,7 @@ import type { ReminderCandidate, ReminderDelivery } from "./contracts"
 import type { TaskAccessGrant } from "./accessContracts"
 import type { PreparedReminder, ReminderBatch } from "./deliveryContracts"
 import { reminderBatchContext } from "./deliveryContracts"
-import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
+import { buildReminderFacts, buildReminderInput, reminderPeople, reminderSenderName } from "./facts"
 import { confirmReminderDigest, planReminders } from "./engine"
 import { allowedReminderVia, importantReminder } from "./policy"
 import { isReminderRuntime } from "./runtime"
@@ -46,8 +46,11 @@ export function planReminderDigests(state: DemoState): ReminderDigestPlan {
   return { groups, blocked: plan.blocked, upcoming: plan.upcoming }
 }
 
-/** The combined email for a group, built only from saved facts and the given per-task entry URLs (same order). */
-function digestFor(s: DemoState, group: ReminderDigestGroup, taskUrls: string[]): PreparedDigest["digest"] | null {
+/**
+ * The combined email for a group, built only from saved facts and the given per-task entry URLs (same order).
+ * `via` decides the sign-off: the lead preparing it, or none for automatic sending (reminderSenderName).
+ */
+function digestFor(s: DemoState, group: ReminderDigestGroup, taskUrls: string[], via: DigestVia): PreparedDigest["digest"] | null {
   if (!v2(s) || taskUrls.length !== group.candidates.length) return null
   const people = reminderPeople(s), recipient = people.find(p => p.id === group.recipientId)
   if (!recipient) return null
@@ -58,7 +61,7 @@ function digestFor(s: DemoState, group: ReminderDigestGroup, taskUrls: string[])
     const request = candidate.waitingRequestId ? s.reminderRuntime.waitingRequests.find(r => r.id === candidate.waitingRequestId) : undefined
     items.push({ facts, candidate, request, requesterName: people.find(p => p.id === facts.ownerId)?.name, taskUrl: taskUrls[index] })
   }
-  const mail = buildReminderDigestMail({ today: s.today, recipient, items })
+  const mail = buildReminderDigestMail({ today: s.today, recipient, items, senderName: reminderSenderName(s, via) })
   if (!mail.checked) return null
   return { version: 1, groupId: group.id, recipientId: recipient.id, recipientName: recipient.name, intendedEmail: mail.intendedEmail,
     channel: "email", preparedOn: s.today, subject: mail.subject, body: mail.body, text: mail.text, taskUrls: mail.taskUrls,
@@ -100,12 +103,12 @@ async function prepare(store: Store, groupId: string, origin: string, via: Diges
     const grant = grants[index], facts = buildReminderFacts(state, candidate.nodeId)
     if (!facts || !recipient || !await verifyTaskAccessGrant(withGrants, taskAccessToken(grant))) return { error: "Could not prepare the task links for this email. Please try again." }
     const request = candidate.waitingRequestId ? state.reminderRuntime.waitingRequests.find(r => r.id === candidate.waitingRequestId) : undefined
-    const mail = buildReminderMail({ today: state.today, facts, recipient, candidate, request, requesterName: people.find(p => p.id === facts.ownerId)?.name, taskUrl: taskAccessUrl(origin, grant, facts.eventId) })
+    const mail = buildReminderMail({ today: state.today, facts, recipient, candidate, request, requesterName: people.find(p => p.id === facts.ownerId)?.name, senderName: reminderSenderName(state, via), taskUrl: taskAccessUrl(origin, grant, facts.eventId) })
     if (!mail.checked) return { error: "Review the task wording or details before preparing this email." }
     entries.push({ candidateId: candidate.id, grant, message: { ...mail, channel: "email", preparedOn: state.today, accessId: grant.id } })
   }
   if (!isCurrent()) return { error: CHANGED }
-  const digest = digestFor(withGrants, group, entries.map(e => e.message.taskUrl))
+  const digest = digestFor(withGrants, group, entries.map(e => e.message.taskUrl), via)
   if (!digest) return { error: "Review the task wording or details before preparing this email." }
   return { groupId, recipientId: group.recipientId, entries, digest }
 }
@@ -211,11 +214,11 @@ function recordGroup(s: DemoState, prepared: PreparedDigest, via: DigestVia): De
       if (!taskAccessIssueValid(working, entry.grant, via === "automatic") || working.taskAccessGrants?.some(g => g?.id === entry.grant.id)) return null
       working = { ...working, taskAccessGrants: [...(working.taskAccessGrants ?? []), entry.grant] }
     }
-    const message = validatedReminderMessage(working, entry.message, candidate.nodeId, candidate.id)
+    const message = validatedReminderMessage(working, entry.message, candidate.nodeId, candidate.id, via)
     if (!message || message.channel !== "email" || message.accessId !== entry.grant.id) return null
     messages.push(message)
   }
-  const expected = digestFor(working, group, messages.map(m => m.taskUrl))
+  const expected = digestFor(working, group, messages.map(m => m.taskUrl), via)
   if (!expected || canonical(expected) === null || canonical(expected) !== canonical(prepared.digest)) return null
   const sent = sentText(working, expected, prepared.edit, via)
   if (!sent) return null

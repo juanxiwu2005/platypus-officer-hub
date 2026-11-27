@@ -4,7 +4,7 @@ import type { Channel, DemoState } from "../data/types"
 import { canLead } from "../data/permissions"
 import { composeUrl, nudgeBlocked } from "../lib/nudges"
 import { emitUi } from "../lib/uiLog"
-import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
+import { buildReminderFacts, buildReminderInput, reminderPeople, reminderSenderName } from "./facts"
 import { planReminders } from "./engine"
 import { remindersEnabled } from "./adapter"
 import { makeTaskAccessGrant, taskAccessToken, taskAccessUrl, usableTaskAccessGrant } from "./taskAccess"
@@ -76,7 +76,7 @@ export default function ReminderComposer({ nodeId, onClose }: { nodeId: string; 
   const usable = !!grant && usableTaskAccessGrant(state, token)?.id === grant.id
   const draft = facts && recipient && grant ? buildReminderMail({ today: state.today, facts, recipient,
     taskUrl: taskAccessUrl(window.location.origin, grant, facts.eventId), candidate, request,
-    requesterName: state.people.find(p => p.id === facts.ownerId)?.name,
+    requesterName: state.people.find(p => p.id === facts.ownerId)?.name, senderName: reminderSenderName(state, platypusSends ? "platypus" : "manual"),
   }) : null
   const mail = recorded ? attempted : draft
   const emailProblem = fixedEmail && mail && !mail.intendedEmail ? "Add a valid email address for this person before sending." : null

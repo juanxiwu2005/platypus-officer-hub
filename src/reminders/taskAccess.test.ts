@@ -5,7 +5,7 @@ import { appendLog, reducer } from "../data/store"
 import type { DemoState, ReminderMode } from "../data/types"
 import { addDays } from "../lib/dates"
 import { applySchedule } from "../engine/schedule"
-import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
+import { buildReminderFacts, buildReminderInput, reminderPeople, reminderSenderName } from "./facts"
 import { planReminders } from "./engine"
 import { isReminderRuntime } from "./runtime"
 import { buildReminderMail } from "./mail"
@@ -31,7 +31,7 @@ function snapshot(s: DemoState, grant: TaskAccessGrant, planned = false): Remind
   const candidate = planned ? queue(s).ready.find(c => c.nodeId === id) : undefined
   const request = candidate?.waitingRequestId ? s.reminderRuntime!.waitingRequests.find(r => r.id === candidate.waitingRequestId) : undefined
   const facts = buildReminderFacts(s, id)!
-  return { ...buildReminderMail({ today: s.today, facts, recipient: reminderPeople(s).find(p => p.id === grant.recipientId)!, taskUrl: taskAccessUrl("https://demo.example.org", grant), candidate, request, requesterName: s.people.find(p => p.id === facts.ownerId)?.name }), channel: "email", preparedOn: s.today, accessId: grant.id }
+  return { ...buildReminderMail({ today: s.today, facts, recipient: reminderPeople(s).find(p => p.id === grant.recipientId)!, taskUrl: taskAccessUrl("https://demo.example.org", grant), candidate, request, requesterName: s.people.find(p => p.id === facts.ownerId)?.name, senderName: reminderSenderName(s) }), channel: "email", preparedOn: s.today, accessId: grant.id }
 }
 
 describe("reusable task entry and effective actor", () => {
