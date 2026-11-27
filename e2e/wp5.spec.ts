@@ -3,18 +3,19 @@ import { ask, closeRail, demoClock, noOverflow, resetDemo, viewAs } from "./help
 
 test.beforeEach(async ({ page }) => { await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: true, provider: "mock", model: "mock" } })) })
 
-test("forecast shows colour first; reasons and percentages wait in the hover card", async ({ page }, info) => {
+test("forecast risk reads as plain text on the home page; the numbers stay out of the page", async ({ page }) => {
   await page.goto("/#/")
   // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
   await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
-  // FB-8: the risk list is gone; the reminder centre marks forecast-red tasks. Concept F: the marks sit on each person's task lines.
+  // FB-8: the risk list is gone; the reminder centre marks forecast-red tasks on each person's task lines. R-S0 W2 (contract §3,
+  // confirmed by Juanxi): the mark is the words "At risk" after the title, with no red mark and no hover card. The hover-card
+  // behavior itself is covered on Team's workload meter (e2e/feel.spec.ts, e2e/dx-12-sheet.spec.ts).
   const risk = page.getByTestId("rq-people")
-  const dot = risk.getByTestId("forecast").first().getByRole("button")
-  await expect(dot).toHaveAttribute("aria-label", /At risk/)
-  const card = risk.getByTestId("forecast").first().locator(".hover-card")
-  await expect(card).not.toBeVisible()
-  if (info.project.name === "desktop") { await dot.hover(); await expect(card).toBeVisible() } else { await dot.tap(); await expect(card).toBeVisible() } // a phone cannot hover: a tap opens the card
-  await expect(card).toContainText("% of 1,000 simulated runs")
+  const mark = risk.getByTestId("rq-at-risk").first()
+  await expect(mark).toHaveText("· At risk")
+  await expect(risk.getByTestId("forecast")).toHaveCount(0)
+  await expect(risk.locator(".hover-card")).toHaveCount(0)
+  await expect(risk).not.toContainText("simulated runs")
   await expect(risk).not.toContainText("personalBufferDays")
 })
 

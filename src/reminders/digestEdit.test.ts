@@ -87,6 +87,7 @@ describe("recording an edited email", () => {
     ["the subject is empty", (s: DemoState, p: PreparedDigest) => ({ ...edited(s, p), subject: " " })],
     ["the subject is too long", (s: DemoState, p: PreparedDigest) => ({ ...edited(s, p), subject: "x".repeat(121) })],
     ["the edit is not text", () => ({ subject: 1, body: null }) as unknown as DigestEdit],
+    ["the edit carries another field", (s: DemoState, p: PreparedDigest) => ({ ...edited(s, p), edited: false }) as unknown as DigestEdit],
   ])("is rejected when %s, and nothing is recorded for that email", async (_name, make) => {
     const api = memory(seed())
     const jordan = await prepared(api, "jordan")
@@ -95,6 +96,33 @@ describe("recording an edited email", () => {
     expect(result.recordedGroupIds).toEqual([])
     expect(api.getState().reminderRuntime!.deliveries).toEqual(before.deliveries)
     expect(api.getState().reminderRuntime!.digests ?? []).toEqual([])
+  })
+
+  it("an automatic email is never edited: an edit sent with \"automatic\" in Send automatically mode is rejected (review P3-7)", async () => {
+    const s = seed()
+    const api = memory({ ...s, org: { ...s.org, settings: { ...s.org.settings, reminderMode: "auto_email" } } })
+    const ready = await prepareReminderDigest(api, groupOf(api.getState(), "maya").id, ORIGIN, "automatic")
+    if (!("groupId" in ready)) throw new Error(ready.error)
+    const edit = edited(api.getState(), ready)
+    expect(recordReminderDigests(api, [ready], "automatic", { [ready.groupId]: edit }).recordedGroupIds).toEqual([])
+    // Even the rule-written text passed as an "edit" is refused; with no edit the same email records as written.
+    expect(recordReminderDigests(api, [ready], "automatic", { [ready.groupId]: { subject: ready.digest.subject, body: ready.digest.body } }).recordedGroupIds).toEqual([])
+    expect(recordReminderDigests(api, [ready], "automatic").recordedGroupIds).toEqual([ready.groupId])
+    expect(api.getState().reminderRuntime!.digests![0].edited).toBeUndefined()
+    // A lead's Send in that mode goes out as written too: an edit is refused.
+    const jordan = await prepared(api, "jordan")
+    expect(recordReminderDigests(api, [jordan], "platypus", { [jordan.groupId]: edited(api.getState(), jordan) }).recordedGroupIds).toEqual([])
+  })
+
+  it("a task title with a www. address: the rule-written email leaves it out, so an edit of that email can be recorded (review P3-5)", async () => {
+    const s = seed()
+    const nodeId = groupOf(s, "maya").candidates[0].nodeId
+    const api = memory({ ...s, nodes: s.nodes.map(n => n.id === nodeId ? { ...n, title: "Book the room at www.venue.example.org today" } : n) })
+    const maya = await prepared(api, "maya")
+    expect(maya.digest.body).not.toMatch(/www\./i)
+    expect(maya.digest.subject).not.toMatch(/www\./i)
+    const result = recordReminderDigests(api, [maya], "platypus", { [maya.groupId]: edited(api.getState(), maya) })
+    expect(result.recordedGroupIds).toEqual([maya.groupId])
   })
 
   it("an edit written for another person's email (wrong group) is rejected; that group alone is not recorded", async () => {

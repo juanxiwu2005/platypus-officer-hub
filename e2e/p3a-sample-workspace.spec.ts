@@ -42,8 +42,8 @@ test("Start workspace keeps the sample events, tasks, risks and handoff in the n
   await page.goto("/#/")
   await closeRail(page)
   // The home page is the reminder centre (the stars card left home): each owner's tasks are combined into one email, and an owner with an
-  // at-risk task has a reminder email to open.
-  const atRisk = page.getByTestId("rq-person").filter({ has: page.getByTestId("rq-person-task").getByRole("button", { name: /^At risk:/ }) })
+  // at-risk task has a reminder email to open. R-S0 W2: "At risk" is plain text after the task title.
+  const atRisk = page.getByTestId("rq-person").filter({ has: page.getByTestId("rq-person-task").getByTestId("rq-at-risk") })
   await expect(atRisk.first()).toBeVisible()
   await expect(atRisk.first().locator(".dg-person-head")).toBeVisible()
 

@@ -91,7 +91,8 @@ export function draftIssues(subject: string, body: string, links: DraftLink[]): 
  * when it equals the rule-written email, or null when it must not be recorded.
  */
 export function checkDigestEdit(edit: unknown, rule: { subject: string; body: string }, tasks: DraftTask[]): DigestEdit | "same" | null {
-  if (!edit || typeof edit !== "object") return null
+  // Exactly { subject, body }: nothing else can ride along into the saved record.
+  if (!edit || typeof edit !== "object" || Array.isArray(edit) || Object.keys(edit).sort().join() !== "body,subject") return null
   const { subject, body } = edit as Record<string, unknown>
   if (typeof subject !== "string" || typeof body !== "string") return null
   if (subject === rule.subject && body === rule.body) return "same"

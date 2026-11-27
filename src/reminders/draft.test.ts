@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest"
 import {
   BODY_LIMIT, GROUP_PAUSE_MS, HISTORY_LIMIT, SUBJECT_LIMIT, TOKEN_TITLE_LIMIT, changeDraft, checkDigestEdit, clearDrafts, createDraft, draftBlocker,
-  draftEditFor, draftEditsFor, draftEmail, draftLinks, draftProblems, draftProblemsOf, dropDrafts, findDraft, fromTokens, isEdited, missingLinks,
-  openDraft, putBack, putBackLinks, redoDraft, restoreOriginal, syncDraft, toTokens, typeInto, undoDraft, type DraftBase, type DraftTask, type ReminderDraft,
+  draftEditFor, draftEmail, draftLinks, draftProblems, draftProblemsOf, dropDrafts, findDraft, forgetGmail, fromTokens, isEdited, missingLinks,
+  openDraft, putBack, putBackLinks, redoDraft, resolveDraft, resolveDrafts, restoreOriginal, sendAllBlocker, syncDraft, toTokens, typeInto, undoDraft,
+  type DraftBase, type DraftTask, type ReminderDraft,
 } from "./draft"
+import type { PreparedDigest } from "./digestContracts"
+import { draftsAfterAction, loadDraftModule } from "./draftLoader"
 
 // Fictional tasks and signed-looking addresses; nothing here is real data.
 const url = (node: string, n = 1) => `https://demo.example.org/#/events?event=e1&node=${node}&access=${"a".repeat(8)}${n}.${"f".repeat(64)}`
@@ -115,6 +118,10 @@ describe("limits", () => {
     expect(checkDigestEdit({ subject: "", body: edited }, rule, TASKS)).toBeNull()
     expect(checkDigestEdit({ subject: "Hi", body: `${edited}${"x".repeat(BODY_LIMIT)}` }, rule, TASKS)).toBeNull()
     for (const bad of [null, "text", { subject: 1, body: edited }, { subject: "Hi" }]) expect(checkDigestEdit(bad, rule, TASKS)).toBeNull()
+    // Exactly { subject, body }: no extra field can ride along into the record (review P3-8).
+    for (const bad of [{ subject: "Hi", body: edited, extra: 1 }, { ...rule, edited: false }, Object.assign([], { subject: "Hi", body: edited })]) {
+      expect(checkDigestEdit(bad, rule, TASKS)).toBeNull()
+    }
   })
 })
 
@@ -208,32 +215,154 @@ describe("sending a draft", () => {
     const edit = draftEditFor(d, { nodeIds: ["quote", "room"], taskUrls: [other[1], other[0]] })!
     expect(edit.body).toContain(`Open task: ${other[0]}`)
     expect(edit.body).toContain(`Open task: ${other[1]}`)
-    expect(draftBlocker(d, ["room", "quote"])).toBeNull()
-    expect(draftBlocker(d, ["room"], "Jordan")).toBe("Jordan's email's tasks changed. Review it before sending.")
+    const both = { nodeIds: ["room", "quote"] }
+    expect(draftBlocker(d, both)).toBeNull()
+    expect(draftBlocker(d, { nodeIds: ["room"] }, "Jordan")).toBe("Jordan's email's tasks changed. Review it before sending.")
     const broken = typeInto(d, "body", d.body.replace(d.links[0].token, ""), 0)
-    expect(draftBlocker(broken, ["room", "quote"], "Jordan")).toBe("Put back the task link in Jordan's email first.")
-    expect(draftBlocker(typeInto(d, "subject", "", 0), ["room", "quote"])).toBe("Add a subject.")
+    expect(draftBlocker(broken, both, "Jordan")).toBe("Put back the task link in Jordan's email first.")
+    expect(draftBlocker(typeInto(d, "subject", "", 0), both)).toBe("Add a subject.")
+    // An edit from an earlier day holds the send until the row is opened; an untouched one does not.
+    expect(draftBlocker(d, { ...both, day: "2026-11-01" }, "Jordan")).toBe("Jordan's email changed. Open it and review before sending.")
+    expect(draftBlocker(fresh(), { ...both, day: "2026-11-01" })).toBeNull()
   })
 
-  it("the in-memory store keeps a draft by group, finds it after the group id changed, and Send all collects or stops", () => {
+  it("the in-memory store keeps a draft by group, finds it after the group id changed, and Send all is held or not", () => {
     openDraft(base(), titleOf)
     changeDraft("g1", d => typeText(d, " Thanks!", 0))
     // Re-preparing the same email keeps the edit.
     expect(openDraft(base(), titleOf).body.endsWith(" Thanks!")).toBe(true)
     const group = { id: "g1", recipientId: "jordan", recipientName: "Jordan Patel", candidates: [{ nodeId: "room" }, { nodeId: "quote" }] }
-    const { edits, blocker } = draftEditsFor([group, { ...group, id: "g9", recipientId: "maya", recipientName: "Maya Chen" }], "2026-10-31")
-    expect(blocker).toBeNull()
-    expect(Object.keys(edits)).toEqual(["g1"])
-    expect(edits.g1.body.endsWith(" Thanks!")).toBe(true)
+    expect(sendAllBlocker([group, { ...group, id: "g9", recipientId: "maya", recipientName: "Maya Chen" }], "2026-10-31")).toBeNull()
     changeDraft("g1", d => typeInto(d, "body", d.body.replace(d.links[1].token, ""), 0))
-    expect(draftEditsFor([group], "2026-10-31")).toEqual({ edits: {}, blocker: "Put back the task link in Jordan's email first." })
-    // A new group id for the same person today still finds the draft (and moves it on the next prepare).
+    expect(sendAllBlocker([group], "2026-10-31")).toBe("Put back the task link in Jordan's email first.")
+    // A new group id for the same person today still finds the draft (and moves it on the next prepare); a later day
+    // finds it too, so the next prepare can say the edit was replaced.
     expect(findDraft("g2", "jordan", "2026-10-31")?.base.groupId).toBe("g1")
-    expect(findDraft("g2", "jordan", "2026-11-01")).toBeUndefined()
+    expect(findDraft("g2", "jordan", "2026-11-01")?.base.groupId).toBe("g1")
+    expect(findDraft("g2", "maya", "2026-10-31")).toBeUndefined()
     openDraft(base({ groupId: "g2" }), titleOf)
     expect(findDraft("g1", "maya", "2026-10-31")).toBeUndefined()
     expect(findDraft("g2", "jordan", "2026-10-31")?.base.groupId).toBe("g2")
     dropDrafts(["g2"])
     expect(findDraft("g2", "jordan", "2026-10-31")).toBeUndefined()
+  })
+})
+
+/** A freshly prepared email for Jordan, as Send all or a row's Send gets it (only the fields a draft reads). */
+const prep = (patch: Partial<DraftBase> = {}): PreparedDigest => {
+  const b = base(patch)
+  return { groupId: b.groupId, recipientId: b.recipientId, entries: [], digest: { groupId: b.groupId, recipientId: b.recipientId, recipientName: "Jordan Patel",
+    intendedEmail: b.intendedEmail, preparedOn: b.day, subject: b.subject, body: b.body, taskUrls: b.taskUrls, nodeIds: b.nodeIds } } as unknown as PreparedDigest
+}
+const RENAMED_BODY = RULE_BODY.replace("2. Collect catering quotes", "2. Collect three catering quotes")
+const renamedTitle = (id: string) => id === "quote" ? "Collect three catering quotes" : titleOf(id)
+
+describe("resolving a draft against the email about to be recorded (review P2-3)", () => {
+  it("a reissued link: the edit goes out with the new address, never the one the draft was made from", () => {
+    openDraft(base(), titleOf)
+    changeDraft("g1", d => typeText(d, " Thanks!", 0))
+    const reissued = [TASKS[0].url, url("quote", 9)]
+    const { edit, blocker } = resolveDraft(prep({ taskUrls: reissued, body: RULE_BODY.replace(TASKS[1].url, reissued[1]) }), titleOf)
+    expect(blocker).toBeNull()
+    expect(edit!.body).toContain(`Open task: ${reissued[1]}`)
+    expect(edit!.body).not.toContain(TASKS[1].url)
+    expect(edit!.body.endsWith(" Thanks!")).toBe(true)
+    expect(checkDigestEdit(edit, { subject: "2 Platypus tasks need you", body: RULE_BODY }, [TASKS[0], { ...TASKS[1], url: reissued[1] }])).toEqual(edit)
+    expect(findDraft("g1", "jordan", "2026-10-31")!.notice).toBeNull()
+  })
+
+  it("a task renamed after the edit: the send is held, named, and the row shows the tasks-changed note when it opens", () => {
+    openDraft(base(), titleOf)
+    changeDraft("g1", d => typeText(d, " Thanks!", 0))
+    const renamed = prep({ body: RENAMED_BODY })
+    expect(resolveDrafts([renamed], renamedTitle)).toEqual({ edits: {}, blocker: "Jordan's email changed. Open it and review before sending." })
+    const held = findDraft("g1", "jordan", "2026-10-31")!
+    expect(held).toMatchObject({ notice: "changed", needsReview: true })
+    expect(held.body).toContain("[Open task: Collect three catering quotes]")
+    // Still held on the next try, and Send all stays off, until the box has been seen.
+    const group = { id: "g1", recipientId: "jordan", recipientName: "Jordan Patel", candidates: [{ nodeId: "room" }, { nodeId: "quote" }] }
+    expect(resolveDraft(renamed, renamedTitle).blocker).toBe("This email changed. Open it and review before sending.")
+    expect(sendAllBlocker([group], "2026-10-31")).toBe("Jordan's email changed. Open it and review before sending.")
+    changeDraft("g1", d => ({ ...d, needsReview: false }))   // what the open box does
+    expect(sendAllBlocker([group], "2026-10-31")).toBeNull()
+    const { edit } = resolveDraft(renamed, renamedTitle)
+    expect(edit!.body.endsWith(" Thanks!")).toBe(true)
+    expect(edit!.body).toContain(`Open task: ${TASKS[1].url}`)
+  })
+
+  it("an untouched draft simply follows the new email (no edit); no draft sends the rule-written email", () => {
+    openDraft(base(), titleOf)
+    expect(resolveDrafts([prep({ body: RENAMED_BODY })], renamedTitle)).toEqual({ edits: {}, blocker: null })
+    expect(findDraft("g1", "jordan", "2026-10-31")!.body).toContain("[Open task: Collect three catering quotes]")
+    clearDrafts()
+    expect(resolveDraft(prep(), titleOf)).toEqual({ edit: null, blocker: null })
+  })
+
+  it("I sent this records only the text Gmail was given", () => {
+    openDraft(base(), titleOf)
+    changeDraft("g1", d => ({ ...typeText(d, " Thanks!", 0), gmailOpened: true }))
+    expect(resolveDraft(prep(), titleOf, { gmail: true }).edit!.body.endsWith(" Thanks!")).toBe(true)
+    // A reissued link changes the address Gmail would get: Open in Gmail again first.
+    expect(resolveDraft(prep({ taskUrls: [TASKS[0].url, url("quote", 9)], body: RULE_BODY.replace(TASKS[1].url, url("quote", 9)) }), titleOf, { gmail: true }).blocker)
+      .toBe("This email changed after it was opened in Gmail. Open it in Gmail again, then choose I sent this.")
+  })
+
+  it("the next day: an edit from yesterday is replaced when the row opens, and says so", () => {
+    openDraft(base(), titleOf)
+    changeDraft("g1", d => typeText(d, " Thanks!", 0))
+    const next = openDraft(base({ groupId: "g-next", day: "2026-11-01" }), titleOf)
+    expect(next).toMatchObject({ notice: "replaced", needsReview: true })
+    expect(isEdited(next)).toBe(false)
+    expect(findDraft("g1", "jordan", "2026-10-31")?.base.groupId).toBe("g-next")
+  })
+})
+
+describe("Open in Gmail hands over one exact text (review P2-2)", () => {
+  it("any change after Open in Gmail clears it, so I sent this waits for Gmail again", () => {
+    const opened = (d: ReminderDraft) => ({ ...d, gmailOpened: true })
+    const edited = typeText(fresh(), " Thanks!", 0)
+    const broken = typeInto(edited, "body", edited.body.replace(edited.links[0].token, ""), 5000)
+    for (const change of [
+      (d: ReminderDraft) => typeInto(d, "body", `${d.body}!`, 99_000),
+      (d: ReminderDraft) => typeInto(d, "subject", "New", 99_000),
+      undoDraft, redoDraft, restoreOriginal, putBack,
+    ]) {
+      const start = change === redoDraft ? undoDraft(broken) : change === putBack ? broken : edited
+      const after = change(opened(start))
+      expect(after.subject !== start.subject || after.body !== start.body).toBe(true)
+      expect(after.gmailOpened).toBe(false)
+    }
+    // Use new email is Restore original on a draft whose email changed.
+    const changed = syncDraft(edited, base({ body: RENAMED_BODY }), renamedTitle)
+    expect(restoreOriginal(opened(changed)).gmailOpened).toBe(false)
+    // Nothing changed: nothing is cleared.
+    expect(undoDraft(opened(fresh())).gmailOpened).toBe(true)
+  })
+
+  it("a new sending mode forgets every opened Gmail draft", () => {
+    openDraft(base(), titleOf)
+    changeDraft("g1", d => ({ ...d, gmailOpened: true }))
+    forgetGmail()
+    expect(findDraft("g1", "jordan", "2026-10-31")!.gmailOpened).toBe(false)
+  })
+})
+
+describe("what the store tells the drafts after an action (review P2-1, P3-9)", () => {
+  const scope = (viewerId: string, reminderMode: string | null) => ({ viewerId, org: { settings: { reminderMode } } })
+  it("reset, import, setup and another viewer clear every draft; a mode change only forgets Gmail; other actions keep them", async () => {
+    await loadDraftModule()
+    const start = scope("alex", "review_then_self")
+    const edit = () => { openDraft(base(), titleOf); changeDraft("g1", d => ({ ...typeText(d, " Thanks!", 0), gmailOpened: true })) }
+    edit()
+    draftsAfterAction("updateNode", start, scope("alex", "review_then_self"))
+    expect(findDraft("g1", "jordan", "2026-10-31")).toMatchObject({ gmailOpened: true })
+    draftsAfterAction("saveClubSettings", start, scope("alex", "review_then_auto"))
+    expect(findDraft("g1", "jordan", "2026-10-31")).toMatchObject({ gmailOpened: false })
+    expect(isEdited(findDraft("g1", "jordan", "2026-10-31")!)).toBe(true)
+    for (const [type, after] of [["reset", start], ["replace", start], ["completeSetup", start], ["setViewer", scope("maya", "review_then_self")]] as const) {
+      edit()
+      draftsAfterAction(type, start, { ...after })
+      expect(findDraft("g1", "jordan", "2026-10-31")).toBeUndefined()
+    }
   })
 })

@@ -50,11 +50,9 @@ export function PersonRow({ p, mode, forecast, sendingAll, reveal = 0, onAction,
   // A freshly prepared email makes (or updates) this person's draft; the draft outlives the row being collapsed.
   useEffect(() => {
     if (!editable || !prepared || !drafts) return
-    const d = prepared.digest
-    drafts.openDraft({ groupId: prepared.groupId, recipientId: d.recipientId, day: d.preparedOn, intendedEmail: d.intendedEmail,
-      subject: d.subject, body: d.body, taskUrls: d.taskUrls, nodeIds: d.nodeIds }, drafts.draftTitleOf(getState()))
+    drafts.openDraft(drafts.draftBase(prepared), drafts.draftTitleOf(getState()))
   }, [editable, prepared, drafts, getState])
-  const blocker = drafts && draft && p.group ? drafts.draftBlocker(draft, p.group.candidates.map(c => c.nodeId)) : null
+  const blocker = drafts && draft && p.group ? drafts.draftBlocker(draft, { nodeIds: p.group.candidates.map(c => c.nodeId), day: today }) : null
   const first = firstName(p.name)
   const region = `dg-email-${p.recipientId.replace(/[^\w-]/g, "_")}`
   /** One recordReminderDigests action for this person's email (the same path as Send all, for one group). */
@@ -65,15 +63,15 @@ export function PersonRow({ p, mode, forecast, sendingAll, reveal = 0, onAction,
       const ready = prepared ?? await prepareReminderDigest({ getState, tryDispatch }, p.group.id, window.location.origin, how)
       if ("error" in ready) { setNote(ready.error); return }
       if (how !== "manual" && !ready.digest.intendedEmail) { setNote("Add a valid email address for this person before sending."); return }
-      // The person's current draft goes out (edited or not); one that cannot go out stops here and says why.
+      // The person's current draft, checked against the email just prepared (the same stale rule as an open row, also for a
+      // collapsed row); one that cannot go out stops here and says why. I sent this records only the text Gmail was given.
       const loadedDrafts = editable ? loadedDraftModule() : null
-      const current = loadedDrafts?.findDraft(ready.groupId, p.recipientId, getState().today)
-      const stop = current && loadedDrafts!.draftBlocker(current, ready.digest.nodeIds)
-      if (stop) { setNote(stop); return }
-      const edit = current && loadedDrafts!.draftEditFor(current, ready.digest)
+      const resolved = loadedDrafts?.resolveDraft(ready, loadedDrafts.draftTitleOf(getState()), { gmail: how === "manual" })
+      if (resolved?.blocker) { setNote(resolved.blocker); return }
+      const edit = resolved?.edit
       const result = recordReminderDigests({ getState, tryDispatch }, [ready], how, edit ? { [ready.groupId]: edit } : undefined)
       if (!result.recordedGroupIds.includes(ready.groupId)) { setNote(result.error ?? "This email changed. Review the new version, then try again."); retry(); return }
-      if (current) loadedDrafts!.dropDrafts([current.base.groupId])
+      loadedDrafts?.dropDrafts([ready.groupId])
       onSent?.(`Sent to ${first}.`)
       toggle.current?.focus()
     } catch { setNote("This email was not sent. Please try again.") }

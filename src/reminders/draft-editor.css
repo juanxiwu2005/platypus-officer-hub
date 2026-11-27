@@ -9,7 +9,8 @@
 /* The shared focus ring would be clipped by the box's edge; an inner ring in the brand color keeps focus visible. */
 .dg-draft .dg-draft-subject:focus, .dg-draft .dg-draft-body:focus { box-shadow: inset 0 0 0 2px var(--accent); }
 .dg-draft-problems { display: grid; gap: var(--s4); padding: 0 var(--s6); }
-.dg-draft-problems:empty { display: none; }
+/* An empty region takes no space (no block padding) but stays displayed, so it remains a live region in the accessibility tree. */
+.dg-draft-problems:empty { padding-block: 0; }
 .dg-draft-problems > :first-child { margin-top: var(--s5); }
 .dg-draft-problems ul { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--s2); }
 .dg-draft-notice, .dg-draft-missing, .dg-draft-limits { margin: 0; animation: dg-draft-in var(--dur-fast) var(--ease-out); }

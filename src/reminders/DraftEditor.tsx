@@ -45,6 +45,8 @@ export default function DraftEditor({ draft, name, gmail }: { draft: ReminderDra
     field.style.height = `${field.scrollHeight + field.offsetHeight - field.clientHeight}px`
   }
   useLayoutEffect(grow, [draft.body])
+  // The box is on screen with its note ("tasks changed" or "replaced"): the change has been seen, so sending may go on.
+  useEffect(() => { if (draft.needsReview) changeDraft(groupId, d => d.needsReview ? { ...d, needsReview: false } : d) }, [draft.needsReview, groupId])
   useEffect(() => { window.addEventListener("resize", grow); return () => window.removeEventListener("resize", grow) }, [])
 
   const keys = (event: KeyboardEvent<HTMLElement>) => {

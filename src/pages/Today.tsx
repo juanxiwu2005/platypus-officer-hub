@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useId, useMemo, useRef, useState } from "react"
 import { Link, useLocation, useSearchParams } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
 import { isPresident } from "../data/permissions"
@@ -9,7 +9,9 @@ import { forecastFor } from "../engine/forecast"
 import { fmtLong } from "../lib/dates"
 import { digestCentre, PERSON_PARAM, reminderCentre, sendAllFeedback, type DigestPerson, type FixRow, type ReminderCentre as Centre } from "../reminders/centre"
 import { sendReminderDigests } from "../reminders/digest"
-import { loadedDraftModule } from "../reminders/draftLoader"
+import { loadedDraftModule, useSendAllBlocker } from "../reminders/draftLoader"
+import { draftTitleOf } from "../reminders/draftLinks"
+import type { PreparedDigest } from "../reminders/digestContracts"
 import { PersonRow } from "../reminders/PersonRow"
 import { ProblemChip } from "../reminders/ReasonChip"
 import { YourReminders } from "../reminders/YourReminders"
@@ -50,9 +52,11 @@ function ReminderCentre({ q }: { q: Centre }) {
   const forecast = useMemo(() => forecastFor(state), [state])
   const dc = useMemo(() => digestCentre(state, q), [state, q])
   const rows = useVisitOrder(dc.people)
+  const draftBlocker = useSendAllBlocker(dc.groups, state.today)
   const [busy, setBusy] = useState(false)
   const [feedback, setFeedback] = useState("")
   const summary = useRef<HTMLParagraphElement>(null)
+  const statusId = useId()
   const alive = useRef(true)
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
   // History → Follow up: open that person's row, then drop the parameter so a reload does not reopen it.
@@ -75,14 +79,15 @@ function ReminderCentre({ q }: { q: Centre }) {
   const sendAll = async () => {
     if (busy || persistenceFailed || !dc.groups.length) return
     const earlier = dc.people.filter(p => p.sent && !p.group).length
-    // R-S0: each person's current draft goes out; one that cannot (a missing link) stops everything, named.
-    const loadedDrafts = loadedDraftModule()
-    const drafts = loadedDrafts ? loadedDrafts.draftEditsFor(dc.groups, state.today) : { edits: {}, blocker: null }
-    if (drafts.blocker) { setFeedback(drafts.blocker); return }
+    // R-S0: Send all is disabled while a draft cannot go out (sendBlocker); this click-time check is only a guard.
+    const stop = loadedDraftModule()?.sendAllBlocker(dc.groups, state.today)
+    if (stop) { setFeedback(stop); return }
     setBusy(true); setFeedback("")
+    // Each person's current draft is resolved against the email just prepared for them, never against an older one.
+    const resolve = (prepared: PreparedDigest[]) => loadedDraftModule()?.resolveDrafts(prepared, draftTitleOf(getState())) ?? { edits: {}, blocker: null }
     try {
-      const result = await sendReminderDigests({ getState, tryDispatch }, dc.groups.map(g => g.id), window.location.origin, "platypus", () => alive.current, drafts.edits)
-      loadedDrafts?.dropDrafts(result.recordedGroupIds)
+      const result = await sendReminderDigests({ getState, tryDispatch }, dc.groups.map(g => g.id), window.location.origin, "platypus", () => alive.current, resolve)
+      loadedDraftModule()?.dropDrafts(result.recordedGroupIds)
       if (alive.current) setFeedback(sendAllFeedback(result.recordedGroupIds.length, earlier, result.error))
     } catch { if (alive.current) setFeedback("These emails were not sent. Please try again.") }
     finally {
@@ -98,11 +103,14 @@ function ReminderCentre({ q }: { q: Centre }) {
   const auto = q.mode === "auto_email"
   const autoSent = dc.people.filter(p => p.sent?.via === "automatic").length
   const notSent = auto && automaticReminders.error ? dc.people.filter(p => p.group).map(p => p.name) : []
-  const status = <p role="status" className="dg-top-note dg-feedback" data-testid="rq-feedback">{automaticReminders.busy ? "Preparing automatic reminders…" : feedback}</p>
+  // R-S0 §4: Send all is disabled while a draft has a missing link, a limit or an edit waiting for review, and says why here.
+  const sendBlocker = q.mode === "review_then_auto" && n > 0 && !busy ? draftBlocker : null
+  const said = feedback && feedback !== sendBlocker ? [feedback, sendBlocker].filter(Boolean).join(" ") : sendBlocker ?? feedback
+  const status = <p role="status" id={statusId} className="dg-top-note dg-feedback" data-testid="rq-feedback">{automaticReminders.busy ? "Preparing automatic reminders…" : said}</p>
   // With no sending mode chosen, the next step is to choose one; it only navigates, so saving failures do not block it.
   const action = !ready ? null
     : q.mode === null ? <Link to="/settings?reminders=1" className="btn btn-primary small" data-testid="choose-mode">Choose how reminders go out</Link>
-    : q.mode === "review_then_auto" && n > 0 ? <button type="button" className="btn btn-primary small" data-testid="send-all-digests" disabled={busy || persistenceFailed} onClick={sendAll}>{busy ? "Sending…" : `Send ${n} email${n === 1 ? "" : "s"}`}</button>
+    : q.mode === "review_then_auto" && n > 0 ? <button type="button" className="btn btn-primary small" data-testid="send-all-digests" disabled={busy || persistenceFailed || !!sendBlocker} aria-describedby={sendBlocker ? statusId : undefined} onClick={sendAll}>{busy ? "Sending…" : `Send ${n} email${n === 1 ? "" : "s"}`}</button>
     : null
   const headline = auto && autoSent > 0 ? `Sent automatically to ${people(autoSent)} today.` : n ? `${people(n)} to remind` : "Nothing to send today."
   return <div className="rq dg" data-testid="reminder-centre" data-mode={q.mode ?? "none"} data-busy={busy || automaticReminders.busy}>
