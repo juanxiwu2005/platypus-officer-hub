@@ -12,17 +12,30 @@ export const fullName = (s: Pick<DemoState, "people">, id: string): string => s.
 export const firstName = (name: string): string => name.split(" ")[0]
 export const joinNames = (names: string[]): string => names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`
 
-/** Whether the viewer received this cheer ("in") or sent it ("out"). Nobody cheers themselves, so it is never both. */
-export const directionOf = (c: Cheer, viewerId: string): "in" | "out" => c.fromId === viewerId ? "out" : "in"
-/** The other side of a cheer, as the viewer sees it: the sender of a received cheer, the recipients of a sent one. */
+/**
+ * Whether the viewer received this cheer ("in"), sent it ("out"), or was let know of it by its sender ("cc", R1.1). Nobody
+ * cheers themselves and a let-know person is never in the cheer otherwise, so it is only ever one of them.
+ */
+export type Direction = "in" | "out" | "cc"
+export const directionOf = (c: Cheer, viewerId: string): Direction => c.fromId === viewerId ? "out" : c.toIds.includes(viewerId) ? "in" : "cc"
+/** The other side of a cheer, as the viewer sees it: the sender of a received or shared cheer, the recipients of a sent one. */
 export const otherIds = (c: Cheer, viewerId: string): string[] => directionOf(c, viewerId) === "out" ? c.toIds : [c.fromId]
+const firstOf = (s: Pick<DemoState, "people">, ids: string[]) => { const first = firstName(fullName(s, ids[0])); return ids.length > 1 ? `${first} +${ids.length - 1}` : first }
 export function otherLabel(s: Pick<DemoState, "people">, c: Cheer, viewerId: string): string {
-  const ids = otherIds(c, viewerId)
-  const first = firstName(fullName(s, ids[0]))
-  return ids.length > 1 ? `${first} +${ids.length - 1}` : first
+  return firstOf(s, otherIds(c, viewerId))
 }
-/** "+25" for a received cheer; "−50" for a sent one (points × recipients, what it cost the sender). */
-export const pointsLabel = (c: Cheer, viewerId: string): string => directionOf(c, viewerId) === "out" ? `−${c.points * c.toIds.length}` : `+${c.points}`
+/** The recipients of a cheer by first name ("Jordan", "Jordan +1"), for a shared cheer's row. */
+export const recipientsLabel = (s: Pick<DemoState, "people">, c: Cheer): string => firstOf(s, c.toIds)
+/** Points as people read them: 1,500. */
+export const fmtPoints = (n: number): string => n.toLocaleString("en-US")
+/**
+ * "+250" for a received cheer; "−500" for a sent one (points × recipients, what it cost the sender); a shared cheer shows its
+ * points without a sign, since it is neither charged nor credited to the person let know.
+ */
+export function pointsLabel(c: Cheer, viewerId: string): string {
+  const dir = directionOf(c, viewerId)
+  return dir === "out" ? `−${fmtPoints(c.points * c.toIds.length)}` : dir === "in" ? `+${fmtPoints(c.points)}` : fmtPoints(c.points)
+}
 /** "Today", a weekday earlier this week ("Thu"), or a date ("Oct 14"): short, so Team keeps within its word budget. */
 export const dayLabel = (on: string, today: string): string => on === today ? "Today"
   : on < today && on >= mondayOf(today) ? fromISO(on).toLocaleDateString("en-US", { weekday: "short" }) : fmtShort(on)

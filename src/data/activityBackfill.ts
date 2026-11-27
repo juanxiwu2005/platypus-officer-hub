@@ -203,12 +203,13 @@ function backfillEvents(s: DemoState): ActivityEvent[] {
     add({ subject: a.id, kind: "playbook.answer_added", on: a.on, actorId: author, personIds: author ? [author] : [], source: "backfill", facts: { questionId: a.questionId, answerKind: a.kind } })
   }
 
-  // Cheers (R1): the same facts as the live record (src/data/activity.ts), never the note.
+  // Cheers (R1): the same facts as the live record (src/data/activity.ts), never the note, and for people let know only a count.
   for (const c of s.cheers && typeof s.cheers === "object" && Array.isArray(s.cheers.cheers) ? s.cheers.cheers : []) {
     if (!isObject(c) || !nonEmpty(c.id) || !nonEmpty(c.fromId)) continue
     const recipients = Array.isArray(c.toIds) ? [...new Set(c.toIds.filter(nonEmpty))] : []
+    const cc = Array.isArray(c.ccIds) ? new Set(c.ccIds.filter(nonEmpty)).size : 0
     add({ subject: c.id, kind: "cheer.sent", on: c.on, actorId: c.fromId, personIds: recipients, ...(nonEmpty(c.nodeId) ? { nodeId: c.nodeId } : {}), source: "backfill",
-      facts: { cheerId: c.id, points: c.points, recipients: recipients.length, noteChars: typeof c.note === "string" ? c.note.length : 0, card: c.card, email: c.email === true } })
+      facts: { cheerId: c.id, points: c.points, recipients: recipients.length, noteChars: typeof c.note === "string" ? c.note.length : 0, card: c.card, email: c.email === true, ...(cc ? { cc } : {}) } })
     if (nonEmpty(c.withdrawnOn)) add({ subject: c.id, kind: "cheer.withdrawn", on: c.withdrawnOn, actorId: c.fromId, personIds: recipients, source: "backfill", facts: { cheerId: c.id } })
   }
 

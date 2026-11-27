@@ -142,12 +142,15 @@ export function deriveActivity(prev: DemoState, next: DemoState, action: { type:
       add("handoff.step", people(h.outgoingId, h.incomingId), { facts: { roleId: h.roleId, step } })
   }
 
-  // Cheers (R1, docs/feedback-fix/CHEERS_R1_CONTRACT.md §2): the sender is the actor. IDs and numbers only: never the note.
+  // Cheers (R1, docs/feedback-fix/CHEERS_R1_CONTRACT.md §2): the sender is the actor. IDs and numbers only: never the note, and
+  // for the people the sender let know (R1.1, §8.9) only how many (`cc`, when there are any), never who.
   const oldCheers = new Map(cheersOf(prev).map(c => [c.id, c]))
   for (const c of cheersOf(next)) {
     const old = oldCheers.get(c.id), recipients = people(...list(c.toIds)), sender = typeof c.fromId === "string" ? c.fromId : undefined
+    const cc = people(...list(c.ccIds)).length
     if (!old) add("cheer.sent", recipients, { actorId: sender, nodeId: c.nodeId || undefined, facts: {
       cheerId: c.id, points: c.points, recipients: recipients.length, noteChars: typeof c.note === "string" ? c.note.length : 0, card: c.card, email: c.email === true,
+      ...(cc ? { cc } : {}),
     } })
     if (c.withdrawnOn && !old?.withdrawnOn) add("cheer.withdrawn", recipients, { actorId: sender, facts: { cheerId: c.id } })
   }

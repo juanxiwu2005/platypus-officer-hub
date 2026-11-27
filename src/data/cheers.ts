@@ -1,13 +1,15 @@
 import type { Cheer, CheerBook, CheerCard, CheerPoints, DemoState, Notice, Person } from "./types"
-import { ALLOWANCE_LEAD, ALLOWANCE_OFFICER, CHEER_CARDS, CHEER_POINTS, MAX_RECIPIENTS, NOTE_MAX, NOTE_MIN } from "./cheerRules"
+import { ALLOWANCE_LEAD, ALLOWANCE_OFFICER, CHEER_CARDS, LEGACY_POINTS, MAX_CC, MAX_RECIPIENTS, NOTE_MAX, NOTE_MIN, POINTS_MIN, POINTS_SAVED_MAX } from "./cheerRules"
 import { isOfficer } from "./permissions"
 import { addDays, fromISO } from "../lib/dates"
 import { nextCounter } from "../lib/ids"
 
 /**
- * Cheers model (R1, docs/feedback-fix/CHEERS_R1_CONTRACT.md §2). Every exported name and signature here is frozen; the interface
- * agent builds against them. Dates come only from the demo clock (`state.today`). A cheer is visible to its sender and recipients
- * only, and its note never leaves this module except to the people in it (no notice, activity fact or log entry carries it).
+ * Cheers model (R1, docs/feedback-fix/CHEERS_R1_CONTRACT.md §2, amended by §8 for R1.1). Dates come only from the demo clock
+ * (`state.today`). A cheer is visible to its sender, its recipients and the officers the sender chose to let know (`ccIds`), and
+ * its note never leaves this module except to those people: the notice to each let-know person carries it (the sender chose to
+ * share it with them); no recipient notice, activity fact or log entry does. Since R1.1 every cheer is also emailed to its
+ * recipients (the demo records `email: true` and sends nothing), and a cheer can no longer be withdrawn.
  *
  * This module is in the entry chunk (the store's reducer and loading, the card host and the inbox use it). The read helpers only
  * the Cheers screens use (`weeklyLine`, `thankPromptFor`, `cheerRecipients`, `receivedThisTerm`, `givenThisTerm`) are in
@@ -15,7 +17,8 @@ import { nextCounter } from "../lib/ids"
  * them back in the entry chunk.
  */
 export type CheerAction =
-  | { kind: "send"; toIds: string[]; points: CheerPoints; note: string; nodeId?: string; card: CheerCard; email?: boolean }
+  | { kind: "send"; toIds: string[]; points: CheerPoints; note: string; nodeId?: string; card: CheerCard; ccIds?: string[] }
+  /** Refused since R1.1 (§8.7): kept in the type so an older caller or a replayed log still reaches the reducer and is turned down. */
   | { kind: "withdraw"; id: string }
   | { kind: "markSeen"; ids: string[] }
   | { kind: "dismissWeeklyLine" }
@@ -26,6 +29,7 @@ const ID_MAX = 64
 
 const personOf = (s: DemoState, id: string) => s.people.find(p => p.id === id)
 const firstName = (p: Person | undefined) => p?.name.trim().split(/\s+/)[0] || "A teammate"
+const joinNames = (names: string[]) => names.length <= 1 ? names.join("") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`
 /** Not withdrawn. Also used by cheerViews.ts. */
 export const live = (c: Cheer) => !c.withdrawnOn
 /** What a cheer cost its sender: points × recipients. Also used by cheerViews.ts. */
@@ -71,10 +75,13 @@ export const cheersOf = (s: DemoState): CheerBook => {
   return view
 }
 
-/** Cheers the person sent or received, not withdrawn, newest first. Nobody else's cheers are ever returned. */
+/** Whether the person is in the cheer: its sender, a recipient, or someone the sender let know. Also used by the screens. */
+export const isInCheer = (c: Cheer, personId: string): boolean =>
+  c.fromId === personId || c.toIds.includes(personId) || (Array.isArray(c.ccIds) && c.ccIds.includes(personId))
+/** Cheers the person sent, received or was let know of, not withdrawn, newest first. Nobody else's cheers are ever returned. */
 export const visibleCheers = (s: DemoState, personId: string): Cheer[] =>
   cheersOf(s).cheers.map((c, i) => ({ c, i }))
-    .filter(({ c }) => live(c) && (c.fromId === personId || c.toIds.includes(personId)))
+    .filter(({ c }) => live(c) && isInCheer(c, personId))
     .sort((a, b) => b.c.on.localeCompare(a.c.on) || b.i - a.i).map(({ c }) => c)
 
 export const allowanceOf = (s: DemoState, personId: string): { total: number; used: number; left: number } => {
@@ -102,20 +109,27 @@ export const validateCheer = (s: DemoState, fromId: string, input: Extract<Cheer
   if (toIds.length > MAX_RECIPIENTS) return `Up to ${MAX_RECIPIENTS} people at a time.`
   if (toIds.includes(fromId)) return "You can't cheer yourself."
   if (!toIds.every(id => canReceiveCheers(s, id))) return "Choose people on the team."
-  if (!CHEER_POINTS.includes(input.points)) return "Choose 10, 25, 50 or 100 points."
-  if (!CHEER_CARDS.includes(input.card)) return "Choose a card style."
+  if (typeof input.points !== "number" || !Number.isInteger(input.points)) return "Enter whole points."
+  if (input.points < POINTS_MIN) return `Give at least ${POINTS_MIN} points.`
+  if (!CHEER_CARDS.includes(input.card)) return "Choose a trophy."
+  const ccIds = uniqueIds(input.ccIds)
+  if (ccIds.length > MAX_CC) return `Let up to ${MAX_CC} others know.`
+  if (ccIds.some(id => id === fromId || toIds.includes(id))) return "They are already in this cheer."
+  if (!ccIds.every(id => canSendCheers(s, id))) return "Let current officers know."
   if (input.nodeId && !s.nodes.some(n => n.id === input.nodeId)) return "Choose a task from this club."
   const note = typeof input.note === "string" ? input.note.trim() : ""
   if (note.length < NOTE_MIN) return `Write at least ${NOTE_MIN} characters.`
   if (note.length > NOTE_MAX) return `Keep it under ${NOTE_MAX} characters.`
   const { left } = allowanceOf(s, fromId)
-  if (input.points * toIds.length > left) return left ? `Only ${left} points left this week.` : "No points left this week."
+  if (input.points * toIds.length > left) return left ? `Only ${left.toLocaleString("en-US")} points left this week.` : "No points left this week."
   return null
 }
 
 /** A cheer in its canonical field order, so saving and sanitizing produce the same JSON. */
 const shape = (c: Cheer): Cheer => ({
-  id: c.id, fromId: c.fromId, toIds: c.toIds, points: c.points, note: c.note,
+  id: c.id, fromId: c.fromId, toIds: c.toIds,
+  ...(c.ccIds?.length ? { ccIds: c.ccIds } : {}),
+  points: c.points, note: c.note,
   ...(c.nodeId ? { nodeId: c.nodeId } : {}),
   card: c.card, on: c.on,
   ...(c.email ? { email: true } : {}),
@@ -138,24 +152,23 @@ export function changeCheers(state: DemoState, action: CheerAction, actorId: str
       if (validateCheer(state, actorId, action)) return state
       const sender = personOf(state, actorId)
       const id = `ch-${nextCounter(book.cheers.map(c => c.id), /^ch-(\d+)$/)}`
+      // Every cheer is emailed to its recipients (§8.8): the demo records that and sends nothing.
       const cheer = shape({
-        id, fromId: actorId, toIds: uniqueIds(action.toIds), points: action.points, note: action.note.trim(),
-        nodeId: action.nodeId || undefined, card: action.card, on: state.today, email: action.email === true, seenBy: [],
+        id, fromId: actorId, toIds: uniqueIds(action.toIds), ccIds: uniqueIds(action.ccIds), points: action.points, note: action.note.trim(),
+        nodeId: action.nodeId || undefined, card: action.card, on: state.today, email: true, seenBy: [],
       })
       const notices = [...state.notifications]
-      for (const recipientId of cheer.toIds) {
-        const noticeId = `cheer:${id}:${recipientId}`
-        if (!notices.some(n => n.id === noticeId))
-          notices.push({ id: noticeId, recipientId, nodeId: cheer.nodeId ?? "", kind: "cheer", text: `${firstName(sender)} sent you ${cheer.points} points.`, createdOn: state.today, read: false, cheerId: id })
-      }
+      const add = (n: Notice) => { if (!notices.some(x => x.id === n.id)) notices.push(n) }
+      const base = { nodeId: cheer.nodeId ?? "", kind: "cheer" as const, createdOn: state.today, read: false, cheerId: id }
+      // Recipients: who sent it and how many points, never the note (the card shows it).
+      for (const recipientId of cheer.toIds) add({ ...base, id: `cheer:${id}:${recipientId}`, recipientId, text: `${firstName(sender)} sent you ${cheer.points} points.` })
+      // People let know: the sender chose to share the note with them (§8.9).
+      const names = joinNames(cheer.toIds.map(rid => firstName(personOf(state, rid))))
+      for (const ccId of cheer.ccIds ?? []) add({ ...base, id: `cheer-cc:${id}:${ccId}`, recipientId: ccId, text: `${firstName(sender)} recognized ${names}: “${cheer.note}”` })
       return { ...withBook(state, { ...book, cheers: [...book.cheers, cheer] }), notifications: notices }
     }
-    case "withdraw": {
-      const target = book.cheers.find(c => c.id === action.id)
-      if (!target || target.fromId !== actorId || !live(target) || target.on !== state.today) return state
-      const cheers = book.cheers.map(c => c === target ? shape({ ...c, withdrawnOn: state.today }) : c)
-      return { ...withBook(state, { ...book, cheers }), notifications: readNotices(state.notifications, new Set([target.id])) }
-    }
+    // No withdrawal since R1.1 (§8.7): a cheer is final. Cheers an R1 sender withdrew stay hidden and count for nobody.
+    case "withdraw": return state
     case "markSeen": {
       const wanted = new Set(uniqueIds(action.ids))
       const seen = new Set<string>()
@@ -177,6 +190,10 @@ export function changeCheers(state: DemoState, action: CheerAction, actorId: str
   }
 }
 
+/** Points a saved cheer may hold: an R1 value (10, 25, 50, 100) or a whole number from POINTS_MIN up to the import guard. */
+const savedPoints = (v: unknown): v is CheerPoints =>
+  typeof v === "number" && Number.isInteger(v) && (LEGACY_POINTS.includes(v) || (v >= POINTS_MIN && v <= POINTS_SAVED_MAX))
+
 /** One saved cheer cleaned, or null when it cannot be kept. */
 function cleanCheer(raw: unknown, people: Set<string>): Cheer | null {
   if (!raw || typeof raw !== "object") return null
@@ -185,7 +202,9 @@ function cleanCheer(raw: unknown, people: Set<string>): Cheer | null {
   if (typeof c.fromId !== "string" || !people.has(c.fromId)) return null
   const toIds = uniqueIds(c.toIds).filter(id => id !== c.fromId && people.has(id))
   if (!toIds.length || toIds.length > MAX_RECIPIENTS) return null
-  if (!CHEER_POINTS.includes(c.points as CheerPoints) || !CHEER_CARDS.includes(c.card as CheerCard)) return null
+  if (!savedPoints(c.points) || !CHEER_CARDS.includes(c.card as CheerCard)) return null
+  // People let know: known people outside the cheer, deduplicated, at most MAX_CC (extra ones lose sight of it, never gain it).
+  const ccIds = uniqueIds(c.ccIds).filter(id => id !== c.fromId && !toIds.includes(id) && people.has(id)).slice(0, MAX_CC)
   if (typeof c.note !== "string") return null
   const note = c.note.trim()
   if (note.length < NOTE_MIN || note.length > NOTE_MAX) return null
@@ -193,7 +212,7 @@ function cleanCheer(raw: unknown, people: Set<string>): Cheer | null {
   const nodeId = typeof c.nodeId === "string" && c.nodeId.length <= ID_MAX ? c.nodeId : undefined
   const withdrawnOn = typeof c.withdrawnOn === "string" && ISO_DATE.test(c.withdrawnOn) ? c.withdrawnOn : undefined
   return shape({
-    id: c.id, fromId: c.fromId, toIds, points: c.points as CheerPoints, note, nodeId, card: c.card as CheerCard, on: c.on,
+    id: c.id, fromId: c.fromId, toIds, ccIds, points: c.points as CheerPoints, note, nodeId, card: c.card as CheerCard, on: c.on,
     email: c.email === true, seenBy: uniqueIds(c.seenBy).filter(id => toIds.includes(id)), withdrawnOn,
   })
 }

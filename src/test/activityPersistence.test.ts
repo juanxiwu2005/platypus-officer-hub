@@ -451,6 +451,15 @@ describe("activity backfill: cheers (R1)", () => {
     const kinds = (s.activity ?? []).filter(e => e.facts?.cheerId === first.id).map(e => e.kind)
     expect(kinds).toEqual(["cheer.sent", "cheer.withdrawn"])
   })
+  it("R1.1: records how many people the sender let know, never who", () => {
+    const base = withoutActivityForCheers(seedDemo(undefined, "v2"))
+    const [first, ...rest] = base.cheers!.cheers
+    const s = withActivityBackfill({ ...base, cheers: { ...base.cheers!, cheers: [{ ...first, ccIds: ["sam", "jordan"] }, ...rest] } })
+    const sent = (s.activity ?? []).find(e => e.kind === "cheer.sent" && e.facts?.cheerId === first.id)!
+    expect(sent.facts).toMatchObject({ cc: 2, email: true })
+    expect(sent.personIds).toEqual(first.toIds)
+    expect(JSON.stringify(sent)).not.toMatch(/sam|jordan/)
+  })
 })
 
 function withoutActivityForCheers(s: ReturnType<typeof seedDemo>) { const { activity: _a, ...rest } = s; void _a; return rest }

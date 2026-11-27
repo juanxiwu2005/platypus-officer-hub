@@ -1,8 +1,10 @@
 import type { Cheer, DemoState } from "../data/types"
 
 /**
- * Cheer email draft (R1, docs/feedback-fix/CHEERS_R1_CONTRACT.md §2). Signatures are frozen. Nothing here sends mail: the interface
- * opens a draft the sender sends themselves. The body is plain text, at most 80 words besides the note, with no running total.
+ * The email a cheer's recipient gets from Platypus (R1 template, docs/feedback-fix/CHEERS_R1_CONTRACT.md §2). Since R1.1 (§8.8)
+ * every cheer is emailed, so this no longer depends on an "Also email" choice. Nothing here sends mail: the demo records that
+ * the email went (`email: true`) and lets the sender and the recipient read this text from the cheer; real sending waits for
+ * accounts and server email (v1.5). The body is plain text, at most 80 words besides the note, with no running total.
  */
 
 /** Words the body may use besides the note. */

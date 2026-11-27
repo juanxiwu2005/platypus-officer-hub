@@ -26,6 +26,23 @@ export const receivedThisTerm = (s: DemoState, personId: string): number =>
 export const givenThisTerm = (s: DemoState, personId: string): number =>
   cheersOf(s).cheers.filter(inTerm(s)).filter(c => c.fromId === personId).reduce((n, c) => n + cost(c), 0)
 
+/**
+ * "Let others know too (optional)" (R1.1, §8.9): current officers other than the sender and the recipients. `suggested` comes
+ * first: the president, the vice presidents, then each recipient's team lead (the holder of the role their role reports to),
+ * in that order; `others` are the rest, in name order.
+ */
+export const ccCandidates = (s: DemoState, fromId: string, toIds: string[]): { suggested: Person[]; others: Person[] } => {
+  const open = s.people.filter(p => p.id !== fromId && !toIds.includes(p.id) && canSendCheers(s, p.id))
+  const holderOf = (roleId: string | null | undefined) => { const r = roleId ? s.roles.find(x => x.id === roleId) : undefined; return r?.holderId ?? null }
+  const roleOf = (p: Person) => s.roles.find(r => r.id === p.roleId && r.holderId === p.id)
+  const order: string[] = []
+  const push = (id: string | null) => { if (id && !order.includes(id) && open.some(p => p.id === id)) order.push(id) }
+  for (const fn of ["president", "vice_president"] as const) open.filter(p => roleOf(p)?.fn === fn).sort(byName).forEach(p => push(p.id))
+  for (const id of toIds) { const p = s.people.find(x => x.id === id); push(p ? holderOf(roleOf(p)?.reportsToId) : null) }
+  const suggested = order.map(id => open.find(p => p.id === id)!)
+  return { suggested, others: open.filter(p => !order.includes(p.id)).sort(byName) }
+}
+
 /** People the sender may cheer, in display order. */
 export const cheerRecipients = (s: DemoState, fromId: string): Person[] =>
   s.people.filter(p => p.id !== fromId && canReceiveCheers(s, p.id)).sort(byName)
