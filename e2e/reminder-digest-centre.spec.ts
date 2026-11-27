@@ -63,8 +63,10 @@ test("a row expands to its real email in place; a row's Send records it once; Se
   await expect(toggle).toHaveAttribute("aria-expanded", "false")
   await toggle.click()
   await expect(toggle).toHaveAttribute("aria-expanded", "true")
-  await expect(maya.getByTestId("digest-body").getByRole("link", { name: "Open task" })).toHaveCount(1)
-  await expect(maya.getByTestId("digest-mail")).toContainText("To: maya.chen@example.org")
+  // R-S0: a review mode opens the email as an editable draft; each task link is a token on its own line.
+  await expect(maya.getByTestId("rq-draft-body")).toHaveValue(/^\[Open task: [^\]]+\]$/m)
+  expect((await maya.getByTestId("rq-draft-body").inputValue()).match(/\[Open task: /g)).toHaveLength(1)
+  await expect(maya.getByTestId("rq-draft-to")).toHaveText("maya.chen@example.org")
   await expect(page.getByTestId("digest-panel")).toHaveCount(0)
   expect(await serious(page)).toEqual([])
   expect(await noOverflow(page)).toBeLessThanOrEqual(0)
@@ -84,7 +86,8 @@ test("a row expands to its real email in place; a row's Send records it once; Se
   expect(await order()).toEqual(["maya", "jordan", "priya"])
   const jordan = page.locator('[data-testid="rq-person"][data-recipient="jordan"]')
   await jordan.getByRole("button", { name: "Email to Jordan Patel" }).click()
-  await expect(jordan.getByTestId("digest-body").getByRole("link", { name: "Open task" })).toHaveCount(3)
+  await expect(jordan.getByTestId("rq-draft-body")).toBeVisible()
+  expect((await jordan.getByTestId("rq-draft-body").inputValue()).match(/^\[Open task: [^\]]+\]$/gm)).toHaveLength(3)
   await page.getByRole("button", { name: "Send 1 email" }).click()
   await expect(page.getByTestId("rq-feedback")).toHaveText("Sent to 1 person. 2 were sent earlier today.")
   // Send all is gone; focus moved to the summary line instead of falling to the page body.

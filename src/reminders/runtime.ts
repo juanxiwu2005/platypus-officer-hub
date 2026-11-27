@@ -1,6 +1,8 @@
 import type { ReminderRuntime } from "./contracts"
 import { digestWordBudget, DIGEST_TASK_CAP } from "./policy"
 
+/** An edited digest body is at most 2,000 characters as the editor shows it, so it cannot hold more words than this. */
+const EDITED_WORD_CAP = 2000
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v)
 const string = (v: unknown) => typeof v === "string" && v.length > 0
 const integer = (v: unknown) => Number.isSafeInteger(v) && (v as number) >= 0
@@ -68,9 +70,14 @@ function digestsValid(value: Record<string, unknown>, sequence: number, sequence
       || !oneOf(v.via, "manual|platypus|automatic") || !nullable(v.intendedEmail, string) || v.source !== "rules" || v.checked !== true
       || v.text !== `${v.subject}\n\n${v.body}` || !Array.isArray(v.taskUrls) || !Array.isArray(v.nodeIds)) return false
     const count = (v.taskUrls as unknown[]).length
+    // R-S0: an edited email has `edited: true` and the rule-written `original`; its words are bounded by the editor's limit.
+    const edited = v.edited === true
+    if (v.edited !== undefined && !edited) return false
+    if (edited !== (v.original !== undefined)) return false
+    if (edited && !(object(v.original) && Object.keys(v.original).length === 2 && fields(v.original, "subject body", string))) return false
     if (count < 1 || count > DIGEST_TASK_CAP || (v.nodeIds as unknown[]).length !== count
       || !(v.taskUrls as unknown[]).every(string) || !(v.nodeIds as unknown[]).every(string)
-      || !integer(v.wordCount) || (v.wordCount as number) > digestWordBudget(count)) return false
+      || !integer(v.wordCount) || (v.wordCount as number) > (edited ? EDITED_WORD_CAP : digestWordBudget(count))) return false
     byId.set(v.id as string, v)
   }
   const members = new Map<string, Record<string, unknown>[]>()

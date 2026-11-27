@@ -60,7 +60,8 @@ const panel = (page: Page) => page.getByTestId("digest-panel")
 /** S2: open one person's combined email in place and wait until the rule-written email is ready. */
 async function openEmail(page: Page, id = "jordan") {
   await person(page, id).getByTestId("rq-person-toggle").click()
-  await expect(person(page, id).getByTestId("digest-body")).toBeVisible()
+  // R-S0: the review modes open an editable draft; "Send automatically" keeps the read-only email.
+  await expect(person(page, id).getByTestId("rq-draft").or(person(page, id).getByTestId("digest-body"))).toBeVisible()
 }
 /** S2: the row's own Send ("I review, Platypus sends") records that person's email. */
 async function sendRow(page: Page, id = "jordan") {
@@ -134,7 +135,7 @@ test("I review, Platypus sends: the row's Send records the whole email; every ta
   await open(page, "review_then_auto")
   await shot(page, "president-review-then-auto", isMobile)
   await openEmail(page)
-  await expect(person(page).getByTestId("digest-body").getByRole("link", { name: "Open task" })).toHaveCount(3)
+  expect((await person(page).getByTestId("rq-draft-body").inputValue()).match(/^\[Open task: [^\]]+\]$/gm)).toHaveLength(3)
   await expect(person(page).getByRole("link", { name: "Open in Gmail" })).toHaveCount(0)
   await shot(page, "president-review-then-auto-expanded", isMobile)
   await sendRow(page)

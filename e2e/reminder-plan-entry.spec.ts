@@ -54,10 +54,12 @@ test("a newly prepared email opens the actual event Plan and keeps the scoped ac
   // Concept F / S2: the task sits in its owner's email; the email, opened in place, carries one "Open task" link per task.
   const composer = page.getByTestId("rq-person").filter({ has: page.getByTestId("rq-person-task").filter({ hasText: "Reserve a room" }) })
   await composer.getByTestId("rq-person-toggle").click()
-  const link = await composer.getByTestId("digest-body").locator(`a[href*="node=${PLAN_ROOM}&"]`).getAttribute("href")
-  expect(link).toContain(`/#/events?event=${PLAN_EVENT}&node=${PLAN_ROOM}&access=`)
+  // R-S0: the open email is an editable draft; the link is read from the email as recorded.
+  await expect(composer.getByTestId("rq-draft-body")).toBeVisible()
   await composer.getByTestId("rq-person-send").click()
   await expect.poll(async () => (await savedDemo(page)).reminderRuntime?.digests?.length ?? 0).toBe(1)
+  const link = (await savedDemo(page)).reminderRuntime!.digests![0].body.match(new RegExp(`https?://\\S+node=${PLAN_ROOM}&\\S+`))?.[0]
+  expect(link).toContain(`/#/events?event=${PLAN_EVENT}&node=${PLAN_ROOM}&access=`)
   await page.goto(link!); await seeRoom(page)
   await expect(page.getByTestId("flow-chart")).toBeAttached()
   await expect(page.getByTestId("view-flow")).toHaveAttribute("aria-pressed", "true")
@@ -198,7 +200,11 @@ test("club mail opens the last viewed event, supports graph browsing and leaves 
   await page.goto("/#/")
   const agenda = page.getByTestId("rq-person").filter({ has: page.getByTestId("rq-person-task").filter({ hasText: "Draft the meeting agenda" }) })
   await agenda.getByTestId("rq-person-toggle").click()
-  const url = await agenda.getByTestId("digest-body").locator('a[href*="node=t-agenda&"]').getAttribute("href")
+  // R-S0: the open email is an editable draft; the link is read from the email as recorded.
+  await expect(agenda.getByTestId("rq-draft-body")).toBeVisible()
+  await agenda.getByTestId("rq-person-send").click()
+  await expect.poll(async () => (await savedDemo(page)).reminderRuntime?.digests?.length ?? 0).toBe(1)
+  const url = (await savedDemo(page)).reminderRuntime!.digests![0].body.match(/https?:\/\/\S+node=t-agenda&\S+/)?.[0]
   expect(url).toContain("/#/events?node=t-agenda&access=")
   await page.goto(url!)
   await expect(task(page).getByRole("heading", { name: "Draft the meeting agenda" })).toBeVisible()

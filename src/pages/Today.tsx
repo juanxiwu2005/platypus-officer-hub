@@ -9,6 +9,7 @@ import { forecastFor } from "../engine/forecast"
 import { fmtLong } from "../lib/dates"
 import { digestCentre, PERSON_PARAM, reminderCentre, sendAllFeedback, type DigestPerson, type FixRow, type ReminderCentre as Centre } from "../reminders/centre"
 import { sendReminderDigests } from "../reminders/digest"
+import { loadedDraftModule } from "../reminders/draftLoader"
 import { PersonRow } from "../reminders/PersonRow"
 import { ProblemChip } from "../reminders/ReasonChip"
 import { YourReminders } from "../reminders/YourReminders"
@@ -74,9 +75,14 @@ function ReminderCentre({ q }: { q: Centre }) {
   const sendAll = async () => {
     if (busy || persistenceFailed || !dc.groups.length) return
     const earlier = dc.people.filter(p => p.sent && !p.group).length
+    // R-S0: each person's current draft goes out; one that cannot (a missing link) stops everything, named.
+    const loadedDrafts = loadedDraftModule()
+    const drafts = loadedDrafts ? loadedDrafts.draftEditsFor(dc.groups, state.today) : { edits: {}, blocker: null }
+    if (drafts.blocker) { setFeedback(drafts.blocker); return }
     setBusy(true); setFeedback("")
     try {
-      const result = await sendReminderDigests({ getState, tryDispatch }, dc.groups.map(g => g.id), window.location.origin, "platypus", () => alive.current)
+      const result = await sendReminderDigests({ getState, tryDispatch }, dc.groups.map(g => g.id), window.location.origin, "platypus", () => alive.current, drafts.edits)
+      loadedDrafts?.dropDrafts(result.recordedGroupIds)
       if (alive.current) setFeedback(sendAllFeedback(result.recordedGroupIds.length, earlier, result.error))
     } catch { if (alive.current) setFeedback("These emails were not sent. Please try again.") }
     finally {
