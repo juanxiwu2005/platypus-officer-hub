@@ -1,18 +1,15 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { useStore, useViewer } from "../data/store"
-import type { ReminderMode } from "../data/types"
 import { PageHead } from "../components/Page"
 import { Bts, BtsRow } from "../components/Bts"
 import { useRail } from "../components/rail/RailContext"
-import { forecastFor, type Forecast } from "../engine/forecast"
-import { RiskDot } from "../components/ui"
-import { fmtLong, fmtShort } from "../lib/dates"
-import { composeUrl } from "../lib/nudges"
-import { digestCentre, firstName, reminderCentre, type CentreRow, type DigestPerson, type ReminderCentre as Centre } from "../reminders/centre"
-import { prepareReminderDigest, recordReminderDigests, sendReminderDigests } from "../reminders/digest"
-import type { ReminderDelivery } from "../reminders/contracts"
-import { Mail, digestVia, usePreparedDigest } from "../reminders/DigestMail"
+import { forecastFor } from "../engine/forecast"
+import { fmtLong } from "../lib/dates"
+import { digestCentre, reminderCentre, type ReminderCentre as Centre } from "../reminders/centre"
+import { sendReminderDigests } from "../reminders/digest"
+import { PersonRow } from "../reminders/PersonRow"
+import { YourReminders } from "../reminders/YourReminders"
 import { isReminderRuntime } from "../reminders/runtime"
 import { WeeklyLine } from "../components/cheers/WeeklyLine"
 import "../reminders/centre.css"
@@ -104,104 +101,4 @@ function ReminderCentre({ q }: { q: Centre }) {
       <button type="button" className="btn btn-quiet small" data-testid="open-history" onClick={() => rail.show({ kind: "reminderHistory" })}>History</button>
     </p>}
   </div>
-}
-
-/**
- * One person's row: their tasks, a disclosure with the full email, and the mode's one action. Nothing is really sent.
- * Button rule: the summary card's action (Send all, or Choose how reminders go out) is the screen's one filled button, so
- * row actions are outlined. Only "I review, then I send" has no summary action; there Open in Gmail stays filled.
- * Row actions are disabled while Send all runs.
- */
-function PersonRow({ p, mode, reviewing, forecast, sendingAll }: { p: DigestPerson; mode: ReminderMode | null; reviewing: boolean; forecast: Forecast; sendingAll: boolean }) {
-  const { getState, tryDispatch, persistenceFailed } = useStore()
-  const [open, setOpen] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [note, setNote] = useState("")
-  const [opened, setOpened] = useState<string | null>(null)
-  const toggle = useRef<HTMLButtonElement>(null)
-  // With no mode chosen yet, a lead sends the email themselves, as in the rail.
-  const via = digestVia(mode)
-  const { prepared, problem, retry } = usePreparedDigest(open ? p.group : null, p.recipientId, via)
-  useEffect(() => { setOpened(null) }, [prepared])
-  const status = p.group ? reviewing ? "reviewing" : "next" : "sent"
-  const first = firstName(p.name)
-  const region = `dg-email-${p.recipientId.replace(/[^\w-]/g, "_")}`
-  /** The same prepare-and-record path as the rail's Send & next: one recordReminderDigests action for this person's email. */
-  const record = async (how: ReminderDelivery["via"], clicks: number) => {
-    if (busy || sendingAll || persistenceFailed || !p.group || clicks > 1) return
-    setBusy(true); setNote("")
-    try {
-      const ready = prepared ?? await prepareReminderDigest({ getState, tryDispatch }, p.group.id, window.location.origin, how)
-      if ("error" in ready) { setNote(ready.error); return }
-      if (how !== "manual" && !ready.digest.intendedEmail) { setNote("Add a valid email address for this person before sending."); return }
-      const result = recordReminderDigests({ getState, tryDispatch }, [ready], how)
-      if (!result.recordedGroupIds.includes(ready.groupId)) { setNote(result.error ?? "This email changed. Review the new version, then try again."); retry(); return }
-      setNote(`Sent to ${first}.`)
-      toggle.current?.focus()
-    } catch { setNote("This email was not sent. Please try again.") }
-    finally { setBusy(false) }
-  }
-  const shown = open ? [note, problem].filter(Boolean).join(" ") : note
-  const gmailBtn = mode === "review_then_self" ? "btn btn-primary small" : "btn small"
-  return <li className="dg-person" data-testid="rq-person" data-recipient={p.recipientId} data-state={status} data-open={open || undefined}>
-    <div className="dg-person-head">
-      <button ref={toggle} type="button" className="dg-person-toggle" aria-expanded={open} aria-controls={region} data-testid="rq-person-toggle" onClick={() => setOpen(o => !o)}>
-        <span className="avatar dg-av" aria-hidden="true">{p.initials}</span>
-        <span className="dg-name"><span className="sr-only">Email to</span>{" "}{p.name}</span>
-        <span className="dg-caret" aria-hidden="true" />
-      </button>
-      {status === "sent" ? <span className="dg-state sent">Sent</span>
-        : mode === "review_then_auto" ? <button type="button" className="btn small" data-testid="rq-person-send" aria-label={`Send to ${first}`} disabled={busy || sendingAll || persistenceFailed} onClick={event => record("platypus", event.detail)}>{busy ? "Sending…" : "Send"}</button>
-        : null}
-    </div>
-    <ul className="dg-tasks">{p.tasks.map(t => <li key={t.id} className="dg-task" data-testid="rq-person-task" data-node={t.nodeId}>
-      <span className="rq-mark">{t.risk && forecast.nodes[t.nodeId] && <RiskDot result={forecast.nodes[t.nodeId]} />}</span>
-      <span className="dg-task-title">{t.title}</span>
-      {t.chip && <span className={`dg-chip ${t.tone}`}>{t.chip}</span>}
-    </li>)}</ul>
-    <div id={region} className="dg-inline" data-testid="rq-person-email" hidden={!open}>
-      {open && (p.group ? <>
-        {prepared ? <Mail label={`Email to ${p.name}`} to={prepared.digest.intendedEmail} subject={prepared.digest.subject} body={prepared.digest.body} />
-          : !problem && !persistenceFailed && <p className="small muted" role="status">Preparing the email…</p>}
-        {via === "manual" && <div className="dg-nav">
-          {prepared ? <a className={gmailBtn} data-testid="rq-person-gmail" href={composeUrl("email", prepared.digest.body, prepared.digest.subject)} target="_blank" rel="noreferrer" onClick={() => setOpened(prepared.groupId)}>Open in Gmail</a>
-            : <button type="button" className={gmailBtn} data-testid="rq-person-gmail" disabled>Open in Gmail</button>}
-          {prepared && opened === prepared.groupId && <button type="button" className="btn small" data-testid="rq-person-sent-self" disabled={busy || sendingAll || persistenceFailed} onClick={event => record("manual", event.detail)}>I sent this</button>}
-        </div>}
-      </> : p.sent && <Mail label={`Email to ${p.name}`} to={p.sent.intendedEmail} subject={p.sent.subject} body={p.sent.body} />)}
-    </div>
-    {/* Always mounted so screen readers announce "Sent to …" and other notes when they appear. */}
-    <p className="small dg-row-note" role="status">{shown}</p>
-  </li>
-}
-
-function Row({ x, action, note }: { x: CentreRow; action?: ReactNode; note?: ReactNode }) {
-  const rail = useRail()
-  return <li className="rq-row rc-row" data-testid="rq-row" data-node={x.nodeId}>
-    <span className="rq-mark" />
-    <div className="rq-main rc-main">
-      {x.eventName && <span className="rc-event">{x.eventName}</span>}
-      {x.taskAvailable ? <button type="button" className="row-btn" onClick={() => rail.show({ kind: "node", id: x.nodeId })}>{x.taskTitle}</button> : <strong>{x.taskTitle}</strong>}
-      <span className="rq-meta">{x.recipientName ? <>To <b>{x.recipientName}</b> · </> : x.legacy ? "Recipient not recorded · " : ""}<strong>{x.due ? `Task due ${fmtShort(x.due)}` : x.legacy ? "Earlier reminder" : "Task due not set"}</strong></span>
-      {note && <span className="rq-meta">{note}</span>}
-      {x.message && <details className="rc-snapshot"><summary>Recorded email</summary><pre>{x.message.text}</pre></details>}
-    </div>
-    {action && <span className="rq-act">{action}</span>}
-  </li>
-}
-
-function YourReminders({ q }: { q: Centre }) {
-  const { state, automaticReminders } = useStore()
-  const upcoming = q.thisWeek.filter(x => x.recipientId === state.viewerId)
-  const received = q.sent.filter(x => x.recipientId === state.viewerId)
-  return <section className="card rq-section" aria-labelledby="rq-yours-h" data-testid="your-reminders">
-    <header><h2 id="rq-yours-h">Your reminders</h2></header>
-    <BtsRow><Bts label="Rule engine">Planned checks use the stored task dates. Recorded reminders follow the saved recipient.</Bts></BtsRow>
-    {q.runtimeState === "invalid" && <p className="rq-note">The saved reminder plan needs review. No reminders will run.</p>}
-    {automaticReminders.error && <p role="alert" className="rq-note">Automatic reminders could not be saved. Please let your president or VP know.</p>}
-    <h3 className="rq-sub">Coming up</h3>
-    {upcoming.length ? <ul className="rq-list">{upcoming.slice(0, 5).map(x => <Row key={x.id} x={x} note={<>Planned reminder {fmtLong(x.scheduledOn!)}</>} />)}</ul> : <p className="rq-empty">Nothing this week.</p>}
-    <h3 className="rq-sub">Recorded for you</h3>
-    {received.length ? <ul className="rq-list">{received.map(x => <Row key={x.id} x={x} action={<span className="rq-tag">Sent</span>} note={<>Recorded {fmtShort(x.sentOn!)}</>} />)}</ul> : <p className="rq-empty">No recorded reminders yet.</p>}
-  </section>
 }
