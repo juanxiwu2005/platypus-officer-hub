@@ -1,7 +1,7 @@
 import type { Action } from "../data/store"
 import type { DemoState } from "../data/types"
 import { canLead } from "../data/permissions"
-import type { DigestRecordResult, PreparedDigest, ReminderDigestGroup, ReminderDigestPlan, ReminderDigestSnapshot } from "./digestContracts"
+import type { DigestEdit, DigestRecordResult, PreparedDigest, ReminderDigestGroup, ReminderDigestPlan, ReminderDigestSnapshot } from "./digestContracts"
 import type { ReminderCandidate, ReminderDelivery } from "./contracts"
 import type { TaskAccessGrant } from "./accessContracts"
 import type { PreparedReminder, ReminderBatch } from "./deliveryContracts"
@@ -12,6 +12,7 @@ import { allowedReminderVia, importantReminder } from "./policy"
 import { isReminderRuntime } from "./runtime"
 import { buildReminderDigestMail, buildReminderMail } from "./mail"
 import { validatedReminderMessage } from "./message"
+import { checkDigestEdit, draftTitleOf } from "./draftLinks"
 import { makeTaskAccessGrant, taskAccessIssueValid, taskAccessToken, taskAccessUrl, usableTaskAccessGrant, verifyTaskAccessGrant } from "./taskAccess"
 
 type Store = { getState: () => DemoState; tryDispatch: (a: Action) => boolean }
@@ -118,6 +119,11 @@ export async function prepareReminderDigest(store: Store, groupId: string, origi
   return prepare(store, groupId, origin, via, via !== "automatic", () => true)
 }
 
+/** Optional edits by group id (R-S0): the subject and body a lead wrote, with real task URLs. */
+export type DigestEdits = Record<string, DigestEdit>
+const withEdits = (prepared: PreparedDigest[], edits?: DigestEdits) => !edits ? prepared
+  : prepared.map(p => p && typeof p === "object" && Object.prototype.hasOwnProperty.call(edits, p.groupId) ? { ...p, edit: edits[p.groupId] } : p)
+
 function record(store: Store, prepared: PreparedDigest[], via: DigestVia, context: ReminderBatch["context"]): DigestRecordResult {
   const ids = [...new Set(prepared.map(p => p?.groupId).filter((id): id is string => typeof id === "string"))]
   if (!prepared.length) return { recordedGroupIds: [], failedGroupIds: [], error: "No emails are ready to record." }
@@ -133,13 +139,13 @@ function record(store: Store, prepared: PreparedDigest[], via: DigestVia, contex
     : "These emails were not recorded. Check saving and the latest plan, then try again." }
 }
 
-/** Record prepared groups in one store action. Each group is all-or-nothing. */
-export function recordReminderDigests(store: Store, prepared: PreparedDigest[], via: DigestVia): DigestRecordResult {
-  return record(store, Array.isArray(prepared) ? prepared : [], via, reminderBatchContext(store.getState()))
+/** Record prepared groups in one store action. Each group is all-or-nothing. `edits` replaces a group's email text (R-S0). */
+export function recordReminderDigests(store: Store, prepared: PreparedDigest[], via: DigestVia, edits?: DigestEdits): DigestRecordResult {
+  return record(store, withEdits(Array.isArray(prepared) ? prepared : [], edits), via, reminderBatchContext(store.getState()))
 }
 
 /** Prepare and record several groups ("Send all", automatic mode): prepare everything first, then one dispatch. */
-export async function sendReminderDigests(store: Store, groupIds: string[], origin: string, via: "platypus" | "automatic", isCurrent: () => boolean = () => true): Promise<DigestRecordResult> {
+export async function sendReminderDigests(store: Store, groupIds: string[], origin: string, via: "platypus" | "automatic", isCurrent: () => boolean = () => true, edits?: DigestEdits): Promise<DigestRecordResult> {
   const requested = [...new Set(groupIds)]
   const failed = (error: string): DigestRecordResult => ({ recordedGroupIds: [], failedGroupIds: requested, error })
   const state = store.getState()
@@ -152,7 +158,7 @@ export async function sendReminderDigests(store: Store, groupIds: string[], orig
   }
   if (!isCurrent()) return failed("The reminder preparation changed. Please review the latest plan.")
   if (!prepared.length) return failed("These emails were not recorded. Check saving and the latest plan, then try again.")
-  const result = record(store, prepared, via, context)
+  const result = record(store, withEdits(prepared, edits), via, context)
   const failedGroupIds = requested.filter(id => !result.recordedGroupIds.includes(id))
   return { recordedGroupIds: result.recordedGroupIds, failedGroupIds, error: failedGroupIds.length ? result.error ?? "Some emails changed or reached a limit. Only the saved records are shown." : null }
 }
@@ -161,6 +167,8 @@ export async function sendReminderDigests(store: Store, groupIds: string[], orig
  * Reducer for `recordReminderDigests`. Rechecks everything against the current state (context, mode and sender,
  * lead rights, each grant, each per-task message and the rebuilt combined email). Each group is all-or-nothing:
  * every task delivery is recorded with one shared digestId plus one saved digest, or nothing for that group.
+ * An edited group (R-S0) also needs every task URL of the group exactly as granted, the editor's limits and no other
+ * address (checkDigestEdit); its snapshot keeps the email as sent with `edited: true` and the rule-written `original`.
  */
 export function applyReminderDigests(s: DemoState, batch: ReminderDigestBatch): DemoState {
   if (!v2(s) || !batch || !Array.isArray(batch.digests)) return s
@@ -194,10 +202,37 @@ function recordGroup(s: DemoState, prepared: PreparedDigest, via: DigestVia): De
   }
   const expected = digestFor(working, group, messages.map(m => m.taskUrl))
   if (!expected || canonical(expected) === null || canonical(expected) !== canonical(prepared.digest)) return null
+  const sent = sentText(working, expected, prepared.edit)
+  if (!sent) return null
   if (!v2(working)) return null
   const confirmed = confirmReminderDigest(buildReminderInput(working, working.reminderRuntime), group.candidates.map(c => c.id), via, messages)
   if (!confirmed) return null
-  const snapshot: ReminderDigestSnapshot = { ...expected, id: confirmed.digestId, sentOn: s.today, via }
+  const snapshot: ReminderDigestSnapshot = { ...expected, ...sent, id: confirmed.digestId, sentOn: s.today, via }
   const runtime = { ...confirmed.runtime, digests: [...(confirmed.runtime.digests ?? []), snapshot] }
   return isReminderRuntime(runtime) ? { ...working, reminderRuntime: runtime } : null
+}
+
+const wordsIn = (value: string) => value.trim().split(/\s+/).filter(Boolean).length
+/** The text to save: the rule-written email ({}), an accepted edit, or null when an edit was given but fails the checks. */
+function sentText(s: DemoState, expected: PreparedDigest["digest"], edit: unknown): Partial<ReminderDigestSnapshot> | null {
+  if (edit === undefined) return {}
+  const titleOf = draftTitleOf(s)
+  const checked = checkDigestEdit(edit, expected, expected.nodeIds.map((nodeId, i) => ({ nodeId, title: titleOf(nodeId), url: expected.taskUrls[i] })))
+  if (checked === "same") return {}
+  if (!checked) return null
+  return { subject: checked.subject, body: checked.body, text: `${checked.subject}\n\n${checked.body}`, wordCount: wordsIn(checked.body),
+    edited: true, original: { subject: expected.subject, body: expected.body } }
+}
+
+export const EDITED_TEXT_OMITTED = "[edited text omitted]"
+/**
+ * The research export counts edited emails but never carries what a lead typed (R-S0 §4): an edited email's subject and
+ * body become a fixed marker; `edited` and the rule-written `original` stay. The club data saved in the browser is unchanged.
+ */
+export function withoutEditedText(state: DemoState): DemoState {
+  const runtime = state.reminderRuntime
+  if (!isReminderRuntime(runtime) || !runtime.digests?.some(d => d.edited)) return state
+  const digests = runtime.digests.map(d => d.edited
+    ? { ...d, subject: EDITED_TEXT_OMITTED, body: EDITED_TEXT_OMITTED, text: `${EDITED_TEXT_OMITTED}\n\n${EDITED_TEXT_OMITTED}` } : d)
+  return { ...state, reminderRuntime: { ...runtime, digests } }
 }

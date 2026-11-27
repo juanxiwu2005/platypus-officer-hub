@@ -46,7 +46,7 @@ import { changeRole, type RoleChange } from "./roleChanges"
 import { advancePlannedClock, afterReminderAction, confirmLegacyPlannedReminder, confirmPlannedReminder, enableReminderPlan, remindersEnabled, upgradeReminderPlan, reviewLegacyReminder } from "../reminders/adapter"
 import { recordReminderBatch } from "../reminders/batch"
 import type { ReminderBatch } from "../reminders/deliveryContracts"
-import { applyReminderDigests, type ReminderDigestBatch } from "../reminders/digest"
+import { applyReminderDigests, withoutEditedText, type ReminderDigestBatch } from "../reminders/digest"
 import { useAutomaticReminders } from "../reminders/useAutomaticReminders"
 import type { ReminderMailSnapshot, TaskAccessGrant, TaskAccessUpdate } from "../reminders/accessContracts"
 import { taskAccessIssueValid, usableTaskAccessGrant } from "../reminders/taskAccess"
@@ -1063,7 +1063,8 @@ export function buildExport(state: DemoState, log: LogEntry[], exportedAt: numbe
     onboardingFlowVersion: FLOW_VERSION,
     session: latest ? { ...sessions[sessions.length - 1], olderEntriesLeftOut: sum("previousEntriesCleared") + log.length - entries.length, olderAttemptsLeftOut: sum("previousAttemptsCleared") + onboarding.attempts.length - attempts.length } : null,
     sessions,
-    state: { ...state, demoLinkKey: "[omitted]" },
+    // R-S0: an edited reminder email is counted (`edited: true`), never exported with what the lead typed.
+    state: { ...withoutEditedText(state), demoLinkKey: "[omitted]" },
     onboarding: record,
     interactionLog: { limit: LOG_LIMIT, count: entries.length, firstSeq, lastSeq: entries[entries.length - 1]?.seq ?? null, droppedEarlier: capDropped, entries },
     timeline: buildTimeline(entries, record, listed),

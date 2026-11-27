@@ -13,6 +13,7 @@ import * as digest from "../reminders/digest"
 import type { PreparedDigest, ReminderDigestSnapshot } from "../reminders/digestContracts"
 import DigestPanel, { ReminderHistoryPanel } from "../reminders/DigestPanel"
 import Today from "./Today"
+import { clearDrafts } from "../reminders/draft"
 
 // The engine's prepare/record/send are owned elsewhere; the page is tested against the frozen contract.
 // By default each mock calls the real function, so engine-driven paths (automatic mode) keep their real behaviour.
@@ -77,7 +78,7 @@ beforeEach(() => {
   prepare.mockImplementation(async (store, groupId) => fakePrepared(store.getState(), groupId))
   record.mockImplementation((_store, prepared) => ({ recordedGroupIds: prepared.map(p => p.groupId), failedGroupIds: [], error: null }))
 })
-afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); vi.restoreAllMocks(); prepare.mockReset(); record.mockReset(); sendAll.mockReset() })
+afterEach(() => { cleanup(); clearDrafts(); localStorage.clear(); vi.unstubAllGlobals(); vi.restoreAllMocks(); prepare.mockReset(); record.mockReset(); sendAll.mockReset() })
 const sendAllSucceeds = () => sendAll.mockImplementation(async (_store, groupIds) => ({ recordedGroupIds: groupIds, failedGroupIds: [], error: null }))
 
 describe("reminder centre (concept F): one email per person", () => {
@@ -170,9 +171,12 @@ describe("reminder centre (concept F): one email per person", () => {
     fireEvent.click(toggle)
     expect(toggle.getAttribute("aria-expanded")).toBe("true")
     expect(region.hidden).toBe(false)
-    await within(region).findByText("To: maya@example.org")
-    expect(within(region).getByRole("heading", { name: "1 Platypus task need you" })).toBeTruthy()
-    expect(within(region).getAllByRole("link", { name: "Open task" })).toHaveLength(1)
+    // R-S0: a review mode opens the email as an editable draft; the task link shows as a token, never the address.
+    expect((await within(region).findByTestId("rq-draft-to")).textContent).toBe("maya@example.org")
+    expect((within(region).getByRole("textbox", { name: "Subject" }) as HTMLInputElement).value).toBe("1 Platypus task need you")
+    const body = (within(region).getByRole("textbox", { name: "Message" }) as HTMLTextAreaElement).value
+    expect(body.match(/\[Open task: [^\]]+\]/g)).toHaveLength(1)
+    expect(body).not.toMatch(/https?:/)
     expect(prepare.mock.calls[0][3]).toBe("platypus")
     expect(rail.detail).toBeNull()
     fireEvent.click(toggle)
@@ -195,7 +199,7 @@ describe("reminder centre (concept F): one email per person", () => {
     // Expanded: the email on screen is the one recorded.
     const maya = within(people()[0])
     fireEvent.click(maya.getByRole("button", { name: "Email to Maya Chen" }))
-    await maya.findByText("To: maya@example.org")
+    await maya.findByTestId("rq-draft-subject")
     fireEvent.click(maya.getByRole("button", { name: "Send to Maya" }))
     await waitFor(() => expect(record).toHaveBeenCalledTimes(2))
     expect(prepare).toHaveBeenCalledTimes(2)

@@ -119,7 +119,7 @@ export function ReminderHistoryPanel() {
       <h3 id="dg-sent-h">Recorded <span className="dg-n">{total}</span></h3>
       <ul className="dg-hist-list">
         {digests.map(d => <li key={d.id} className="dg-hist" data-testid="rq-row" data-digest={d.id}>
-          <span className="dg-hist-line">To <b>{firstName(d.recipientName)}</b> · {d.nodeIds.length} task{d.nodeIds.length === 1 ? "" : "s"} · {fmtLong(d.sentOn)}</span>
+          <span className="dg-hist-line">To <b>{firstName(d.recipientName)}</b> · {d.nodeIds.length} task{d.nodeIds.length === 1 ? "" : "s"} · {fmtLong(d.sentOn)}{d.edited && <> <span className="rq-tag" data-testid="rq-edited">Edited</span></>}</span>
           <details className="rc-snapshot"><summary>Recorded email</summary>
             <ul className="dg-hist-tasks">{d.nodeIds.map(id => <li key={id} data-node={id}>{titleOf(d.id, id)}</li>)}</ul>
             <pre>{d.text}</pre>
