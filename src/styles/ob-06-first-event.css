@@ -5,7 +5,7 @@
 .ob6 { --ob6-step: calc(var(--dur-fast) / 3); display: grid; gap: var(--s5); }
 /* Since ob-6 the first event sits under the club name on screen 1, so its title is a section heading. */
 .ob6 h2 { margin: 0; font-size: var(--fs-lg); }
-.ob6-sentence { width: 100%; box-sizing: border-box; font: inherit; font-size: var(--fs-base); line-height: 1.5; padding: var(--s5); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: var(--ink); resize: vertical; }
+.ob6-sentence { width: 100%; box-sizing: border-box; font: inherit; font-size: var(--fs-base); line-height: 1.5; padding: var(--s5); border: 1px solid var(--control-line); border-radius: var(--r-md); background: var(--surface); color: var(--ink); resize: vertical; }
 .ob6-examples { display: flex; flex-wrap: wrap; gap: var(--s4); }
 .ob6-examples .chip { font-size: var(--fs-md); padding: var(--s3) var(--s5); }
 .ob6-note { margin: 0; min-height: 0; }
