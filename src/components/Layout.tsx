@@ -4,6 +4,7 @@ import { RailProvider, useRail } from "./rail/RailContext"
 import { BtsProvider } from "./Bts"
 import { Rail } from "./rail/Rail"
 import { TopBar } from "./chrome/TopBar"
+import { ViewingAsBanner } from "./chrome/ViewingAsBanner"
 import { SideNav } from "./chrome/SideNav"
 import { useToast } from "./chrome/Toast"
 import { CardsHost } from "./cheers/CardsHost"
@@ -86,6 +87,7 @@ function Frame() {
   return (
     <>
       <TopBar onReset={() => setToast("Demo data reset")} />
+      <ViewingAsBanner />
 
       <div className={`shell${railPresence.mounted ? " with-rail" : ""}`}>
         <SideNav />

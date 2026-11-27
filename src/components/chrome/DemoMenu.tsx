@@ -5,8 +5,9 @@ import { getHealth, type Health } from "../../lib/api"
 import { fmtLong } from "../../lib/dates"
 import { currentTask, routeOf, STUDY_TASKS, taskMarks } from "../../lib/uiLog"
 import { useBts } from "../Bts"
+import { viewAsPeople, viewerRole } from "./viewAs"
 
-/** Everything about the demo itself lives behind one small pill. */
+/** Everything about the demo itself lives behind one small pill: whose view this is, the AI switch, the clock and the study tasks (I12). */
 export function DemoMenu({ onReset }: { onReset: () => void }) {
   const { state, dispatch, reset, getLog, logUi } = useStore()
   const { canNudge } = useViewer()
@@ -35,17 +36,30 @@ export function DemoMenu({ onReset }: { onReset: () => void }) {
   useEffect(() => {
     if (!open) return
     const off = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false)
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { setOpen(false); pill.current?.focus() } }
     document.addEventListener("mousedown", off); window.addEventListener("keydown", esc)
     return () => { document.removeEventListener("mousedown", off); window.removeEventListener("keydown", esc) }
   }, [open])
   const bts = useBts()
+  // Picking a person or flipping AI closes the menu and puts focus back on the pill, as the old phone "⋯" panel did.
+  const done = () => { setOpen(false); pill.current?.focus() }
   const aiNote = health?.configured ? `AI answers come live from ${health.provider}${health.model ? ` (${health.model})` : ""}.` : "AI answers are simulated."
   return <div className="menu-wrap" ref={ref}>
     <button type="button" ref={pill} className="demo-pill" aria-expanded={open} onClick={() => setOpen(!open)} data-testid="demo-menu">
       Demo · <span data-testid="demo-date">{fmtLong(state.today)}</span>{task !== null && <span className="demo-task" data-testid="demo-task"> · Task {task}</span>}
     </button>
     <div className="menu" hidden={!open} role="group" aria-label="Demo controls">
+      <p className="more-org">{state.org.name}</p>
+      <label className="field-inline view-as">
+        <span>View as</span>
+        <select value={state.viewerId} onChange={e => { dispatch({ type: "setViewer", viewerId: e.target.value }); done() }} data-testid="view-as">
+          {viewAsPeople(state).map(p => <option key={p.id} value={p.id}>{p.name} · {viewerRole(state, p)}</option>)}
+        </select>
+      </label>
+      <label className="switch">
+        <input type="checkbox" checked={state.aiEnabled} onChange={e => { dispatch({ type: "setAi", enabled: e.target.checked }); done() }} />
+        AI features
+      </label>
       <p className="small muted" data-testid="ai-status">Fictional club and example data. {aiNote} Nothing is sent from this page.</p>
       {/* Each press writes its own "ui.task" entry, so the page listener skips these buttons (data-ui-log="skip"). */}
       <div className="menu-row study-tasks" role="group" aria-label="Study tasks" data-ui-log="skip" data-testid="study-tasks">
