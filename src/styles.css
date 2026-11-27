@@ -53,6 +53,8 @@
   --s1: 2px;   --s2: 4px;   --s3: 6px;   --s4: 8px;
   --s5: 12px;  --s6: 16px;  --s7: 24px;
   --rail-w: 380px;  --nav-w: 196px;  --topbar-h: 56px;
+  /* The floating Ask button (.ask-fab) is this size; pages that keep actions clear of it pad by it (R-S0). */
+  --fab-size: 52px;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -407,7 +409,7 @@ blockquote { margin: .75rem 0; padding: .6rem; border-left: 3px solid var(--acce
 .detail-bar { display: flex; position: sticky; top: 0; background: var(--surface); padding-top: 4px; z-index: var(--z-sticky); }
 .rail .panel { position: static; width: auto; box-shadow: none; border: 0; border-radius: 0; padding: 10px 0 0; inset: auto; }
 .rail .card { border: 0; padding: 0; }
-.ask-fab { position: fixed; right: 18px; bottom: 18px; z-index: var(--z-fab); width: 52px; height: 52px; border-radius: var(--r-circle); border: 0; background: var(--accent); color: var(--on-accent); box-shadow: 0 8px 24px rgba(0,0,0,.22); cursor: pointer; display: grid; place-items: center; }
+.ask-fab { position: fixed; right: 18px; bottom: 18px; z-index: var(--z-fab); width: var(--fab-size); height: var(--fab-size); border-radius: var(--r-circle); border: 0; background: var(--accent); color: var(--on-accent); box-shadow: 0 8px 24px rgba(0,0,0,.22); cursor: pointer; display: grid; place-items: center; }
 .ask-fab svg { width: 24px; height: 24px; }
 @media (min-width: 1200px) { .ask-fab { display: none; } }
 @media (max-width: 1199px) {

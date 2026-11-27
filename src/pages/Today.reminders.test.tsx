@@ -132,8 +132,20 @@ describe("reminder centre (concept F): one email per person", () => {
     for (const b of opens) expect(b.textContent).toBe("Open task")
     expect(fix.queryAllByRole("button", { name: /^(Assign|Help|Review)\b/ })).toHaveLength(0)
     expect(fix.queryByText("Pick who it waits on")).toBeNull()
-    expect(fix.getAllByText("No owner")).toHaveLength(2)
-    expect(fix.getAllByText("Stuck")).toHaveLength(2)
+    // R-S0 W2: real task statuses use the fixed status pills ("No owner" is the Not claimed status); reasons are one neutral chip.
+    expect(fix.queryByText("No owner")).toBeNull()
+    expect(fix.getAllByText("Not claimed").map(el => [el.className, el.dataset.status])).toEqual([["pill", "unclaimed"], ["pill", "unclaimed"]])
+    expect(fix.getAllByText("Stuck").map(el => [el.className, el.dataset.status])).toEqual([["pill", "blocked"], ["pill", "blocked"]])
+    expect(document.querySelector(".dg-chip.late, .dg-chip.warn, .dg-chip.info")).toBeNull()
+    // Person rows: no risk mark (RiskDot) and no "Late to start"; "At risk" is text after the title.
+    expect(screen.getByTestId("rq-people").querySelector("[data-testid=forecast], .risk")).toBeNull()
+    expect(screen.queryByText("Late to start")).toBeNull()
+    expect(screen.getAllByText("No start update").every(el => el.className === "dg-chip")).toBe(true)
+    expect(screen.getAllByTestId("rq-at-risk").length).toBeGreaterThan(0)
+    for (const line of screen.getAllByTestId("rq-person-task")) {
+      const risk = within(line).queryByTestId("rq-at-risk")
+      if (risk) expect(risk.closest(".dg-task-title")!.textContent).toMatch(/ · At risk$/)
+    }
     const fixed = new Set(fix.getAllByTestId("rq-row").map(r => r.dataset.node))
     expect(screen.getAllByTestId("rq-person-task").some(t => fixed.has(t.dataset.node))).toBe(false)
     // B3: today's tasks are not repeated as coming up; the next check shows only when nothing is left to send.
@@ -188,7 +200,9 @@ describe("reminder centre (concept F): one email per person", () => {
     expect(toggle.getAttribute("aria-expanded")).toBe("true")
     expect(region.hidden).toBe(false)
     await within(region).findByText("To: maya@example.org")
-    expect(within(region).getByRole("heading", { name: "1 Platypus task need you" })).toBeTruthy()
+    // R-S0 W2: the subject is plain text, not a heading.
+    expect(within(region).getByTestId("digest-subject").textContent).toBe("1 Platypus task need you")
+    expect(within(region).queryByRole("heading", { name: "1 Platypus task need you" })).toBeNull()
     expect(within(region).getAllByRole("link", { name: "Open task" })).toHaveLength(1)
     expect(prepare.mock.calls[0][3]).toBe("platypus")
     expect(rail.detail).toBeNull()
@@ -437,7 +451,7 @@ describe("reminder centre (concept F): one email per person", () => {
     expect(within(maya1).getByText("Sent")).toBeTruthy()
     expect(within(maya1).queryByRole("button", { name: /^Send/ })).toBeNull()
     fireEvent.click(within(maya1).getByRole("button", { name: "Email to Maya Chen" }))
-    expect(within(maya1).getByRole("heading", { name: "Your tasks" })).toBeTruthy()
+    expect(within(maya1).getByTestId("digest-subject").textContent).toBe("Your tasks")
     expect(screen.getByTestId("rq-summary").textContent).toBe("2 people to remindSend 2 emails")
     expect(screen.getByTestId("rq-history").textContent).toBe("History")
     fireEvent.click(screen.getByRole("button", { name: "History" }))
@@ -554,6 +568,26 @@ describe("reminder centre (concept F): one email per person", () => {
     expect(latest.taskAccessGrants).toBeUndefined()
   })
 
+  it("a member sees today's email to them before Coming up, with no \"To <own name>\" (R-S0 W2)", () => {
+    const s = seedClub()
+    const group = digest.planReminderDigests(s).groups.find(g => g.recipientId === "maya")!
+    const titles = group.candidates.map(c => s.nodes.find(n => n.id === c.nodeId)!.title)
+    show({ ...s, viewerId: "maya" })
+    const mine = screen.getByTestId("your-reminders")
+    const today = within(mine).getByTestId("your-today")
+    expect(today.textContent).toBe(`Today you get 1 email about: ${titles.join(", ")}`)
+    expect(today.compareDocumentPosition(within(mine).getByRole("heading", { name: "Coming up" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(mine).queryByText("Maya Chen")).toBeNull()
+    expect(mine.textContent).not.toMatch(/To Maya/)
+    expect(mine.querySelector(".rq-mark")).toBeNull()
+    // Read-only: nothing is prepared or recorded for the member.
+    expect(prepare).not.toHaveBeenCalled()
+    expect(latest.reminderRuntime!.digests ?? []).toHaveLength(0)
+    cleanup()
+    show({ ...s, viewerId: "sam" })
+    expect(screen.queryByTestId("your-today")).toBeNull()
+  })
+
   it("ordinary members cannot send, enable or review legacy reminders and only see their recorded recipient history", async () => {
     const s = fixture()
     show({ ...s, viewerId: "sam" })
@@ -564,8 +598,10 @@ describe("reminder centre (concept F): one email per person", () => {
     cleanup()
     const recorded = { ...s, reminderRuntime: { ...createReminderRuntime(s.today), sequence: 1, deliveries: [{ id: "old-delivery", candidateId: "old", nodeId: "room", ownerId: "jordan", ownerVersion: 0, recipientId: "jordan", recipientName: "Jordan when sent", taskTitle: "Original room task", eventName: "Earlier event", due: s.today, reason: "start" as const, planKey: "old", scheduledOn: s.today, sentOn: s.today, sequence: 1, via: "manual" as const, outcome: "recorded_by_sender" as const }] } }
     show({ ...recorded, viewerId: "jordan", nodes: recorded.nodes.map(n => ({ ...n, ownerId: "sam", ownerVersion: 1 })) })
-    expect(section("your-reminders").getByText("Jordan when sent")).toBeTruthy()
+    // R-S0 W2: the viewer is the saved recipient, so the row has no "To <your own name>"; it is listed by the saved recipient, not the current owner.
     expect(section("your-reminders").getByText("Original room task")).toBeTruthy()
+    expect(section("your-reminders").queryByText("Jordan when sent")).toBeNull()
+    expect(section("your-reminders").queryByText(/^To /)).toBeNull()
     expect(section("your-reminders").queryByText("Sam Okafor")).toBeNull()
     expect(section("your-reminders").getByText("Sent", { exact: true })).toBeTruthy()
     expect(section("your-reminders").queryByText(/Recorded by sender|Approved demo|Automatic demo/)).toBeNull()

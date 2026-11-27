@@ -238,6 +238,7 @@ test("an officer who is not a lead sees a read-only Your reminders", async ({ pa
   await expect(mine.getByRole("heading", { name: "Your reminders" })).toBeVisible()
   await expect(mine).toContainText("Coming up")
   await expect(mine).toContainText("Planned reminder")
+  await expect(mine).not.toContainText("To Jordan")   // R-S0 W2: no "To <your own name>"
   await expect(mine.getByText("Sent", { exact: true })).toHaveCount(3)
   expect((await demo(page)).reminderRuntime!.deliveries.every(d => d.recipientId === "jordan")).toBe(true)
   await expect(page.getByTestId("reminder-centre")).toHaveCount(0)

@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test"
-import { enableUpdatedReminders } from "./reminderHelpers"
 
 // DX-05: the three risk states have three different shapes (not only three colours), in light and dark.
 test("each risk state draws its own shape", async ({ page }) => {
@@ -27,9 +26,8 @@ test.describe("dark appearance", () => {
   test("the mark inside the shape stays visible", async ({ page }) => {
     await page.goto("/#/")
     await page.evaluate(() => window.localStorage.clear())
-    await page.reload()
-    // A fresh demo opts in to the reminder centre through its shipped control; then the centre shows its risk marks.
-    await enableUpdatedReminders(page)
+    // R-S0 W2: the home page shows risk as the text "At risk", so the marks are checked on Handoff, which still draws them.
+    await page.goto("/#/handoff")
     const first = page.locator(".risk .glyph").first()
     await expect(first).toBeAttached()
     const stroke = await first.evaluate(el => getComputedStyle(el).stroke)
