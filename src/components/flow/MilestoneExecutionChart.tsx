@@ -5,7 +5,8 @@ import type { Schedule } from "../../engine/schedule"
 import { WORKFLOW_START } from "../../engine/workflowMilestones"
 import { fmtShort } from "../../lib/dates"
 import { nodeStop } from "../../lib/phases"
-import { firstName, worstIssue } from "../../pages/helpers"
+import { isAtRisk } from "../../lib/nextUp"
+import { firstName } from "../../pages/helpers"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import { statusStyles } from "../ui"
 import { useRail } from "../rail/RailContext"
@@ -55,14 +56,13 @@ export function MilestoneExecutionChart({ state, sched, forecast, eventId, selec
     const day = graph.eventDays.find(item => item.id === station.id)
     const description = day?.details ?? (station.id === WORKFLOW_START ? graph.start.details : graph.done.details)
     const date = projection.dates[station.id]
-    rail.setWorkflowDetail(<section className="form-stack" data-testid="execution-milestone-details" aria-label="Activity station details">
+    rail.setWorkflowDetail(<section className="form-stack" data-testid="execution-milestone-details" aria-label="Event day details">
       <header className="action-row"><h3>{station.title}</h3><button type="button" className="btn small" onClick={() => { setStationId(null); rail.closeDetail() }}>Close</button></header>
       <p className="small muted">{day ? "Event day · fixed date" : "Workflow boundary"}</p>
       <p>{event.name}</p>
       {date && <p>Event date <strong><time dateTime={date}>{fmtShort(date)}</time></strong></p>}
       {description && <p>{description}</p>}
-      <p className="small muted">From {event.workflowRun?.templateName} · v{event.workflowRun?.templateVersion}. {day ? "This date is fixed by the activity date and the saved day offset. It is not moved by incomplete tasks." : "This station marks the workflow boundary."}</p>
-      <p className="small muted">This station is not a task. Task progress and submitted work stay on the task dots.</p>
+      <p className="small muted">From {event.workflowRun?.templateName} · v{event.workflowRun?.templateVersion}. {day ? "Late tasks do not move this date." : "Start or end of the workflow."}</p>
     </section>)
     return () => rail.setWorkflowDetail(null)
   }, [station, event, graph, projection, rail.setWorkflowDetail])
@@ -70,9 +70,8 @@ export function MilestoneExecutionChart({ state, sched, forecast, eventId, selec
   const renderTask = (key: string, x: number, y: number, shared = false) => {
     const node = projection?.nodeByStep.get(key)
     if (!node) return null
-    const plan = sched.nodes[node.id], issue = worstIssue(plan?.issues)
-    const late = node.status !== "done" && (plan?.club ?? "9999") < state.today
-    const status = nodeStop(node, state.today, issue?.severity === "error" || late || forecast.nodes[node.id]?.color === "red" || node.status === "blocked")
+    const plan = sched.nodes[node.id]
+    const status = nodeStop(node, state.today, isAtRisk(state, sched, forecast, node))
     const kind = workflowStepKind(node, event?.workflowBranches) === "core" ? "baseline" : "situation"
     const owner = state.people.find(person => person.id === node.ownerId)?.name ?? "No owner"
     return <button key={key} type="button" className={`m-dot mxe-task ${kind} ${status}${shared ? " is-shared" : ""}`} data-testid={`flow-node-${node.stepKey ?? node.id}`} data-task-id={node.id} data-step-id={key} aria-pressed={!stationId && selectedId === node.id} aria-label={`${node.title}. ${styles[node.status].label}. Owner ${owner}. Due ${plan ? fmtShort(plan.club) : "pending"}.`} title={`${node.title} · ${owner}${plan ? ` · Due ${fmtShort(plan.club)}` : ""}`} style={{ left: x, top: y }} onClick={() => selectTask(node)}>
@@ -82,7 +81,6 @@ export function MilestoneExecutionChart({ state, sched, forecast, eventId, selec
   if (!event || !projection) return null
   const scale = layout ? Math.min(1, Math.max(0.86, (available - 4) / layout.width)) : 1
   return <div className="team-metro-wrap wfm mxe" data-testid="milestone-execution-chart">
-    <p className="small muted">Select a task to work on it. Event-day stations show the fixed activity dates.</p>
     {layout && graph && <div className="wfm-scroll mxe-scroll" data-testid="flow-chart" ref={viewport} tabIndex={0} role="region" aria-label="Activity milestone workflow">
       <div className="wfm-size" style={{ width: layout.width * scale, height: layout.height * scale }}><div className="wfm-stage" style={{ width: layout.width, height: layout.height, "--wfm-scale": scale } as CSSProperties}>
         {layout.segments.map(segment => <div key={segment.branch.id} className={`wfm-segment wfm-tone-${Math.max(0, projection.teams.findIndex(team => team.id === segment.branch.teamId)) % 4} mxe-segment`} data-testid="milestone-execution-branch" data-branch-id={segment.branch.id} data-team-id={segment.branch.teamId} style={{ left: segment.x, top: segment.y, width: segment.width, height: segment.height }}><b>{projection.teams.find(team => team.id === segment.branch.teamId)?.name ?? "Team unavailable"}</b><span>{segment.points.length} task{segment.points.length === 1 ? "" : "s"}</span></div>)}

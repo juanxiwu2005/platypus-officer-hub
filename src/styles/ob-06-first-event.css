@@ -2,7 +2,9 @@
    The witness moment: when the chain is drawn, the dots appear one after another (about half a second in all) and each line grows from the left.
    Only transform and opacity move. Every time and curve is a token, so Reduce Motion (tokens become 1ms) is covered, and the rule at the
    bottom switches the drawing off entirely so the whole chain is simply there. Editing text or turning the buffer never plays anything. */
-.ob6 { --ob6-step: calc(var(--dur-fast) / 3); }
+.ob6 { --ob6-step: calc(var(--dur-fast) / 3); display: grid; gap: var(--s5); }
+/* Since ob-6 the first event sits under the club name on screen 1, so its title is a section heading. */
+.ob6 h2 { margin: 0; font-size: var(--fs-lg); }
 .ob6-sentence { width: 100%; box-sizing: border-box; font: inherit; font-size: var(--fs-base); line-height: 1.5; padding: var(--s5); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); color: var(--ink); resize: vertical; }
 .ob6-examples { display: flex; flex-wrap: wrap; gap: var(--s4); }
 .ob6-examples .chip { font-size: var(--fs-md); padding: var(--s3) var(--s5); }

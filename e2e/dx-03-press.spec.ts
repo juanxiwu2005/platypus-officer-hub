@@ -1,3 +1,4 @@
+import { enableUpdatedReminders } from "./reminderHelpers"
 import { expect, test } from "@playwright/test"
 
 // DX-03: pressing a button shrinks it at once and it springs back on release. Reduce Motion keeps the colour change only.
@@ -7,16 +8,16 @@ async function pressedTransform(page: import("@playwright/test").Page) {
   await page.goto("/#/")
   await page.evaluate(() => window.localStorage.clear())
   await page.reload()
-  // Concept F: in "I review, then I send" the reminder centre's primary button opens the first person's email draft.
+  // S2: the reminder centre's first Fix first button opens a task in the rail and stays in place, so it can be pressed and read back.
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
     s.org.settings.reminderMode = "review_then_self"
     localStorage.setItem("platypus.v1.demo", JSON.stringify(s))
   })
   await page.reload()
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  await enableUpdatedReminders(page)   // S2: a loaded or fresh demo is already on the current reminder plan; this only checks it
   await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
-  const button = page.getByTestId("open-first-draft")
+  const button = page.getByTestId("rq-fix").getByRole("button").first()
   await expect(button).toBeVisible()
   await button.hover()
   const idle = await button.evaluate(el => getComputedStyle(el).transform)

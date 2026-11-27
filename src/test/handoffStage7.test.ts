@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
+import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
 import { appendUiLog, loggedReducer, reducer } from "../data/store"
@@ -12,6 +13,8 @@ import type { DemoState, LogEntry } from "../data/types"
  * recorded. So this reads the log that is already kept, and these tests use the REAL logging functions, so the shape read here is the shape written.
  */
 type Root = Parameters<typeof loggedReducer>[0]
+/** Every source file under a folder (none while it does not exist yet). */
+const filesIn = (dir: string): string[] => existsSync(dir) ? readdirSync(dir, { recursive: true }).map(String).filter(f => /\.(ts|tsx|mts)$/.test(f)).map(f => join(dir, f)).sort() : []
 const T = 1_800_000_000_000
 const handoff = (action: object): Action => ({ type: "handoffAction", action } as unknown as Action)
 
@@ -103,6 +106,11 @@ describe("the log stays out of the handoff data and the AI (hard rule: no resear
     "src/data/handoff.ts", "src/data/roleChanges.ts", "src/data/roleTerms.ts", "src/data/permissions.ts",
     "src/lib/handbook.ts", "src/lib/handbookDraft.ts", "src/lib/roleDossier.ts", "src/lib/handoffQuestions.ts", "src/lib/handoffRisk.ts",
     "netlify/functions/handbook-draft.mts",
+    // Playbook (phase 1): the library is stored club data and later feeds Ask, so it never reads the log either.
+    "src/data/playbook.ts", "src/data/playbookStarter.ts", "src/lib/playbookMatch.ts", "src/data/playbookSeed.ts", "src/pages/Playbook.tsx",
+    // The Ask AI context (2026-11-26) is sent to the AI as `playbookQuestion`.
+    "src/lib/playbookAsk.ts", "src/lib/playbookAskWire.ts",
+    ...filesIn("src/components/playbook"),
   ]
   it.each(FILES)("%s does not use the log", file => {
     const text = readFileSync(file, "utf8")

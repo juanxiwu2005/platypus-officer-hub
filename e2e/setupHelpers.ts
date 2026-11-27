@@ -1,36 +1,37 @@
 import { expect, type Page } from "@playwright/test"
-import { fillMission, passReminders } from "./ob-helpers"
 import { onboardingCopy as c } from "../src/onboarding/copy"
 
 export const continueSetup = (page: Page) => page.getByRole("button", { name: c.next, exact: true }).click()
-/** Every public setup entrance now uses Start's founder screens. Stops on Constitution. */
+/** Every public setup entrance uses Start's founder screens. Stops on screen 1 (name and first event) with the name typed. */
 export async function openSetup(page: Page, name = "Fictional Launch Club", path = "/#/setup") {
   await page.goto(path)
-  await page.getByLabel("Club name", { exact: true }).fill(name)
-  await continueSetup(page)
+  await page.getByLabel(c.founder.name.field, { exact: true }).fill(name)
 }
-export async function setupToTeam(page: Page, name?: string) {
+/** On screen 1: pick an example sentence and press Plan it; waits for the chain. */
+export async function planEvent(page: Page, example = "Spring dinner") {
+  await page.getByRole("button", { name: example, exact: true }).click()
+  await page.getByRole("button", { name: c.founder.firstEvent.cta, exact: true }).click()
+  await expect(page.locator(".ob6-chain")).toBeVisible()
+}
+/** Screen 1 → Team (ob-6): the name, then a planned first event (or Skip for now when `event` is false). */
+export async function setupToTeam(page: Page, name?: string, event = true) {
   await openSetup(page, name)
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await fillMission(page)
-  await continueSetup(page)
+  if (event) { await planEvent(page); await continueSetup(page) }
+  else await page.getByRole("button", { name: c.skip, exact: true }).click()
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
 }
-export async function setupToConfirm(page: Page, name?: string, event = true) {
-  await setupToTeam(page, name)
-  await continueSetup(page)
-  if (event) {
-    await page.getByRole("button", { name: "Spring dinner", exact: true }).click()
-    await page.getByRole("button", { name: c.founder.firstEvent.cta, exact: true }).click()
-    await continueSetup(page)
-  } else await page.getByRole("button", { name: c.skip, exact: true }).click()
-  await passReminders(page)
-  await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
-}
+/** Start workspace on Team (Confirm's job up to ob-5), then Invite → Go to Reminders. */
 export async function finishSetup(page: Page) {
-  await page.getByRole("button", { name: c.founder.confirm.start, exact: true }).click()
+  await page.getByRole("button", { name: c.founder.team.start, exact: true }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/)
   await page.getByRole("button", { name: c.founder.invite.today, exact: true }).click()
   await expect(page.locator("main h1")).toHaveText("Reminders")
+}
+/** Team: open "Import roles from your constitution" (the Constitution screen up to ob-5). */
+export async function openConstitution(page: Page) {
+  const open = page.getByRole("button", { name: c.founder.constitution.open, exact: true })
+  if (await open.getAttribute("aria-expanded") !== "true") await open.click()
+  await expect(page.getByTestId("constitution-import")).toBeVisible()
 }
 export const setupRole = async (page: Page, title: string) => {
   const index = await page.locator(".ob-role-title").evaluateAll((els, t) => els.findIndex(e => (e as HTMLTextAreaElement).value === t), title)

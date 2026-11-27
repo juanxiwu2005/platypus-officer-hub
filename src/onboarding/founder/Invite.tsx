@@ -1,6 +1,5 @@
 import { useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Info } from "../../components/ui"
 import { useStore } from "../../data/store"
 import { onboardingCopy } from "../copy"
 import { useFlow } from "../engine/useFlow"
@@ -10,7 +9,7 @@ import { emailHref, inviteUrl, officerRows, whatsappHref } from "./invite/links"
 const c = onboardingCopy.founder.invite
 
 /**
- * Screen 7 of the founder flow: the invitation moment. Nothing is sent from here: Copy link uses the clipboard, and WhatsApp and Email are plain
+ * Screen 3 of 3 in the founder flow (ob-6): the invitation moment. Nothing is sent from here: Copy link uses the clipboard, and WhatsApp and Email are plain
  * links that open a written message in a new tab. The list is local: Joined means that officer finished setup in this browser (the demo has no server).
  * "See what your officers will see" continues the same walkthrough into the member preview; it does not end the attempt.
  */
@@ -44,7 +43,7 @@ export function Invite() {
     </div>
     <input ref={input} className="ob-i9-link" readOnly value={link} aria-label={c.link} onFocus={e => e.currentTarget.select()} />
     <p role="status" className="ob-i9-note small muted">{copied === "failed" ? c.copyFailed : ""}</p>
-    <p className="small muted">{c.permission} {c.notSent}</p>
+    <p className="small muted">{c.permission}</p>
     <ul className="ob-i9-list" aria-label={c.officers}>
       {rows.map(r => <li key={r.id} className="ob-i9-row" data-status={r.status}>
         {/* An open position still names its role (bold, where a name would be), so the president can tell which seat is empty. */}
@@ -52,7 +51,6 @@ export function Invite() {
         {r.status !== "open" && <span className={`ob-i9-status is-${r.status}`} data-testid="officer-status">{r.status === "joined" ? c.joined : c.invited}</span>}
       </li>)}
     </ul>
-    <p className="small muted"><Info label={c.joinedNote}>{c.joinedNote}</Info></p>
     <div className="ob-actions">
       <button type="button" className="btn btn-primary" onClick={preview}>{c.preview}</button>
       <button type="button" className="btn" onClick={today}>{c.today}</button>

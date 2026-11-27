@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright"
 import type { DemoState, StepTemplate, WorkflowMilestoneGraph, WorkflowTemplate } from "../src/data/types"
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { noOverflow } from "./helpers"
-import { openBranch, openMenu, setBranchTeam } from "./workflowLegacyHelpers"
+import { openBranch, openMenu, setBranchTeam, waitForDraftSave } from "./workflowLegacyHelpers"
 import { dragToSlot } from "./workflowDrag"
 
 const ID = "milestone-browser-fixture"
@@ -31,7 +31,7 @@ async function current(page: Page) {
 }
 async function save(page: Page) {
   await closeRail(page)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   return (await current(page)).draft!
 }
 async function publish(page: Page, count = 1) {
@@ -190,7 +190,7 @@ test("cleared branch teams remain unassigned through new tasks and role-team app
   const branch = saved.milestoneGraph!.teamBranches.find(branch => branch.id === "before-day")!
   expect(branch.stepIds).toHaveLength(2)
   expect(branch.stepIds.every(key => !Object.hasOwn(saved.teamMap!.stepTeams, key))).toBe(true)
-  await openMenu(page, "More", "Apply role teams")
+  await openMenu(page, "Versions", "Apply role teams")
   saved = await save(page)
   for (const branch of saved.milestoneGraph!.teamBranches) for (const key of branch.stepIds) {
     if (branch.teamId) expect(saved.teamMap!.stepTeams[key]).toBe(branch.teamId)
@@ -216,7 +216,7 @@ test("saved two-day workflows open actual Plan tasks while day stations remain f
   await page.getByTestId("flow-event-day-2").click()
   const station = page.getByTestId("execution-milestone-details")
   await expect(station).toContainText("fixed date")
-  await expect(station).toContainText("not a task")
+  await expect(station.getByRole("button", { name: /submit|mark done/i })).toHaveCount(0)   // a station is not a task (S3 removed the sentence)
   await expect(station.getByRole("combobox", { name: "Task status", exact: true })).toHaveCount(0)
   await closeRail(page)
   const shared = tasks.find(node => node.stepKey === "shared")!

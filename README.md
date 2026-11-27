@@ -55,8 +55,7 @@ For the first browser-test run, install Chromium with `npx playwright install ch
 | `src/data/` | Domain types, demo state, permissions, migrations, and state transitions |
 | `src/engine/` | Deterministic scheduling, school calendars, dependencies, and forecasts |
 | `src/lib/` | Browser helpers, AI context filtering, commands, and handoff logic |
-| `netlify/functions/`, `netlify/lib/` | Server APIs, AI adapters, and optional isolated workspace storage |
-| `src/organization/`, `src/workspace/`, `src/phase1/` | Separate organization/workspace experiments; check their feature flags and documentation |
+| `netlify/functions/`, `netlify/lib/` | Server APIs and AI adapters |
 | `src/test/`, `e2e/` | Unit/component tests and desktop/mobile browser tests |
 | `docs/` | Plans, operating guidance, acceptance evidence, and historical records |
 | `.github/` | CI, contribution templates, and Copilot entrypoint |

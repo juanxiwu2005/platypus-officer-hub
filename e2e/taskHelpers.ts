@@ -1,15 +1,17 @@
 import { expect, type Page } from "@playwright/test"
 import { closeRail } from "./helpers"
 
-/** Create the handover through the shipped board, rather than injecting a historical seed. */
+/** Create the handover through the shipped "+ New task" form (Assign to: Anyone), rather than injecting a historical seed. */
 export async function createUnclaimedTask(page: Page, title: string) {
   await page.goto("/#/tasks")
   await closeRail(page)
-  const column = page.getByRole("region", { name: "Not claimed", exact: true })
-  await column.getByRole("button", { name: "+ Add task", exact: true }).click()
-  await column.getByRole("textbox", { name: "New task name", exact: true }).fill(title)
-  await column.getByRole("button", { name: "Add", exact: true }).click()
-  await expect(column.getByRole("button", { name: title })).toBeVisible()
+  await page.getByTestId("new-task").click()
+  const form = page.getByTestId("new-task-form")
+  await form.getByLabel("New task name").fill(title)
+  await form.getByLabel("Assign to").selectOption({ label: "Anyone (open)" })
+  await form.getByRole("button", { name: "Add", exact: true }).click()
+  await expect(page.getByTestId("new-task-form")).toHaveCount(0)
+  await expect(page.getByTestId("my-tasks").getByRole("button", { name: title })).toBeVisible()
   const task = await savedTask(page, title)
   expect([task.status, task.ownerId]).toEqual(["unclaimed", null])
   return task.id

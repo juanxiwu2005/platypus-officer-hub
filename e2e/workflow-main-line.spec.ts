@@ -88,8 +88,8 @@ test("the preset can lose Check-in, save a version, restore the original preset 
   await expect(settings.getByRole("status").filter({ hasText: "Version 2 saved" })).toBeVisible()
   expect((await preset(page)).versions.at(-1)!.steps.some(step => step.key === "checkin")).toBe(false)
 
-  // Escape cancels the confirmation and focus returns to More.
-  await openMenu(page, "More", "Restore Platypus preset")
+  // Escape cancels the confirmation and focus returns to Versions.
+  await openMenu(page, "Versions", "Restore Platypus preset")
   const restore = page.getByRole("dialog", { name: "Restore preset" })
   await expect(restore).toContainText("Restore the original Platypus preset? This replaces the current draft. Saved versions and activities are not changed. Save version to keep it.")
   await expect(restore.getByRole("button", { name: "Cancel", exact: true })).toBeFocused()
@@ -97,8 +97,8 @@ test("the preset can lose Check-in, save a version, restore the original preset 
   expect(axe.violations.filter(item => ["serious", "critical"].includes(item.impact ?? ""))).toEqual([])
   await page.keyboard.press("Escape")
   await expect(restore).toHaveCount(0)
-  await expect(menuTrigger(page, "More")).toBeFocused()
-  await openMenu(page, "More", "Restore Platypus preset")
+  await expect(menuTrigger(page, "Versions")).toBeFocused()
+  await openMenu(page, "Versions", "Restore Platypus preset")
   await restore.getByRole("button", { name: "Restore preset", exact: true }).click()
   await expect(settings.getByRole("status").filter({ hasText: "Original preset restored" })).toBeVisible()
   await expect(builder.getByTestId("workflow-task-checkin")).toHaveAttribute("data-station-id", "checkin")
@@ -106,7 +106,7 @@ test("the preset can lose Check-in, save a version, restore the original preset 
   await expect.poll(async () => (await preset(page)).draft?.steps.some(step => step.key === "checkin")).toBe(true)
   expect((await preset(page)).versions).toHaveLength(2)
 
-  await openMenu(page, "More", "Discard draft")
+  await openMenu(page, "Versions", "Discard draft")
   const discard = page.getByRole("dialog", { name: "Discard draft" })
   await expect(discard).toContainText("Discard this draft? The editor goes back to Version 2. Saved versions and activities are not changed.")
   await discard.getByRole("button", { name: "Discard draft", exact: true }).click()
@@ -116,7 +116,7 @@ test("the preset can lose Check-in, save a version, restore the original preset 
   await page.waitForTimeout(900)
   expect((await preset(page)).draft).toBeUndefined()
   await expect(settings.getByRole("list", { name: "Template status" })).not.toContainText("Draft")
-  await menuTrigger(page, "More").click()
+  await menuTrigger(page, "Versions").click()
   await expect(settings.getByRole("menuitem", { name: "Discard draft", exact: true })).toBeDisabled()
   await page.keyboard.press("Escape")
 })

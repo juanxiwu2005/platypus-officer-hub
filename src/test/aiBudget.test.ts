@@ -2,12 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import chatFn from "../../netlify/functions/chat.mts"
 import commandFn from "../../netlify/functions/command.mts"
 import reviewFn from "../../netlify/functions/event-review.mts"
-import nudgeFn from "../../netlify/functions/nudge-draft.mts"
 import policyFn from "../../netlify/functions/policy-answer.mts"
 import handbookFn from "../../netlify/functions/handbook-draft.mts"
 import askFn from "../../netlify/functions/ask.mts"
 import constitutionFn from "../../netlify/functions/constitution.mts"
-import workflowFn from "../../netlify/functions/workflow.mts"
 import { chatJSON, SYNC_AI_BUDGET_DEFAULT_MS, syncAiBudgetMs } from "../../netlify/lib/ai.mts"
 import { resetRateLimit } from "../../netlify/lib/http.mts"
 import { seedDemo } from "../data/seed"
@@ -62,12 +60,10 @@ describe("server: every synchronous AI endpoint answers inside Netlify's 30 s", 
     ["/api/chat (form)", chatFn, "chat", { message: "Plan an event about March 3 for networking night with 50 people", purpose: "form", context: commandContext(state), data: aiSnapshot(state) }],
     ["/api/command", commandFn, "command", { sentence: "Think about what the sponsor might want", context: { events: [], nodes: [], people: [] } }],
     ["/api/event/review", reviewFn, "event/review", { eventId: "e-night", context: commandContext(state), data: reviewPayload(state, "e-night") }],
-    ["/api/nudge/draft", nudgeFn, "nudge/draft", { node: { id: "t-flyer", title: "Design the save-the-date" }, mission: "Help founders meet" }],
     ["/api/policy-answer", policyFn, "policy-answer", { question: "Can we use an outside caterer for food at our event?" }],
     ["/api/handbook/draft", handbookFn, "handbook/draft", { sources: [{ id: "task:t-one", kind: "task", text: "Task: Book the room." }] }],
     ["/api/ask", askFn, "ask", { question: "Can we run a raffle?" }],
     ["/api/setup/constitution", constitutionFn, "setup/constitution", { text: "Article 3. The President leads meetings. The Treasurer keeps the books.", part: "structure" }],
-    ["/api/setup/workflow", workflowFn, "setup/workflow", { roles: [{ title: "President", duties: "Leads the club" }], notes: "We always book the room first." }],
   ]
   for (const [name, fn, path, body] of endpoints) {
     it(`${name} gives up on a silent provider within ${SYNC_AI_BUDGET_MS / 1000} s with a clean JSON error`, async () => {
@@ -231,7 +227,7 @@ describe("browser: asking to plan an event always ends in the planning form", ()
     vi.stubGlobal("fetch", send)
     const r = await respond("Plan an event about March 3 for networking night with 50 people", { ...state, aiEnabled: false }, "alex", null, "/", [])
     expect(form(r.cards)).toMatchObject({ date: "2027-03-03", prefill: { headcount: 50 } })
-    expect(r.source).toBe("Local demo grammar · AI off")
+    expect(r.source).toBe("Platypus · AI off")
     expect(send).not.toHaveBeenCalled()
   })
   it("work on an existing event is still not a new event", () => {

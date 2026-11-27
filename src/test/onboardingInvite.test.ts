@@ -1,26 +1,13 @@
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import { clubDraft } from "../data/settings"
 import { seedDemo } from "../data/seed"
-import { summaryLine } from "../onboarding/founder/confirm/summary"
 import { emailHref, inviteMessage, inviteUrl, officerRows, whatsappHref } from "../onboarding/founder/invite/links"
 
-// OB-09: the Confirm sentence, the invitation links and the officer list, plus a guard on the two screens' files.
+// OB-09: the invitation links and the officer list, plus a guard on the Team (Start workspace, since ob-6) and Invite screens' files.
 const state = seedDemo(undefined, "v2")
 const club = clubDraft(state)
-
-describe("OB-09 confirm sentence", () => {
-  it("names the club, the officers who have a name, the event and a readable date", () => {
-    const named = club.people.filter(p => p.name.trim()).length
-    const line = summaryLine({ ...club, name: "  Maple Club " }, "Welcome Mixer", "2027-03-05")
-    expect(line).toBe(`This creates Maple Club with ${named} officers and Welcome Mixer on Fri, Mar 5.`)
-  })
-  it("does not count open positions, and says 1 officer for one", () => {
-    const one = { ...club, people: club.people.map((p, i) => i === 0 ? p : { ...p, name: "" }) }
-    expect(summaryLine(one, "E", "2027-03-05")).toContain("with 1 officer and")
-  })
-})
 
 describe("OB-09 invitation links", () => {
   const link = inviteUrl("a b&c", "https://example.org", "/app/")
@@ -74,15 +61,21 @@ const CSS_RULES: { name: string; pattern: RegExp }[] = [
 const scan = (text: string, rules: { name: string; pattern: RegExp }[]) => rules.filter(r => r.pattern.test(text)).map(r => r.name)
 
 describe("OB-09 guard", () => {
-  const files = ["onboarding/founder/Confirm.tsx", "onboarding/founder/Invite.tsx", "onboarding/founder/confirm/summary.ts", "onboarding/founder/invite/links.ts"]
-  it("keeps the screens off the server and storage, and off next()", () => { for (const f of files) expect(scan(read(f), SCREEN_RULES), f).toEqual([]) })
-  it("has Confirm create the workspace once, preserving workflow branches, behind a ref", () => {
-    const confirm = read("onboarding/founder/Confirm.tsx")
-    expect(confirm.match(/tryDispatch\(/g)).toHaveLength(1)
-    expect(confirm).toMatch(/tryDispatch\(\{ type: "completeSetup", draft: \{ \.\.\.draft\.club, people: fillEmails\(draft\.club\.people\) \}, event, date, inviteCode: draft\.inviteCode, clubBufferBusinessDays: draft\.buffer, workflow: draft\.steps, workflowBranches: draft\.workflowBranches, reminderMode \}\)/)
-    expect(confirm).toMatch(/if \(started\.current\) return/)
-    expect(confirm).toMatch(/started\.current = true/)
-    expect(confirm).toContain("Your club could not be saved.")
+  const files = ["onboarding/founder/Invite.tsx", "onboarding/founder/team/finish.ts", "onboarding/founder/invite/links.ts"]
+  it("keeps the screens off the server and storage, and off next()", () => {
+    for (const f of files) expect(scan(read(f), SCREEN_RULES), f).toEqual([])
+    // Team is not the last step: its Start workspace goes on to Invite with next().
+    expect(scan(read("onboarding/founder/Team.tsx"), SCREEN_RULES.filter(r => !r.name.includes("next()")))).toEqual([])
+  })
+  it("has Team's Start workspace create the workspace once, preserving workflow branches, behind a ref (Confirm's job up to ob-5)", () => {
+    const team = read("onboarding/founder/Team.tsx")
+    expect(existsSync(join(root, "onboarding/founder/Confirm.tsx"))).toBe(false)
+    expect(team.match(/tryDispatch\(/g)).toHaveLength(1)
+    expect(team).toMatch(/tryDispatch\(\{ type: "completeSetup", draft: plan\.club, event: plan\.event, date: plan\.date, inviteCode: draft\.inviteCode, clubBufferBusinessDays: draft\.buffer, workflow: draft\.steps, workflowBranches: draft\.workflowBranches \}\)/)
+    expect(team).toMatch(/if \(started\.current\) return/)
+    expect(team).toMatch(/started\.current = true/)
+    expect(team).toMatch(/recordSetup\("start-workspace"\)/)
+    expect(read("onboarding/founder/team/finish.ts")).toMatch(/fillEmails\(team\.people\)/)
   })
   it("has Invite open links in a new tab with rel=noopener noreferrer", () => { expect(read("onboarding/founder/Invite.tsx").match(/target="_blank" rel="noopener noreferrer"/g)).toHaveLength(2) })
   it("catches each violation (these samples must be flagged)", () => {

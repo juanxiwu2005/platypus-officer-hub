@@ -80,7 +80,7 @@ test("an officer cannot start an event unless the president allows it", async ({
 test("Settings: the usual task length sets the new task's due date, and the president can open events to everyone", async ({ page }) => {
   await page.goto("/#/settings")
   const settings = page.getByTestId("club-settings")
-  await settings.getByText("Tasks and events", { exact: true }).click()
+  await settings.getByTestId("tasks-events-settings").locator("summary").click()   // Club → More
   await settings.getByLabel("Usual task length").selectOption("7")
   await settings.getByLabel("Every officer").check()
   await expect(settings.getByRole("status")).toContainText("Saved")
@@ -106,7 +106,8 @@ test("the form appears at once; the AI's later reading fills only what the perso
   const form = page.getByTestId("plan-form")
   await expect(form.getByTestId("ai-reading")).toBeVisible()
   await expect(form.getByLabel("Date")).toHaveValue("2026-12-12")
-  await expect(form.getByTestId("finals-warning")).toContainText("R13")
+  await expect(form.getByTestId("finals-warning")).toContainText("Student Organization Handbook 2025–26")
+  await expect(form.getByTestId("finals-warning")).not.toContainText("R13")
   await form.getByLabel("People").fill("60")
   release()
   await expect(form.getByTestId("ai-filled")).toBeVisible()

@@ -1,4 +1,3 @@
-import { fillMission, passReminders } from "./ob-helpers"
 import { expect, test, type Page } from "@playwright/test"
 import { closeRail } from "./helpers"
 
@@ -13,18 +12,12 @@ const cont = (page: Page) => page.getByRole("button", { name: "Continue" }).clic
 
 async function startWorkspace(page: Page) {
   await page.goto("/?walkthrough=1#/welcome/start")
-  await page.evaluate(() => { location.hash = "#/welcome/founder/name" })
   await expect(page.getByRole("heading", { level: 1, name: "Name your club" })).toBeVisible()
-  await page.getByLabel("Club name").fill("Maple Club"); await cont(page)
-  await page.getByRole("button", { name: /^Skip/ }).click()                 // Constitution
-  await fillMission(page)                                                    // Goals needs a mission, even to skip
-  await page.getByRole("button", { name: "Skip for now" }).click()          // Goals
-  await page.getByRole("button", { name: "Skip for now" }).click()          // Team
+  await page.getByLabel("Club name").fill("Maple Club")
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: "Plan it" }).click()
   await expect(page.getByRole("region", { name: "First steps and dates" })).toBeVisible()
-  await cont(page)
-  await passReminders(page)                                                  // Reminders (P3-H): skipped
+  await cont(page)                                                           // screen 1 → Team (ob-6)
   await page.getByRole("button", { name: "Start workspace" }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/)
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo") ?? "{}").org?.name)).toBe("Maple Club")
@@ -41,16 +34,16 @@ test("Start workspace keeps the sample events, tasks, risks and handoff in the n
   await page.goto("/#/tasks")
   await closeRail(page)
   await page.getByLabel("Task scope").selectOption("team")
-  await expect.poll(() => page.getByTestId("board-card").count()).toBeGreaterThanOrEqual(10)
-  for (const column of ["Not claimed", "To do", "Working on it", "Waiting", "Stuck", "Done"]) {
-    await expect(page.getByRole("region", { name: column, exact: true }).getByTestId("board-card").first(), column).toBeVisible()
-  }
+  // S3: the Tasks page is a table of open work; the sample club still has tasks in every status.
+  await expect.poll(() => page.getByTestId("my-tasks").getByTestId("task-card").count()).toBeGreaterThanOrEqual(5)
+  const statuses = await page.evaluate(() => [...new Set(JSON.parse(localStorage.getItem("platypus.v1.demo")!).nodes.map((n: { status: string }) => n.status))])
+  for (const status of ["unclaimed", "accepted", "in_progress", "waiting", "blocked", "done"]) expect(statuses, status).toContain(status)
 
   await page.goto("/#/")
   await closeRail(page)
   // The home page is the reminder centre (the stars card left home): each owner's tasks are combined into one email, and an owner with an
-  // at-risk task has a reminder email to open.
-  const atRisk = page.getByTestId("rq-person").filter({ has: page.getByTestId("rq-person-task").getByRole("button", { name: /^At risk:/ }) })
+  // at-risk task has a reminder email to open. R-S0 W2: "At risk" is plain text after the task title.
+  const atRisk = page.getByTestId("rq-person").filter({ has: page.getByTestId("rq-person-task").getByTestId("rq-at-risk") })
   await expect(atRisk.first()).toBeVisible()
   await expect(atRisk.first().locator(".dg-person-head")).toBeVisible()
 

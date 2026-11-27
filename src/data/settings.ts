@@ -1,6 +1,6 @@
 import { TASK_DUE_CHOICES } from "../engine/taskDates"
 import type { DemoState, Event, StepTemplate, Goal, OrgSettings, Person, ReminderMode, Role, RoleFunction, WorkflowBranch, WorkspaceConfig } from "./types"
-import { isReminderMode } from "./reminderMode"
+import { DEFAULT_REMINDER_MODE, isReminderMode } from "./reminderMode"
 import { MAX_DUTIES, MAX_ROLES, hasReportingLoop, orderRoles } from "./structure"
 import type { CommandOp } from "../lib/commands"
 import { sanitizeOps, validDate } from "../lib/commands"
@@ -67,7 +67,7 @@ export function validateProfile(p: ProfilePatch): string | null {
   if (!Array.isArray(p.channels) || !p.channels.length || new Set(p.channels).size !== p.channels.length || p.channels.some(c => !["whatsapp", "sms", "email"].includes(c)) || !["morning", "evening"].includes(p.remindAt)) return "Choose a preferred channel and morning/evening reminder time."
   if (!Array.isArray(p.busyWeeks) || p.busyWeeks.length > 20 || p.busyWeeks.some(d => !validDate(d) || new Date(d + "T12:00:00Z").getUTCDay() !== 1)) return "Choose valid busy weeks, beginning on Monday."
   if (![p.careerGoal, p.interests, p.expectations].every(v => typeof v === "string" && v.length <= 500)) return "Keep each profile note under 500 characters."
-  if (!Number.isInteger(p.personalBufferDays) || p.personalBufferDays < 0 || p.personalBufferDays > 5 || typeof p.personalBufferEnabled !== "boolean") return "Personal buffer must be between zero and five working days."
+  if (!Number.isInteger(p.personalBufferDays) || p.personalBufferDays < 0 || p.personalBufferDays > 5 || typeof p.personalBufferEnabled !== "boolean") return "Extra days must be between zero and five working days."
   if (!validFreeSlots(p.freeSlots)) return "Each free slot needs a weekday and an end time later than its start."
   if (p.availabilityOverrides !== undefined && (typeof p.availabilityOverrides !== "object" || Object.keys(p.availabilityOverrides).length > 2_000 || Object.entries(p.availabilityOverrides).some(([key, value]) => !/^\d{4}-\d{2}-\d{2}:\d{1,2}$/.test(key) || typeof value !== "boolean"))) return "Weekly exceptions need valid dates and times."
   if (p.weeklyAvailabilityHistory !== undefined && (!Array.isArray(p.weeklyAvailabilityHistory) || p.weeklyAvailabilityHistory.length > 200 || p.weeklyAvailabilityHistory.some(v => !v || !validDate(v.startsOn) || !validFreeSlots(v.freeSlots)))) return "Weekly schedule history needs valid effective dates and times."
@@ -82,8 +82,8 @@ export function validateClub(d: ClubDraft): string | null {
 
 export function validateDefaults(d: OrgSettings): string | null {
   const p = d.silenceProtocol
-  if (!Number.isInteger(d.clubBufferBusinessDays) || d.clubBufferBusinessDays < 0 || d.clubBufferBusinessDays > 10) return "Club buffer must be zero to ten working days."
-  if (!Array.isArray(p?.nudgeDays) || p.nudgeDays.length !== 2 || ![...p.nudgeDays, p.presidentDay, p.reassignDay, p.retroDay].every(n => Number.isInteger(n) && n >= 1 && n <= 30) || !(p.nudgeDays[0] < p.nudgeDays[1] && p.nudgeDays[1] < p.presidentDay && p.presidentDay < p.reassignDay && p.reassignDay < p.retroDay)) return "Follow-up days must increase: reminder 1, reminder 2, private check, temporary owner, recovery."
+  if (!Number.isInteger(d.clubBufferBusinessDays) || d.clubBufferBusinessDays < 0 || d.clubBufferBusinessDays > 10) return "Days early must be zero to ten working days."
+  if (!Array.isArray(p?.nudgeDays) || p.nudgeDays.length !== 2 || ![...p.nudgeDays, p.presidentDay, p.reassignDay, p.retroDay].every(n => Number.isInteger(n) && n >= 1 && n <= 30) || !(p.nudgeDays[0] < p.nudgeDays[1] && p.nudgeDays[1] < p.presidentDay && p.presidentDay < p.reassignDay && p.reassignDay < p.retroDay)) return `Follow-up days must increase: private check (after day ${p.nudgeDays[1]}), temporary owner, recovery.`
   if (!Number.isInteger(d.maxRemindersPerTask) || d.maxRemindersPerTask < 1 || d.maxRemindersPerTask > 3) return "Keep the reminder limit between one and three."
   if (d.sendMode !== "review" || d.quietHours.from !== "22:00" || d.quietHours.to !== "08:00") return "This demo keeps review-before-send and quiet hours from 10 pm to 8 am."
   if (d.taskDueDays !== undefined && !(TASK_DUE_CHOICES as readonly number[]).includes(d.taskDueDays)) return "Choose 3, 5 or 7 days for a usual task."
@@ -145,8 +145,8 @@ export function saveProfile(s: DemoState, personId: string, patch: ProfilePatch,
 /**
  * The participant's own club from setup. `rawEvent` null (or undefined) means the first event was skipped: no setup event, and the
  * event date is not checked; everything else in setup still applies. Previews (the first-event chain) use this on its own.
- * `reminderMode` is the walkthrough's Reminders answer (P3-H): stored as org.settings.reminderMode, or left out (null/undefined: skipped,
- * or the classic page), so a club set up again without an answer never keeps an older one. Any other value refuses the setup.
+ * `reminderMode` is stored as org.settings.reminderMode. Without one (null or undefined) the new club gets DEFAULT_REMINDER_MODE,
+ * "I review, Platypus sends" (S2, Juanxi 2026-11-22); a club set up again never keeps an older answer. Any other value refuses the setup.
  */
 export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eventDate: string, inviteCode: string, taskDueDays?: number, clubBufferBusinessDays?: number, workflow?: StepTemplate[], reminderMode?: ReminderMode | null, branches?: WorkflowBranch[]): DemoState {
   const planned = rawEvent !== null && rawEvent !== undefined
@@ -172,6 +172,8 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   const cleanWorkspace = { ...s }, cleanOrg = { ...s.org }
   delete cleanWorkspace.matching
   delete cleanWorkspace.matchingContext
+  delete cleanWorkspace.activity // a new club starts a new activity record (R0); the prior club's events are not carried over
+  delete cleanWorkspace.cheers // and no cheers from the prior club (R1)
   delete cleanOrg.matchingWorkspaceId
   // A deliberately new workspace starts its own template library and team IDs.
   delete cleanOrg.workflowTemplates
@@ -180,7 +182,7 @@ export function completeSetup(s: DemoState, d: ClubDraft, rawEvent: unknown, eve
   delete cleanOrg.workflowPresetTeamIds
   delete cleanOrg.workflowRoleTeams
   const { reminderMode: _earlier, matchingMode: _matchingMode, ...kept } = s.org.settings; void _earlier; void _matchingMode
-  return applySchedule({ ...cleanWorkspace, viewerId: president.holderId!, org: { ...cleanOrg, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, ...(branches ? { branches: structuredClone(branches) } : {}), updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, ...(reminderMode ? { reminderMode } : {}), ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], archivedRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
+  return applySchedule({ ...cleanWorkspace, viewerId: president.holderId!, org: { ...cleanOrg, name: d.name.trim(), mission: d.mission.trim(), goals: d.goals.map(g => ({ ...g, current: 0 })), workspace: d.workspace, setupCompletedOn: s.today, inviteCode, ...(steps ? { eventWorkflow: { steps, ...(branches ? { branches: structuredClone(branches) } : {}), updatedOn: s.today, summary: describeWorkflow(steps) } } : { eventWorkflow: undefined }), settings: { ...kept, reminderMode: reminderMode ?? DEFAULT_REMINDER_MODE, ...(taskDueDays ? { taskDueDays } : {}), ...(clubBufferBusinessDays !== undefined ? { clubBufferBusinessDays } : {}) } }, roles, people, events: event ? [event] : [], nodes, nudges: [], contributions: [], contacts: [], organizations: [], interactions: [], funding: [], handoff: null, handoffRoles: [], archivedRoles: [], feedback: [], changeSets: [], extensionRequests: [], notifications: [], silenceCases: [], protocolLog: [], officerGrants: [] })
 }
 
 /**

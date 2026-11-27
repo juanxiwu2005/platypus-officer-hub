@@ -7,8 +7,14 @@ import type { ReminderCandidate, ReminderPerson, ReminderTaskFacts, WaitingReque
 const words = (value: string) => value.trim().split(/\s+/).filter(Boolean)
 const banned = [/is\s+it\s+done\s+yet/i, /\basap\b/i, /this\s+should\s+only\s+take\s+(?:an?|one|1)\s+hour/i, /just\s+use\s+ai/i, /\burgent\b/i, /@everyone|@here/i]
 const urls = (value: string) => value.match(/https?:\/\/[^\s<>]+/g) ?? []
-const clean = (value: string) => value.replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, "$1")
-  .replace(/https?:\/\/[^\s<>]+/g, "").replace(/<\/?[a-z][^>]*>/gi, "").replace(/\s+/g, " ").trim()
+/**
+ * Any web address in saved prose ("https://…", "ftp://…", "www.…"): the same shapes the edited-email check refuses
+ * (WEB_ADDRESS in draftLinks.ts), so a title like "Book www.venue.org" never puts a refused address in the rule-written
+ * email and blocks every edit of it. Run again after tags go, in case removing a tag joined an address back together.
+ */
+const ADDRESS = /(?:\b[a-z][a-z\d+.-]*:\/\/|\bwww\.)[^\s<>]*/gi
+const clean = (value: string) => value.replace(/\[([^\]]+)\]\((?:https?:\/\/|www\.)[^)]+\)/gi, "$1")
+  .replace(ADDRESS, "").replace(/<\/?[a-z][^>]*>/gi, "").replace(ADDRESS, "").replace(/\s+/g, " ").trim()
 const safe = (value: string, fallback: string) => banned.some(pattern => pattern.test(value)) ? fallback : value
 const sentence = (value: string) => /[.!?…]$/.test(value) ? value : `${value}.`
 const excerpt = (value: string, limit: number) => {

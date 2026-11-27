@@ -4,7 +4,7 @@ import { savedDemo } from "./demo-contract"
 
 const PAGES: [string, string][] = [
   ["/", "Reminders"], ["/events", "Events"], ["/tasks", "Tasks"], ["/team", "Team"], ["/funding", "Events"],
-  ["/handoff", "Handoff"], ["/partners", "Reminders"], ["/rules", "Rules"], ["/settings", "Settings"], ["/help", "Help"],
+  ["/handoff", "Handoff"], ["/playbook", "Playbook"], ["/partners", "Reminders"], ["/rules", "Rules"], ["/settings", "Settings"], ["/help", "Reminders"],
 ]
 
 for (const [path, h1] of PAGES) {
@@ -25,7 +25,6 @@ for (const [path, h1] of PAGES) {
 test("view-as switches whose tasks are shown, and reset restores the demo", async ({ page }) => {
   await page.goto("/#/tasks")
   await viewAs(page, "maya")
-  await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.getByTestId("my-tasks")).toContainText("Reconcile September receipts")
   await page.reload()
   await expect(page.getByTestId("view-as")).toHaveValue("maya")

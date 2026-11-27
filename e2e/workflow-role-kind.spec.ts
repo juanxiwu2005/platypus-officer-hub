@@ -7,8 +7,7 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/api/**", route => route.fulfill({ status: 503, json: { message: "Offline workflow role check" } }))
 })
 
-// The legacy WorkflowPanel role→business-branch helper retains focused component
-// and engine coverage. The new editor explicitly separates team, role and conditions.
+// The workflow editor explicitly separates team, role and conditions.
 test("changing Done by preserves the chosen team, business branch and prerequisites", async ({ page }) => {
   await openWorkflow(page)
   const before = (await savedWorkflowStep(page, "contentCreation"))!

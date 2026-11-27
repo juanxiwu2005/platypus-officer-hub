@@ -40,7 +40,7 @@ describe("calibrated steps: the club deadline", () => {
     expect([plan(own, "pr").official, plan(own, "pr").club]).toEqual(["2027-04-02", "2027-03-29"]) // T-18 is earlier than Apr 2 minus 3 business days
     const buffered = world([node("pr", { startDays: 30, dueDays: 10 }, { anchor: R09 })])
     expect(plan(buffered, "pr").club).toBe("2027-03-30")
-    expect(plan(buffered, "pr").explain.club).toContain("club buffer")
+    expect(plan(buffered, "pr").explain.club).toContain("days early")
   })
 
   it("counts business days when the unit says so", () => {
@@ -67,7 +67,7 @@ describe("calibrated steps: the latest start (reminder day)", () => {
     expect(plan(one, "plan").latestStart).toBe("2027-02-10")
     const three = world([node("plan", { startDays: 65, dueDays: 60 })], person("alex", { personalBufferDays: 3 }))
     expect(plan(three, "plan").latestStart).toBe("2027-02-08") // two more working days
-    expect(plan(three, "plan").explain.latestStart).toContain("Alex's personal buffer")
+    expect(plan(three, "plan").explain.latestStart).toContain("Alex's extra day")
     expect(plan(three, "plan").club).toBe("2027-02-15") // the deadline does not move
     const off = world([node("plan", { startDays: 65, dueDays: 60 })], person("alex", { personalBufferDays: 3, personalBufferEnabled: false }))
     expect(plan(off, "plan").latestStart).toBe("2027-02-10")

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
 import { closeRail } from "./helpers"
 
-// Settings → Club → Tasks and events → "Who can create events": each radio sits next to its own label on one line.
+// Settings → Club → More → "Who can create events": each radio sits next to its own label on one line.
 // A general rule once made every non-checkbox input in .form-stack full width, so the radios took the whole row and
 // their labels were squeezed to one letter per line at the far right.
 test("Who can create events: small radios with their labels beside them, on one line", async ({ page }) => {

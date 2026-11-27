@@ -1,23 +1,25 @@
 import { useState } from "react"
-import type { Node } from "../data/types"
+import type { Node, NodeStatus } from "../data/types"
+import { STATUS_DEFAULTS, STATUS_ORDER } from "../components/ui/statusDefaults"
 import { useStore, type Action } from "../data/store"
 import { isOfficer, isPresident, officers } from "../data/permissions"
 import { validateReply, type ReplyInput, type TaskReply } from "../data/taskWorkflow"
 import type { TaskAuthorization } from "./contracts"
 import { isBudgetControlledNode } from "../engine/eventBudget"
 import { taskWorkActor } from "./authorization"
+import { saveFailedText } from "./data"
 import { TaskTargetForm } from "./TaskTargetForm"
 
-export const TASK_STATUS = { unclaimed: "Not claimed", accepted: "To do", in_progress: "Working on it", waiting: "Waiting on", blocked: "Stuck", done: "Done" }
+/** The six fixed status names (S3, 2026-11-23); the same words as every StatusPill. */
+export const TASK_STATUS = Object.fromEntries(STATUS_ORDER.map(s => [s, STATUS_DEFAULTS[s].label])) as Record<NodeStatus, string>
 export function TaskProgress({ node, actorId, authorization, initialReply, readOnly = false }: { node: Node; actorId: string; authorization?: TaskAuthorization; initialReply?: string | null; readOnly?: boolean }) {
-  const { state, tryDispatch, getState } = useStore()
+  const { state, tryDispatch, saveProblem, getState } = useStore()
   const [form, setForm] = useState(initialReply === "waiting" || initialReply === "extension" ? initialReply : "")
   const [person, setPerson] = useState(node.waitingOnPersonId ?? "other")
   const [input, setInput] = useState<ReplyInput>({ waitingOn: node.waitingOn ?? "",  })
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
-  // A status renamed in Settings > Tasks reads the same here as on the board; the defaults keep this panel's own wording.
-  const label = (status: keyof typeof TASK_STATUS) => state.org.board?.labels?.[status]?.trim() || TASK_STATUS[status]
+  const label = (status: NodeStatus) => TASK_STATUS[status]
   const editable =!readOnly && taskWorkActor(state, node.id, authorization) === actorId && state.people.some(p => p.id === actorId && isOfficer(p)) && (!node.ownerId || node.ownerId === actorId || isPresident(state, actorId)) && !(node.status === "done" && isBudgetControlledNode(node))
   function update(reply: Exclude<TaskReply, "extension"> | "claim", value: ReplyInput = {}) {
     setError(""); setNotice("")
@@ -33,8 +35,8 @@ export function TaskProgress({ node, actorId, authorization, initialReply, readO
     const accepted = tryDispatch(action)
     const after = getState(), saved = after.nodes.find(n => n.id === node.id)
     const expected = reply === "claim" || reply === "todo" ? "accepted" : reply === "waiting" ? "waiting" : reply === "help" ? "blocked" : reply === "done" ? "done" : "in_progress"
-    if (!accepted || saved?.status !== expected || (reply === "waiting" && (saved.waitingOn !== value.waitingOn?.trim() || (saved.waitingOnPersonId ?? null) !== (value.waitingOnPersonId ?? null)))) { setError("Your update was not saved. Your entered details are kept here. Please restore saving or check for newer changes, then try again."); return }
-    setForm(""); setNotice(current.status === "done" ? "Task reopened. Your details and attachments are kept." : "Your update is saved. Thank you.")
+    if (!accepted || saved?.status !== expected || (reply === "waiting" && (saved.waitingOn !== value.waitingOn?.trim() || (saved.waitingOnPersonId ?? null) !== (value.waitingOnPersonId ?? null)))) { setError(saveFailedText(saveProblem(), "Update not saved. Try again.")); return }
+    setForm(""); setNotice(current.status === "done" ? "Task reopened." : "Saved.")
   }
   function openForm(value: string) {
     if (value === "waiting" || value === "waiting-edit") {

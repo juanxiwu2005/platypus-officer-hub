@@ -4,7 +4,6 @@
 /* The Demo strip: the shell's amber strip, here as a rounded bar at the top of the card. */
 .ob-m-strip .ob-demo-strip { border: 1px solid var(--warn-line); border-radius: var(--r-md); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--s2) var(--s4); }
 .ob-m-strip .ob-demo-strip > span { display: contents; }
-.ob-m-note { flex-basis: 100%; }
 .ob-m-link { background: none; border: 0; padding: var(--s3) var(--s4); min-height: 32px; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .ob-m-pick { max-width: 100%; min-height: 32px; padding: var(--s3) var(--s4); border: 1px solid var(--warn-line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-md); }
 

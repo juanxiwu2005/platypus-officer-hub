@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { readFileSync } from "node:fs"
-import { finishSetup, savedSetupDraft, setupToConfirm } from "./setupHelpers"
+import { finishSetup, savedSetupDraft, setupToTeam } from "./setupHelpers"
 import { ask, closeRail, viewAs } from "./helpers"
 import { createUnclaimedTask, savedTask } from "./taskHelpers"
 
@@ -22,7 +22,7 @@ test("participant path: clean browser → shared setup → task → event → ru
       sessionStorage.setItem("rehearsal-clean-browser", "1")
     }
   })
-  await setupToConfirm(page, "Fictional Rehearsal Club")
+  await setupToTeam(page, "Fictional Rehearsal Club")
   await finishSetup(page)
   await closeRail(page)
   // a task
@@ -35,7 +35,7 @@ test("participant path: clean browser → shared setup → task → event → ru
   await page.getByTestId("change-item").getByRole("button", { name: "Apply this change" }).click()
   // a rule question (the answer is built from the rule book, so it works with the AI off)
   await ask(page, "What do outside caterers need?")
-  await expect(page.getByTestId("rule-answer").last()).toContainText("R06")
+  await expect(page.getByTestId("rule-answer").last()).toContainText("Student Organization Handbook 2025–26")
   // a few more small actions, so the log has plenty of lines
   for (const path of ["/tasks", "/team", "/funding", "/rules", "/settings"]) { await page.goto(`/#${path}`); await expect(page.getByRole("heading", { level: 1 })).toBeVisible() }
   await closeRail(page)
@@ -56,8 +56,8 @@ test("participant path: clean browser → shared setup → task → event → ru
   expect(errors).toEqual([])
 })
 
-test("a refused setup save keeps the founder draft, organization and confirmation page", async ({ page }) => {
-  await setupToConfirm(page, "Fictional unsaved club")
+test("a refused setup save keeps the founder draft, organization and the Team page (where Start workspace is since ob-6)", async ({ page }) => {
+  await setupToTeam(page, "Fictional unsaved club")
   const original = await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))
   await page.evaluate(() => {
     const write = Storage.prototype.setItem
@@ -68,21 +68,22 @@ test("a refused setup save keeps the founder draft, organization and confirmatio
   })
   await page.getByRole("button", { name: "Start workspace", exact: true }).click()
   await expect(page.locator("main").getByRole("alert")).toContainText("Your club could not be saved")
-  await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
-  await expect(page.getByTestId("confirm-summary")).toContainText("Fictional unsaved club")
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
   expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(original)
   // The founder draft is written to the browser database a moment after the last change (draft.tsx, SAVE_DELAY), and this test reaches
-  // Confirm faster than a person can: reload only once the draft with this club is stored, as it is for anyone working at a human pace.
+  // Team faster than a person can: reload only once the draft with this club is stored, as it is for anyone working at a human pace.
   await expect.poll(async () => (await savedSetupDraft(page))?.club.name).toBe("Fictional unsaved club")
   await page.reload()
-  await expect(page.getByTestId("confirm-summary")).toContainText("Fictional unsaved club")
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+  await page.getByRole("button", { name: "Back", exact: true }).click()
+  await expect(page.getByLabel("Club name", { exact: true })).toHaveValue("Fictional unsaved club")
 })
 
 test("keyboard only: claim a task, change its status and finish it without a mouse", async ({ page }) => {
   const id = await createUnclaimedTask(page, "Prepare the keyboard rehearsal")
   await viewAs(page, "jordan")
   await closeRail(page)
-  const card = page.getByTestId("task-board").getByRole("button", { name: "Prepare the keyboard rehearsal" })
+  const card = page.getByTestId("my-tasks").getByRole("button", { name: "Prepare the keyboard rehearsal" })
   await card.focus()
   await page.keyboard.press("Enter")
   const detail = page.getByTestId("task-detail")
@@ -95,7 +96,7 @@ test("keyboard only: claim a task, change its status and finish it without a mou
   await status.focus()
   await page.keyboard.press("s")
   await expect(status).toHaveValue("blocked")
-  await expect(detail.getByRole("status").filter({ hasText: "Your update is saved." })).toBeVisible()
+  await expect(detail.getByRole("status").filter({ hasText: "Saved." })).toBeVisible()
   expect(await savedTask(page, id)).toMatchObject({ status: "blocked", ownerId: "jordan" })
   // Finishing is a submission: a few words of result typed from the keyboard, then Submit & mark done.
   await detail.getByLabel("Details", { exact: true }).focus()
@@ -105,8 +106,9 @@ test("keyboard only: claim a task, change its status and finish it without a mou
   await expect(status).toHaveValue("done")
   expect(await savedTask(page, id)).toMatchObject({ status: "done", ownerId: "jordan" })
   await page.reload()
-  // The task was opened from the board rather than a historic deep link.
+  // The task was opened from the task table rather than a historic deep link; the table lists open work, so it has left it.
   expect(await savedTask(page, id)).toMatchObject({ status: "done", ownerId: "jordan" })
   await closeRail(page)
-  await expect(page.getByRole("region", { name: "Done", exact: true })).toContainText("Prepare the keyboard rehearsal")
+  await expect(page.getByTestId("my-tasks")).toBeVisible()
+  await expect(page.getByTestId("my-tasks").getByRole("button", { name: "Prepare the keyboard rehearsal" })).toHaveCount(0)
 })

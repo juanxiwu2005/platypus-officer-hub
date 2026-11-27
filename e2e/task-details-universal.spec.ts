@@ -39,7 +39,7 @@ test("draft and multi-file submission survive refresh, complete atomically, and 
   await page.evaluate(() => { document.documentElement.dataset.theme = "dark" })
   await panel.getByLabel("Details", { exact: true }).fill("Student Union, Room 204. East entrance; accessible elevator nearby.")
   await attach(page)
-  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
+  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved")
   expect((await work(page)).status).toBe("accepted")
   await page.reload(); panel = page.getByTestId("task-detail")
   await expect(panel.getByLabel("Details", { exact: true })).toHaveValue(/Room 204/)
@@ -98,7 +98,7 @@ test("room, SAP and a custom workflow node use the same form and keep their work
     await expect(panel.getByRole("textbox", { name: "Details", exact: true })).toHaveValue("")
     await expect(panel.getByRole("textbox")).toHaveCount(1)
     await panel.getByLabel("Details", { exact: true }).fill(text)
-    await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
+    await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved")
     expect((await work(page, id)).taskWork).toBeUndefined()
   }
   const panel = await open(page)
@@ -113,7 +113,7 @@ test("a failed save preserves text and attachments and can be retried without fa
   await attach(page)
   await page.evaluate(key => { const write = Storage.prototype.setItem; localStorage.setItem("task-work-fail", "yes"); Storage.prototype.setItem = function(k, value) { if (k === key && localStorage.getItem("task-work-fail") === "yes") throw new Error("Fictional quota failure"); write.call(this, k, value) } }, KEY)
   await panel.getByRole("button", { name: "Submit & mark done", exact: true }).click()
-  await expect(panel.getByRole("alert")).toContainText("not saved")
+  await expect(panel.getByRole("alert")).toContainText("Can't save in this browser.")   // the store knows the cause, so the line says it
   expect((await work(page)).status).toBe("accepted")
   await expect(panel.getByLabel("Details", { exact: true })).toHaveValue("Keep this location and its files")
   await expect(panel.getByRole("button", { name: "Download confirmation.txt", exact: true })).toBeVisible()
@@ -127,16 +127,16 @@ test("the email's single link opens the same submission form and remains readabl
   await seed(page, "alex", "review_then_auto")
   await page.goto("/#/"); await closeRail(page)
   // Concept F: the room task is one line of Jordan's email; the email carries exactly one "Open task" link for it.
-  await page.getByTestId("rq-person").filter({ has: page.getByTestId("rq-person-task").filter({ hasText: "Reserve a room" }) }).locator(".dg-person-head").click()
-  const mail = page.getByTestId("digest-panel")
-  await expect(mail.getByTestId("digest-body").getByRole("link", { name: "Open task", exact: true }).first()).toBeVisible()
-  const links = mail.getByTestId("digest-body").locator(`a[href*="node=${encodeURIComponent(ROOM)}&"]`)
-  await expect(links).toHaveCount(1)
-  const href = (await links.getAttribute("href"))!
-  await mail.getByTestId("digest-send-next").click()
+  const mail = page.getByTestId("rq-person").filter({ has: page.getByTestId("rq-person-task").filter({ hasText: "Reserve a room" }) })
+  await mail.getByTestId("rq-person-toggle").click()      // S2: the email opens in place (R-S0: as an editable draft)
+  await expect(mail.getByTestId("rq-draft-body")).toBeVisible()
+  await mail.getByTestId("rq-person-send").click()
   await expect.poll(async () => (await savedDemo(page)).reminderRuntime!.deliveries.some(d => d.nodeId === ROOM)).toBe(true)
-  const delivery = (await savedDemo(page)).reminderRuntime!.deliveries.find(d => d.nodeId === ROOM)!
-  expect(delivery.message!.taskUrl).toBe(href)
+  const saved = (await savedDemo(page)).reminderRuntime!
+  const delivery = saved.deliveries.find(d => d.nodeId === ROOM)!
+  // The recorded email carries this task's link exactly once, and it is the task's own entry.
+  const sent = saved.digests!.find(d => d.id === delivery.digestId)!
+  expect(sent.body.match(new RegExp(`https?://\\S+node=${encodeURIComponent(ROOM)}&\\S+`, "g"))).toEqual([delivery.message!.taskUrl])
   await page.goto(delivery.message!.taskUrl)
   const task = page.getByTestId("task-detail")
   await expect(task.getByRole("navigation", { name: "External task links" }).getByRole("link")).toHaveCount(3)
@@ -187,9 +187,12 @@ test("automatically saves 2 MB files across immediate task switches and refresh,
   // A third 2 MB file exceeds 5 MB; the current files and text survive rejection.
   await page.getByLabel("Attach files", { exact: true }).setInputFiles([{ ...files[2], buffer: Buffer.alloc(2 * mb) }])
   await expect(panel.getByRole("alert")).toContainText("5 MB")
+  await expect(panel.getByTestId("files-max")).toHaveCount(0)                    // the limit reason shows only once the limit is reached
   await page.getByLabel("Attach files", { exact: true }).setInputFiles([files[2]])
-  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
+  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved")
   await expect(panel.getByRole("button", { name: "+ Add files", exact: true })).toBeDisabled()
+  await expect(panel.getByTestId("files-max")).toHaveText("3 files max")
+  await expect(panel.getByRole("button", { name: "+ Add files", exact: true })).toHaveAccessibleDescription("3 files max")
   await expect(panel.getByRole("button", { name: "Save draft", exact: true })).toHaveCount(0)
   expect((await work(page)).status).toBe("accepted")
   expect((await work(page)).taskWork).toBeUndefined()
@@ -224,7 +227,7 @@ test("a failed automatic file transaction retains the draft through navigation a
   expect((await work(page)).status).toBe("accepted")
   await page.evaluate(() => Object.assign(window, { failTaskUpload: false }))
   await panel.getByRole("button", { name: "Retry saving draft", exact: true }).click()
-  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
+  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved")
   await page.reload()
   await expect(panel.getByLabel("Details", { exact: true })).toHaveValue("Keep the unfinished booking")
   await expect(panel.getByRole("button", { name: "Download booking.txt", exact: true })).toBeVisible()
@@ -237,7 +240,7 @@ test("enforces the per-file limit and exports unfinished automatic drafts with c
   await expect(panel.getByRole("button", { name: "Download too-large.txt", exact: true })).toHaveCount(0)
   await panel.getByLabel("Details", { exact: true }).fill("Unsubmitted location: room 204")
   await attach(page)
-  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
+  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved")
   await closeRail(page); await page.goto("/#/settings")
   const downloading = page.waitForEvent("download")
   await page.getByTestId("export-data").click()
@@ -254,7 +257,7 @@ test("a second tab preserves its conflicting automatic draft without overwriting
   const stale = await context.newPage(); const other = await open(stale)
   await expect(other.getByLabel("Details", { exact: true })).toBeEnabled()
   await panel.getByLabel("Details", { exact: true }).fill("First tab's saved room")
-  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
+  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved")
   await other.getByLabel("Details", { exact: true }).fill("Second tab's unsaved room")
   await expect(other.getByTestId("task-autosave-status")).toHaveText("Draft not saved.")
   await expect(other.getByRole("alert")).toContainText("Another tab saved a newer draft")
@@ -270,7 +273,7 @@ test("D updates the target immediately, supports chosen teammates and self, and 
   await seed(page, "jordan", "review_then_self", true); let panel = await open(page)
   await panel.getByLabel("Details", { exact: true }).fill("Unsubmitted room details stay here")
   await attach(page)
-  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved automatically.")
+  await expect(panel.getByTestId("task-autosave-status")).toHaveText("Draft saved")
   await panel.getByRole("combobox", { name: "Task status", exact: true }).selectOption("extension")
   await panel.getByLabel("New target date", { exact: true }).fill("2027-04-02")
   await panel.getByLabel("Message (optional)", { exact: true }).fill("The room office will confirm availability tomorrow.")

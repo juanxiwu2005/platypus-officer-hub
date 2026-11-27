@@ -5,6 +5,7 @@ import type { Forecast } from "../../engine/forecast"
 import { fmtShort } from "../../lib/dates"
 import { firstName, worstIssue } from "../../pages/helpers"
 import { nodeStop } from "../../lib/phases"
+import { isAtRisk } from "../../lib/nextUp"
 import { useStatusStyles, useTouch } from "../ui"
 import { EVENT_KEY, END_KEY, START_KEY, metroLayout } from "./metro"
 import { useStore } from "../../data/store"
@@ -300,9 +301,7 @@ function LegacyMetroChart({ state, sched, forecast, eventId, selectedId, onSelec
 
   const stateOf = (n: Node) => {
     if (tpl) return "todo" as const
-    const issue = worstIssue(sched.nodes[n.id]?.issues)
-    const late = n.status !== "done" && (sched.nodes[n.id]?.club ?? "9999") < state.today
-    return nodeStop(n, state.today, issue?.severity === "error" || late || forecast.nodes[n.id]?.color === "red" || n.status === "blocked")
+    return nodeStop(n, state.today, isAtRisk(state, sched, forecast, n))
   }
   const lastDoneMain = L.stations.reduce((k, s, i) => (s.node?.status === "done" ? i : k), -1)
   const mainPts = L.stations.map(s => pos(s.col, 0))
@@ -339,7 +338,9 @@ function LegacyMetroChart({ state, sched, forecast, eventId, selectedId, onSelec
 
   const evStation = L.stations.find(s => s.key === EVENT_KEY)!
 
-  const dot = (n: Node, col: number, row: number, labelSide: "below" | "above" | "right") => {
+  // S3: a lane names its owner once, and again only where the owner changes; every dot's hover card and label still name them.
+  const dot = (n: Node, col: number, row: number, labelSide: "below" | "above" | "right", prev?: Node | null) => {
+    const showOwner = !prev || prev.ownerId !== n.ownerId
     const p = pos(col, row)
     const st = stateOf(n)
     const plan = sched.nodes[n.id]
@@ -355,7 +356,7 @@ function LegacyMetroChart({ state, sched, forecast, eventId, selectedId, onSelec
       onFocus={() => setFocusedId(n.id)} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setFocusedId(null) }}>
       <button type="button" className={`m-dot ${kind} ${st} ${issue ? `has-${issue.severity}` : ""}${mark ? ` mark-${mark}` : ""}`} onClick={e => { if (justDragged.current) { justDragged.current = false; return } if (on && touch && e.detail > 0) openNode(n.id, e); else onSelect(n.id) }} aria-label={`${label}. ${kind === "baseline" ? "Core event step." : "Situation-based step."}${on ? " Drag to move it, double-click for more, or press Alt and an arrow key to move it." : ""}`} data-testid={`flow-node-${n.stepKey ?? n.id}`}
         aria-describedby={showCard ? cardId : undefined} onPointerDown={e => onDown(e, n.id)} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onCancel} onDoubleClick={e => openNode(n.id, e)} onContextMenu={e => { if (on) { e.preventDefault(); openNode(n.id, e) } }} onKeyDown={e => onKey(e, n.id)} />
-      <span className="m-label" aria-hidden="true"><b>{shortTitle(n)}</b><span>{tpl ? tpl.sublabel(n) : firstName(state, n.ownerId)}</span></span>
+      <span className="m-label" aria-hidden="true"><b>{shortTitle(n)}</b><span>{tpl ? tpl.sublabel(n) : showOwner ? firstName(state, n.ownerId) : null}</span></span>
       {showCard && <span id={cardId} className="m-card" role="tooltip">
         <b>{n.title}</b>
         {tpl ? tpl.lines(n).slice(1).map((t, i) => <span key={i}>{t}</span>) : <>
@@ -389,8 +390,8 @@ function LegacyMetroChart({ state, sched, forecast, eventId, selectedId, onSelec
         {donePath && <path d={donePath} className="m-line main done" />}
         {on && gaps.map(g => { const d = gapPath(g); return <g key={g.id}><path d={d} className={`m-hit ${g.track === "main" ? "m-hit-main" : ""}`} data-testid={`flow-line-${g.u.key}-${g.v.key}`} /><path d={d} className="m-hit-line" /></g> })}
       </svg>
-      {L.stations.map(s => s.node ? dot(s.node, s.col, 0, vertical ? "right" : "below") : null)}
-      {L.branches.flatMap(b => b.nodes.map(x => dot(x.node, x.col, b.row, vertical ? "right" : b.row < 0 ? "above" : "below")))}
+      {L.stations.map((s, i) => s.node ? dot(s.node, s.col, 0, vertical ? "right" : "below", L.stations.slice(0, i).reverse().find(x => x.node)?.node) : null)}
+      {L.branches.flatMap(b => b.nodes.map((x, i) => dot(x.node, x.col, b.row, vertical ? "right" : b.row < 0 ? "above" : "below", b.nodes[i - 1]?.node)))}
       {L.stations.filter(s => s.key === EVENT_KEY || s.key === START_KEY || s.key === END_KEY).map(s => {
         const p = pos(s.col, 0)
         return <div key={s.key} className={`m-node ${vertical ? "right" : "below"} m-${s.key.replaceAll("_", "")}`} style={{ "--x": `${p.x}px`, "--y": `${p.y}px` } as CSSProperties}>
@@ -455,7 +456,7 @@ function LegacyMetroChart({ state, sched, forecast, eventId, selectedId, onSelec
       })()}
     </div>
     {tpl ? <div className="m-legend small" aria-label="Legend"><span><i className="m-dot baseline todo" />Core event step</span><span><i className="m-dot situation todo" />Situation-based step</span></div> : <div className="m-legend small" aria-label="Legend">
-      <span><i className="m-dot done" />Done</span><span><i className="m-dot now" />In progress</span><span><i className="m-dot todo" />Not started</span><span><i className="m-dot risk" />At risk</span>
+      <span><i className="m-dot done" />Done</span><span><i className="m-dot now" />Started or due</span><span><i className="m-dot todo" />Not started</span><span><i className="m-dot risk" />At risk</span>
     </div>}
   </div>
   {addingBranch && <WorkflowBranchDialog roles={state.roles} onAdd={createBranch} onClose={() => setAddingBranch(false)} />}

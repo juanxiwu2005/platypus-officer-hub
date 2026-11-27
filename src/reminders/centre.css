@@ -9,3 +9,11 @@
 .rc-row .rq-act { max-width: 18rem; }
 .rc-row .rq-act .btn { white-space: normal; text-align: left; }
 @media (max-width: 860px) { .rc-row .rq-act { max-width: 100%; } }
+
+/* Member view (R-S0 W2): rows have no mark column, so text starts at the card's edge (no empty indent). */
+.rq-row.rc-row { grid-template-columns: minmax(0, 1fr) auto; }
+.rc-today { margin: 0 0 var(--s5); font-size: var(--fs-base); font-weight: 600; color: var(--ink); }
+@media (max-width: 860px) {
+  .rq-row.rc-row { grid-template-columns: minmax(0, 1fr); }
+  .rc-row .rq-act { grid-column: 1; }
+}

@@ -8,8 +8,10 @@ import { fmtShort } from "../src/lib/dates"
 import { onboardingCopy } from "../src/onboarding/copy"
 import { chainDots, prepareEvent, previewFor, wordCount } from "../src/onboarding/founder/firstEvent/plan"
 
-// OB-06: the first-event screen (the witness moment). The walkthrough's other screens are still placeholders, so this opens the screen's own address.
-const URL = "/#/welcome/founder/first-event"
+// OB-06: the first event (the witness moment). Since ob-6 (S6) it is on screen 1, under the club name: Continue needs the name and a plan,
+// Skip for now skips the event only, and there is no Back (it is the first screen).
+const URL = "/#/welcome/founder/name"
+const NAME = onboardingCopy.founder.name
 const c = onboardingCopy.founder.firstEvent
 const scan = async (page: Page) => (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()).violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).join(" | ")}`)
 
@@ -30,7 +32,8 @@ const chain = (page: Page) => page.getByRole("region", { name: c.chainLabel })
 const dotsText = (page: Page) => chain(page).getByRole("listitem").evaluateAll(els => els.map(e => (e as HTMLElement).innerText.replace(/\s+/g, " ").trim()))
 const plan = async (page: Page, example = "Welcome mixer") => {
   await page.goto(URL)
-  await expect(page.getByRole("heading", { level: 1, name: c.title })).toBeVisible()
+  await expect(page.getByRole("heading", { level: 2, name: c.title })).toBeVisible()
+  await page.getByLabel(NAME.field).fill("Fictional Planning Club")
   await page.getByRole("button", { name: example }).click()
   await page.getByRole("button", { name: c.cta }).click()
   await expect(chain(page)).toBeVisible()
@@ -57,7 +60,7 @@ test("fastest path: example, Plan it, a chain with rule-engine dates, Continue",
   expect(items).toEqual(expected)
   await expect(page.getByRole("button", { name: onboardingCopy.next })).toBeEnabled()
   await page.getByRole("button", { name: onboardingCopy.next }).click()
-  await expect(page).toHaveURL(/#\/welcome\/founder\/reminders$/)          // P3-H: Reminders comes before Confirm
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)               // ob-6: Team follows screen 1
 })
 
 test("before Plan it there is no chain, and Continue waits", async ({ page }) => {
@@ -82,7 +85,7 @@ test("a sentence that is not one event says what to do and draws nothing", async
 test("the buffer is a five-way control; turning it re-plans the dates (a club whose steps follow the ASU rules)", async ({ page }) => {
   await page.addInitScript(demo => { if (!localStorage.getItem("platypus.v1.demo")) localStorage.setItem("platypus.v1.demo", JSON.stringify(demo)) }, byRuleDemo())
   await plan(page, "Spring dinner")
-  const group = page.getByRole("group", { name: /Club buffer/ })
+  const group = page.getByRole("group", { name: /Days early/ })
   await expect(group.getByRole("button")).toHaveCount(5)
   await expect(group.getByRole("button", { name: "3 days" })).toHaveAttribute("aria-pressed", "true")   // the draft's buffer
   await expect(page.getByTestId("buffer-example")).toBeVisible()
@@ -97,10 +100,10 @@ test("the buffer is a five-way control; turning it re-plans the dates (a club wh
   // The choice is kept in the draft: Continue and Back bring the same value.
   await group.getByRole("button", { name: "5 days" }).click()
   await page.getByRole("button", { name: onboardingCopy.next }).click()
-  await expect(page).toHaveURL(/reminders$/)
+  await expect(page).toHaveURL(/team$/)
   await page.goBack()
-  await expect(page).toHaveURL(/first-event$/)
-  await expect(page.getByRole("group", { name: /Club buffer/ }).getByRole("button", { name: "5 days" })).toHaveAttribute("aria-pressed", "true")
+  await expect(page).toHaveURL(/name$/)
+  await expect(page.getByRole("group", { name: /Days early/ }).getByRole("button", { name: "5 days" })).toHaveAttribute("aria-pressed", "true")
   await expect(chain(page)).toBeVisible()      // the planned event survives the round trip
 })
 
@@ -144,17 +147,27 @@ test("editing the sentence turns Continue off until Plan it is pressed again", a
   await expect(page.locator("details.ob6-details").getByLabel(c.fields.name)).toHaveValue("Spring Social")
 })
 
-test("Back goes to the previous screen; Skip for now is there from the start (Phase 3: First event is optional)", async ({ page }) => {
+test("Skip for now is there from the start (Phase 3: the first event is optional); no Back on the first screen and no 'later' hint", async ({ page }) => {
   await page.goto(URL)
   await expect(page.getByRole("button", { name: onboardingCopy.skip })).toBeVisible()
-  await expect(page.getByText(c.skipHint)).toBeVisible()
-  await page.getByRole("button", { name: onboardingCopy.back }).click()
+  await expect(page.getByRole("button", { name: onboardingCopy.back })).toHaveCount(0)
+  await expect(page.getByText("You can plan one later from Ask.")).toHaveCount(0)
+  await page.getByLabel(NAME.field).fill("Fictional Planning Club")
+  await page.getByRole("button", { name: onboardingCopy.skip }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
 })
 
-test("a screen of at most 60 words at a glance, with no sideways page scroll", async ({ page }) => {
+test("the examples step aside once a plan is shown; the sentence stays editable", async ({ page }) => {
   await page.goto(URL)
-  const words = () => page.getByTestId("first-event").evaluate(el => (el as HTMLElement).innerText)
+  await expect(page.getByRole("group", { name: c.examplesLabel })).toBeVisible()
+  await plan(page)
+  await expect(page.getByRole("group", { name: c.examplesLabel })).toHaveCount(0)
+  await expect(page.getByRole("textbox", { name: c.sentenceLabel })).toBeEditable()
+})
+
+test("the whole first screen (name and first event) is at most 60 words at a glance, with no sideways page scroll", async ({ page }) => {
+  await page.goto(URL)
+  const words = () => page.locator("main").innerText()
   expect(wordCount(await words())).toBeLessThanOrEqual(60)
   await plan(page, "Spring dinner")
   const text = await words()
@@ -162,10 +175,10 @@ test("a screen of at most 60 words at a glance, with no sideways page scroll", a
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0)
 })
 
-test("on a phone the buffer control, Plan it, Back and Continue are at least 44px", async ({ page, isMobile }) => {
+test("on a phone the buffer control, Plan it, Continue and Skip for now are at least 44px", async ({ page, isMobile }) => {
   test.skip(!isMobile, "finger sizes")
   await plan(page)
-  const boxes = await Promise.all([...[1, 2, 3, 5, 7].map(n => page.getByRole("button", { name: `${n} ${n === 1 ? "day" : "days"}` })), page.getByRole("button", { name: c.cta }), page.getByRole("button", { name: onboardingCopy.back }), page.getByRole("button", { name: onboardingCopy.next })].map(l => l.boundingBox()))
+  const boxes = await Promise.all([...[1, 2, 3, 5, 7].map(n => page.getByRole("button", { name: `${n} ${n === 1 ? "day" : "days"}` })), page.getByRole("button", { name: c.cta }), page.getByRole("button", { name: onboardingCopy.skip }), page.getByRole("button", { name: onboardingCopy.next })].map(l => l.boundingBox()))
   for (const b of boxes) { expect(b!.height).toBeGreaterThanOrEqual(44); expect(b!.width).toBeGreaterThanOrEqual(44) }
   // A long chain scrolls inside its own box, not the page.
   const box = await chain(page).evaluate(el => ({ client: el.clientWidth, page: document.documentElement.scrollWidth, inner: window.innerWidth }))
@@ -301,6 +314,7 @@ test("the buffer example is computed by the engine and changes with every choice
     seen.push((await example.innerText()).trim())
   }
   expect(new Set(seen).size).toBe(5)                         // five buffers, five different club dates
-  // Short dates keep the planned screen within its 60-word budget: "ASU Nov 13 → club Nov 10."
-  expect(seen.every(t => /^ASU \w{3} \d+ → club \w{3} \d+\.$/.test(t))).toBe(true)
+  // Short dates keep the planned screen within its 60-word budget: "Example: ASU Nov 13 → Nov 10."
+  // The label above already says "Days early", so the example marks itself as an example instead of repeating "club".
+  expect(seen.every(t => /^Example: ASU \w{3} \d+ → \w{3} \d+\.$/.test(t))).toBe(true)
 })

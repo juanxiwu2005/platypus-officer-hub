@@ -84,7 +84,7 @@ function AskedQuestions({ record }: { record: RoleHandoff }) {
   return <div data-testid="asked-questions">
     <p className="small"><b>Questions asked in Ask</b> <span className="muted">{asked.length} asked · {gaps.length} not covered by the handbook</span> <button type="button" className="btn small" onClick={() => setTick(n => n + 1)}>Refresh</button></p>
     {gaps.length > 0 && <ul className="small">{gaps.slice(-8).map(q => <li key={q.at}>{q.text}</li>)}</ul>}
-    <p className="small muted">Read from this browser's activity log each time you look. It is not saved anywhere else and is never sent to the AI.</p>
+    <p className="small muted">Stays in this browser; never sent to the AI.</p>
   </div>
 }
 

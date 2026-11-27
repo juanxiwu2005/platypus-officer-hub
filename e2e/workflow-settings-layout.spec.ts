@@ -125,7 +125,7 @@ test("bulk assignment moves three steps into one branch and a single Undo return
   expect(await facts()).toEqual(before)
 })
 
-test("the header groups saved workflows and the More menu closes with Escape back to its button", async ({ page }) => {
+test("the header groups saved workflows, the Versions menu closes with Escape back to its button, and there is no Save draft or Teams", async ({ page }) => {
   await open(page)
   await openMenu(page, "New workflow", "Blank workflow")
   await expect(page.getByLabel("Workflow name", { exact: true })).toHaveValue("Untitled workflow")
@@ -133,11 +133,12 @@ test("the header groups saved workflows and the More menu closes with Escape bac
   expect(await picker.locator("optgroup").evaluateAll(groups => groups.map(group => group.getAttribute("label")))).toEqual(["Platypus preset", "Your organization"])
   await expect(picker.locator('optgroup[label="Platypus preset"] option')).toHaveText([/^Speaker series( · Draft)?$/])
   await expect(picker.locator('optgroup[label="Your organization"] option')).toContainText(["Untitled workflow · Draft"])
-  const more = menuTrigger(page, "More")
+  await expect(page.getByTestId("workflow-settings").getByRole("button", { name: "Save draft", exact: true })).toHaveCount(0)
+  const more = menuTrigger(page, "Versions")
   await more.click()
   await expect(more).toHaveAttribute("aria-expanded", "true")
   const menu = page.getByTestId("workflow-settings").getByRole("menu")
-  await expect(menu.getByRole("menuitem")).toHaveText(["Duplicate workflow", "Use by default", "Apply role teams", "Teams", "Discard draft"])
+  await expect(menu.getByRole("menuitem")).toHaveText(["Duplicate workflow", "Use by default", "Apply role teams", "Discard draft"])
   await expect(menu.getByRole("menuitem").first()).toBeFocused()
   await page.keyboard.press("Escape")
   await expect(menu).toHaveCount(0)

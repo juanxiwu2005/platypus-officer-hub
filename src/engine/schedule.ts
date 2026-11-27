@@ -1,5 +1,5 @@
 import type { DemoState, Event, Node, Person, StepTiming } from "../data/types"
-import { RULES } from "../data/rules"
+import { RULES, ruleSourceName } from "../data/rules"
 import { addDays, daysBetween, fmtLong } from "../lib/dates"
 import { workflowMilestoneDates, workflowMilestoneGraphError, workflowMilestoneTaskDate } from "./workflowMilestones"
 import {
@@ -96,13 +96,13 @@ function ownerOf(ctx: Ctx, n: Node): Person | undefined {
 
 /** Local, opt-out scheduling adjustment. Legacy records without a completion date do not train it. */
 export function personalBuffer(state: DemoState, person?: Person) {
-  if (!person || person.personalBufferEnabled === false) return { days: DEFAULT_PERSONAL_BUFFER, count: 0, explanation: "Standard one-day buffer; personalization is off or no officer is assigned." }
+  if (!person || person.personalBufferEnabled === false) return { days: DEFAULT_PERSONAL_BUFFER, count: 0, explanation: "Standard: one extra day." }
   const records = state.contributions.filter((c,i,all) => c.personId === person.id && c.completedOn && (!person.bufferHistoryFrom || c.completedOn > person.bufferHistoryFrom) && all.findIndex(x=>x.nodeId===c.nodeId && x.personId===c.personId)===i && state.nodes.some(n=>n.id===c.nodeId && n.status==="done"))
   const late = records.filter(c=>!c.onTime).length
   // Five completed records before adaptation; five equal prior observations soften early swings.
   const extra = records.length >= 5 ? Math.floor(3 * late / (records.length + 5)) : 0
   const days = Math.min(5, Math.max(0, person.personalBufferDays) + extra)
-  return { days, count: records.length, explanation: `Your chosen base is ${person.personalBufferDays} day(s). ${records.length} dated local task completions; ${extra} extra scheduling day(s) from the smoothed late-completion share. No contribution points use this value.` }
+  return { days, count: records.length, explanation: `Your base: ${plural(person.personalBufferDays, "extra day")}${extra ? `, plus ${plural(extra, "day")} from your recent finishes` : ""}. Never used for contributions.` }
 }
 
 function effortOf(ctx: Ctx, n: Node) {
@@ -114,7 +114,7 @@ function effortOf(ctx: Ctx, n: Node) {
 
 function startWhy(club: string, n: Node, e: ReturnType<typeof effortOf>, start: string) {
   const first = e.person?.name.split(" ")[0]
-  let s = `${fmtLong(club)} minus ${plural(n.estDays, "day")} of work and ${plural(e.buffer, "day")} of ${first ? `${first}'s` : "default"} personal buffer`
+  let s = `${fmtLong(club)} minus ${plural(n.estDays, "day")} of work and ${plural(e.buffer, "day")} of ${first ? `${first}'s` : "default"} extra days`
   const skipped = skippedReasons(start, club, e.person?.busyWeeks).map(r => (r === "busy week" && first ? `${first}'s busy week` : r))
   if (skipped.length) s += `, skipping ${skipped.join(" and ")}`
   return s
@@ -131,11 +131,11 @@ export function officialDeadline(n: Node, ev: Event): { date: string; why: strin
   let why: string
   if (a.unit === "business") {
     date = shiftWork(ev.date, -a.days)
-    why = `${a.ruleId}: ${plural(a.days, "business day")} before the event`
+    why = `${ruleSourceName(a.ruleId)}: ${plural(a.days, "business day")} before the event`
   } else {
     const raw = addDays(ev.date, -a.days)
     date = onOrBefore(raw)
-    why = `${a.ruleId}: ${plural(a.days, "day")} before the event`
+    why = `${ruleSourceName(a.ruleId)}: ${plural(a.days, "day")} before the event`
     if (date !== raw) why += `; ${fmtLong(raw)} is a ${closedReason(raw)}, so the business day before`
   }
   if (rule?.note) why += `. ${rule.note}`
@@ -198,8 +198,8 @@ function timingStart(ctx: Ctx, n: Node, ev: Event, t: StepTiming, club: string):
   const extra = Math.max(0, e.buffer - DEFAULT_PERSONAL_BUFFER)
   if (extra) {
     date = shiftWork(date, -extra, e.work)
-    why += `, then ${plural(extra, "more working day")} of ${first ? `${first}'s` : "the"} personal buffer`
-  } else if (first) why += ` (${first}'s personal buffer of up to one day is already part of this timing)`
+    why += `, then ${plural(extra, "more working day")} of ${first ? `${first}'s` : "the"} extra days`
+  } else if (first) why += ` (${first}'s extra day is already part of this timing)`
   if (n.phase === "close" && date < closeFloor(n, ev)) {
     date = closeFloor(n, ev)
     why = closeFloorWhy(n)
@@ -272,7 +272,7 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
     if (n.timing && !sequential) {
       // Calibrated: its own window, not squeezed earlier by the steps after it.
       const own = timingDue(n, ev, n.timing)
-      const buffered = official ? { date: shiftWork(official.date, -buffer), why: `${plural(buffer, "business day")} before the ASU deadline (club buffer)` } : null
+      const buffered = official ? { date: shiftWork(official.date, -buffer), why: `${plural(buffer, "business day")} before the ASU deadline (days early)` } : null
       let best = buffered && buffered.date < own.date ? buffered : own
       let asu = best === buffered
       // An ASU deadline is a hard limit for the steps before it too: when a calibrated step that waits for this one must finish
@@ -292,7 +292,7 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
       continue
     }
     const cands: { date: string; why: string }[] = []
-    if (official) cands.push({ date: shiftWork(official.date, -buffer), why: `${plural(buffer, "business day")} before the ASU deadline (club buffer)` })
+    if (official) cands.push({ date: shiftWork(official.date, -buffer), why: `${plural(buffer, "business day")} before the ASU deadline (days early)` })
     // Keep authored club due targets and official anchors, but not calibrated start windows.
     const t = sequential && n.timing ? timingDue(n, ev, n.timing) : targetDate(n, ev)
     if (t) cands.push(t)
@@ -433,7 +433,7 @@ function planMilestoneEvent(ctx: Ctx, ev: Event, out: Schedule) {
     const requested = node.clubDeadlineOverride ?? recommended
     const club = cap && cap < requested ? cap : requested
     const start = effortStart(ctx, node, club)
-    const why = cap && club === cap ? `Day 1 school deadline with the club buffer; ${official!.why}`
+    const why = cap && club === cap ? `Day 1 ASU deadline with the club's days early; ${official!.why}`
       : `${day?.title ?? "Activity"} ${anchor?.offsetDays === 0 ? "date" : `${anchor?.offsetDays ?? 0} ${anchor?.unit === "business" ? "working" : "calendar"} days`}; this target stays fixed.`
     const nodeEvent = day ? { ...ev, date: addDays(ev.date, day.offsetDays) } : ev
     const issues = nodeIssues(ctx, node, { official: official?.date ?? null, club, start: start.date, rec: recommended, pushedBy: null, looped: loopedIds.has(node.id) }, nodeEvent).filter(issue => issue.code !== "after_event")
@@ -625,10 +625,10 @@ function planExplicitEffort(ctx: Ctx, n: Node, ev: Event, r: Rec, out: Schedule,
   const insufficient = finish > club
   if (insufficient) {
     club = finish
-    clubWhy = `${constraint ?? "The available work window is too short"}. ${plural(n.estDays, "working day")} of work and ${plural(e.buffer, "working day")} of personal buffer move the planned finish from ${fmtLong(target)} to ${fmtLong(finish)}; the original target and ASU deadline stay unchanged`
+    clubWhy = `${constraint ?? "The available work window is too short"}. ${plural(n.estDays, "working day")} of work and ${plural(e.buffer, "working day")} of extra days move the planned finish from ${fmtLong(target)} to ${fmtLong(finish)}; the original target and ASU deadline stay unchanged`
   }
   const issues = nodeIssues(ctx, n, { official: r.official?.date ?? null, club, start, rec: r.club, pushedBy, looped: loopedIds.has(n.id) }, ev)
-  if (insufficient && n.status !== "done") issues.push({ code: "effort_window", severity: "warn", text: `The work and personal buffer do not fit the target of ${fmtLong(target)}. Earliest feasible finish: ${fmtLong(finish)}. The target has not been met.` })
+  if (insufficient && n.status !== "done") issues.push({ code: "effort_window", severity: "warn", text: `The work and extra days do not fit the target of ${fmtLong(target)}. Earliest feasible finish: ${fmtLong(finish)}. The target has not been met.` })
   out.nodes[n.id] = {
     id: n.id, official: r.official?.date ?? null, club, latestStart: start, recommendedClub: r.club,
     explain: { official: r.official?.why ?? null, club: clubWhy, latestStart: sWhy }, pushedBy, issues,
@@ -681,7 +681,7 @@ function nodeIssues(
   const stray = [ev?.date, d.official, d.club, d.start].filter((x): x is string => !!x && outsideCalendar(x))
   if (stray.length) out.push({ code: "calendar_range", severity: "error", text: `This step involves ${fmtLong(stray.sort()[0])}, outside the ASU calendar Platypus knows (${calendarSpan()}). Its dates cannot be trusted.` })
   if (d.official && d.club > d.official)
-    out.push({ code: "official_missed", severity: "error", ruleId, text: `Planned finish ${fmtLong(d.club)} is after the ASU deadline ${fmtLong(d.official)}${ruleId ? ` (${ruleId})` : ""}.` })
+    out.push({ code: "official_missed", severity: "error", ruleId, text: `Planned finish ${fmtLong(d.club)} is after the ASU deadline ${fmtLong(d.official)}${ruleId ? ` (${ruleSourceName(ruleId)})` : ""}.` })
   // Check-in materials are intentionally allowed to be completed up to the event day.
   // They become an event-level warning only if they remain open on that day.
   const isCheckin = n.stepKey === "checkin"
@@ -719,7 +719,7 @@ function eventIssues(ctx: Ctx, ev: Event, nodes: Node[], out: Schedule, looped: 
   const issues: Issue[] = []
   const today = ctx.state.today
   const finals = findPeriod(ev.date, FINALS)
-  if (finals) issues.push({ code: "finals", severity: "error", ruleId: "R13", text: `${fmtLong(ev.date)} is during ${finals.label}. ASU does not allow events then (R13).` })
+  if (finals) issues.push({ code: "finals", severity: "error", ruleId: "R13", text: `${fmtLong(ev.date)} is during ${finals.label}. ASU does not allow events then (${ruleSourceName("R13")}).` })
   if (ev.date in HOLIDAYS) issues.push({ code: "holiday", severity: "warn", text: `ASU is closed on ${fmtLong(ev.date)} (${HOLIDAYS[ev.date]}).` })
   const brk = findPeriod(ev.date, BREAKS)
   if (brk) issues.push({ code: "break", severity: "warn", text: `${fmtLong(ev.date)} is during ${brk.label}. Classes are excused, so many members may be away.` })

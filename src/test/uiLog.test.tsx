@@ -52,6 +52,18 @@ describe("reading a press", () => {
     expect(describeClick(document.querySelector("span"), "/", ORIGIN)).toMatchObject({ applied: false })
     expect(describeClick(document.querySelector("a"), "/", ORIGIN)).toBeNull()
   })
+  it("data-log-name replaces the name in the log only: club-written text on the control never reaches the log", () => {
+    html(`<main><ul><li><button id="q" data-log-name="Playbook question" aria-expanded="false"><span>Where do we keep the SECRET banner?</span><span>New</span></button></li></ul>
+      <span data-log-name="Playbook question"><button id="inner">Inner SECRET text</button></span><button id="plain">Like 2</button></main>`)
+    const ev = describeClick(document.querySelector("#q span"), "/playbook", ORIGIN)!
+    expect(ev.payload).toEqual({ route: "/playbook", role: "button", name: "Playbook question", area: "main", expanded: true })
+    expect(JSON.stringify(ev)).not.toContain("SECRET")
+    // The screen-reader name is untouched: only the log reads the attribute.
+    expect(document.querySelector("#q")!.getAttribute("aria-label")).toBeNull()
+    // Only the pressed control's own attribute counts; a wrapper's does not rename every control inside it.
+    expect(describeClick(document.querySelector("#inner"), "/playbook", ORIGIN)!.payload.name).toBe("Inner SECRET text")
+    expect(describeClick(document.querySelector("#plain"), "/playbook", ORIGIN)!.payload.name).toBe("Like 2")
+  })
   it("routes keep only the path and the names of query parameters", () => {
     expect(routeOf("#/officer?t=SECRETTOKEN&n=2")).toEqual({ path: "/officer", params: ["t", "n"] })
     expect(routeOf("")).toEqual({ path: "/", params: [] })
@@ -66,6 +78,17 @@ describe("reading a choice", () => {
     expect(describeChange(box, "/")?.payload).toEqual({ route: "/", role: "checkbox", name: "Alcohol", checked: true, group: "Situation-based checklist" })
     const sel = document.querySelector<HTMLSelectElement>("#s")!; sel.value = "email"
     expect(describeChange(sel, "/tasks")?.payload).toEqual({ route: "/tasks", role: "combobox", name: "Preferred channel", value: "Gmail" })
+  })
+  it("a select marked data-log-value=\"omit\" (a person or a task, as in Cheers) records that a choice was made, never which", () => {
+    html(`<aside class="rail"><label for="to">To</label><select id="to" data-log-value="omit" data-testid="cheer-to"><option value="">Choose a teammate</option><option value="jordan">Jordan SECRET Patel</option></select>
+      <select id="task" aria-label="For a task" data-log-value="omit"><option value="t1">SECRET task title</option></select>
+      <select id="many" multiple data-log-value="omit" aria-label="Several"><option selected>SECRET A</option><option selected>SECRET B</option></select></aside>`)
+    const to = document.querySelector<HTMLSelectElement>("#to")!; to.value = "jordan"
+    expect(describeChange(to, "/team")).toEqual({ type: "ui.change", payload: { route: "/team", role: "combobox", name: "To", testid: "cheer-to", area: "rail" } })
+    const task = document.querySelector<HTMLSelectElement>("#task")!
+    expect(describeChange(task, "/team")?.payload).toEqual({ route: "/team", role: "combobox", name: "For a task", area: "rail" })
+    expect(describeChange(document.querySelector("#many"), "/team")?.payload).not.toHaveProperty("selected")
+    expect(JSON.stringify([describeChange(to, "/"), describeChange(task, "/"), describeChange(document.querySelector("#many"), "/")])).not.toContain("SECRET")
   })
   it("never reads text, number, date, password or file fields", () => {
     html(`<input type="text" value="SECRET"><input type="number" value="42"><input type="date" value="2026-12-01"><input type="password" value="pw"><input type="file"><textarea>SECRET</textarea>`)

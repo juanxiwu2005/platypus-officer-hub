@@ -138,7 +138,7 @@ export function MeetingFinder() {
   const choice = pick && fits ? whoIsFree(state, ids, pick.date, pick.from, pick.from + duration) : null
 
   return <section className="card form-stack" data-testid="meeting-finder" aria-labelledby="mf-h">
-    <header><h2 id="mf-h">Meeting time</h2><Info>Use Edit weekly schedule for your recurring availability. Painting this week makes a one-week exception. Darker means more people free.</Info></header>
+    <header><h2 id="mf-h">Meeting time</h2><Info>Darker means more people free.</Info></header>
     {!weeklyDraft && <><div className="action-row w2m-nav">
       <button type="button" className="btn small" disabled={week === 0} onClick={() => setWeek(week - 1)} aria-label="Previous week">‹</button>
       <span className="small">{fmtShort(dates[0])} – {fmtShort(dates[6])}</span>
@@ -168,7 +168,7 @@ export function MeetingFinder() {
       </div>
     </div></>}
     {weeklyDraft && <section className="weekly-editor" aria-label="Edit weekly schedule" data-testid="weekly-schedule-editor">
-      <header><h3>Weekly schedule</h3><span className="small muted">This becomes your default from today onward. Earlier weeks stay unchanged.</span></header>
+      <header><h3>Weekly schedule</h3><span className="small muted">Applies from today on.</span></header>
       <SlotGrid label={`${me.name}: weekly schedule`} testId="weekly-grid" dates={dates} marked=""
         cell={(d, k) => { const on = weeklyDraft.has(cellKey(fromISO(dates[d]).getDay(), k)); return { a: 0, on, label: `${dayName(dates[d])} ${clock(GRID_FROM + k * GRID_STEP)} · ${on ? "free" : "not free"}` } }}
         onDown={(d, k) => { const key = cellKey(fromISO(dates[d]).getDay(), k); mode.current = weeklyDraft.has(key) ? "remove" : "add"; const next = paint(weeklyDraft, key); draftRef.current = next; setWeeklyDraft(next) }}
@@ -177,7 +177,7 @@ export function MeetingFinder() {
       <div className="action-row"><button type="button" className="btn btn-primary" onClick={() => { saveWeekly(weeklyDraft); draftRef.current = null; setWeeklyDraft(null) }}>Done</button><button type="button" className="btn" onClick={() => { draftRef.current = null; setWeeklyDraft(null) }}>Cancel</button></div>
     </section>}
     {!weeklyDraft && <p className="small w2m-who" role="status" aria-live="polite" onPointerLeave={() => setPeek(null)}>
-      {who && shown ? <><b>{dayName(shown.date)} {fmtShort(shown.date)}, {clock(shown.from)}–{clock(shown.from + span)}</b> · Free: {names(who.free)} · Not free: {names(who.busy)}</> : "Hover for names."}
+      {who && shown ? <><b>{dayName(shown.date)} {fmtShort(shown.date)}, {clock(shown.from)}–{clock(shown.from + span)}</b> · Free: {names(who.free)} · Not free: {names(who.busy)}</> : null}
     </p>}
     {!weeklyDraft && pick && <div className="action-row" data-testid="picked-time">
       {choice
@@ -192,7 +192,7 @@ export function MeetingFinder() {
       </div>
       <section className="meeting-suggestions" aria-live="polite" aria-label="Shared times in the next two weeks">
         <header><h3>Shared times</h3></header>
-        {upcoming.length ? upcoming.map(day => <div className="suggestion-day" key={day.date}><time dateTime={day.date}>{dayName(day.date)} {fmtShort(day.date)}</time><div>{day.slots.map(slot => <button type="button" className="btn small" key={slot.from} onClick={() => { const from = asMinutes(slot.from); setPick({ date: day.date, from }); setDate(day.date) }}>{slot.from}–{slot.to}</button>)}</div></div>) : <p className="small muted">No shared time in the next two weeks. Adjust length or attendees.</p>}
+        {upcoming.length ? upcoming.map(day => <div className="suggestion-day" key={day.date}><time dateTime={day.date}>{dayName(day.date)} {fmtShort(day.date)}</time><div>{day.slots.map(slot => <button type="button" className="btn small" key={slot.from} onClick={() => { const from = asMinutes(slot.from); setPick({ date: day.date, from }); setDate(day.date) }}>{slot.from}–{slot.to}</button>)}</div></div>) : <p className="small muted">No shared time in the next two weeks.</p>}
       </section>
     </div>}
   </section>

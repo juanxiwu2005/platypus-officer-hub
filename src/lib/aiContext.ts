@@ -42,7 +42,7 @@ export function aiSnapshot(s: DemoState) {
     funding: s.funding.map(x => ({ eventId: x.eventId, event: s.events.find(e => e.id === x.eventId)?.name, source: x.source, amount: x.amount, spent: x.spent ?? 0, stage: x.stage, spendBy: x.spendBy })),
     partners: visibleContacts(s).map(c => ({ id: c.id, name: c.name, title: c.title, organization: orgName(s, c.organizationId), relation: c.relation, stage: c.stage, tags: c.tags, owner: role(c.ownerRoleId), lastContact: c.lastContact, cadenceDays: c.cadenceDays, events: c.eventIds, nextStep: nextStep(s, c.id)?.nextStep ?? null })),
     handoff: s.handoff && { from: s.handoff.from, to: s.handoff.to, roles: s.handoffRoles.map(h => ({ role: role(h.roleId), outgoing: name(h.outgoingId), incoming: name(h.incomingId), confirmed: h.confirmed, approved: h.approved, completed: h.completed })) },
-    yourUpdates: s.notifications.filter(n => n.recipientId === s.viewerId).slice(-15).map(n => ({ text: n.text, on: n.createdOn, read: n.read, taskId: n.nodeId })),
+    yourUpdates: s.notifications.filter(n => n.recipientId === s.viewerId && n.kind !== "cheer").slice(-15).map(n => ({ text: n.text, on: n.createdOn, read: n.read, taskId: n.nodeId })),
     extensionRequests: s.extensionRequests.filter(r => lead || r.ownerId === s.viewerId).map(r => ({ taskId: r.nodeId, owner: name(r.ownerId), requestedDate: r.requestedDate, reason: r.reason.slice(0, 200), status: r.status })),
     silentTasks: lead ? s.silenceCases.filter(c => !c.closedOn).map(c => ({ taskId: c.nodeId, owner: name(c.ownerId), since: c.startedOn })) : [],
     remindersSent: lead ? s.nudges.slice(-10).map(n => ({ taskId: n.nodeId, on: n.sentOn, channel: n.channel })) : [],

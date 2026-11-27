@@ -16,10 +16,9 @@ const TaskDetail = lazy(() => import("../TaskDetail").then(module => ({ default:
 const PartnerDetail = lazy(() => import("../crm/ContactDetail").then(module => ({ default: module.PartnerDetail })))
 const OrgDetail = lazy(() => import("../crm/OrgDetail").then(module => ({ default: module.OrgDetail })))
 const HandoffRoleDetail = lazy(() => import("../../pages/Handoff").then(module => ({ default: module.HandoffRoleDetail })))
-const BoardSettingsPanel = lazy(() => import("../BoardSettings").then(module => ({ default: module.BoardSettingsPanel })))
-const DigestPanel = lazy(() => import("../../reminders/DigestPanel"))
 const ReminderHistoryPanel = lazy(() => import("../../reminders/DigestPanel").then(module => ({ default: module.ReminderHistoryPanel })))
 const EventDetail = lazy(() => import("../EventDetail").then(module => ({ default: module.EventDetail })))
+const GiveCheer = lazy(() => import("../cheers/GiveCheer"))
 
 /** Right rail: Ask (the only AI box) and Details (whatever was clicked). */
 /**
@@ -98,7 +97,7 @@ function DetailView() {
   const d = rail.detail!
   const box = useRef<HTMLDivElement>(null)
   // Every kind of detail takes focus when it opens or changes (unless it already put focus inside itself).
-  const key = d.kind === "reminderDigest" ? `${d.kind}:${d.recipientId}` : d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" || d.kind === "event" ? `${d.kind}:${d.eventId}` : d.kind
+  const key = d.kind === "node" || d.kind === "task" || d.kind === "nudge" || d.kind === "partner" || d.kind === "handoff" ? `${d.kind}:${"id" in d ? d.id : d.roleId}` : d.kind === "funding" || d.kind === "event" ? `${d.kind}:${d.eventId}` : d.kind === "cheer" ? `${d.kind}:${(d.toIds ?? []).join(",")}:${d.nodeId ?? ""}` : d.kind
   useEffect(() => {
     box.current?.scrollTo?.({ top: 0 })
     if (box.current && !box.current.contains(document.activeElement)) box.current.focus()
@@ -113,7 +112,7 @@ function DetailView() {
     rail.closeDetail()
   }
   useEffect(() => {
-    if (d.kind === "nudge" || d.kind === "reminderDigest") return // the reminder panels handle Escape themselves
+    if (d.kind === "nudge") return // the reminder composer handles Escape itself
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape" && !e.defaultPrevented) close() }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
@@ -133,21 +132,21 @@ function DetailView() {
       body = node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} /> : <Empty>This task no longer exists.</Empty>
       break
     }
-    case "workflow": body = rail.workflowDetail ?? <Empty>Select a workflow step.</Empty>; break
+    case "workflow": body = rail.workflowDetail ?? <Empty>No step open.</Empty>; break
     case "nudge": return <div ref={box} className="detail-scroll" {...region}><NudgeComposer key={d.id} nodeId={d.id} onClose={close} /></div>
     case "task": {
       const node = state.nodes.find(n => n.id === d.id)
       body = (location.pathname === "/events" || (location.pathname === "/tasks" && new URLSearchParams(location.search).has("access"))) ? <PlanTaskPanel nodeId={d.id} /> : node ? <TaskDetail key={`${node.id}:${state.viewerId}`} node={node} actorId={person.id} initialReply={d.reply} /> : <Empty>This task no longer exists.</Empty>
       break
     }
-    case "reminderDigest": return <div ref={box} className="detail-scroll" {...region}><Suspense fallback={<RouteLoading label="Preparing the email…" />}><DigestPanel recipientId={d.recipientId} onClose={close} /></Suspense></div>
     case "reminderHistory": body = <ReminderHistoryPanel />; break
     case "funding": body = <FundingDetail eventId={d.eventId} />; break
     case "event": body = <EventDetail eventId={d.eventId} />; break
     case "partner": body = <PartnerDetail id={d.id} />; break
     case "org": body = <OrgDetail id={d.id} />; break
     case "handoff": body = <HandoffRoleDetail roleId={d.roleId} />; break
-    case "board": body = <BoardSettingsPanel />; break
+    // Cheers (R1): Give points. A new prefill (another person or task) starts a fresh form.
+    case "cheer": body = <GiveCheer key={`${state.viewerId}:${(d.toIds ?? []).join(",")}:${d.nodeId ?? ""}`} toIds={d.toIds} nodeId={d.nodeId} />; break
   }
   return <div ref={box} className="detail-scroll" {...region}>{closer}<Suspense fallback={<RouteLoading label="Loading details…" />}>{body}</Suspense></div>
 }

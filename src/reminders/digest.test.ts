@@ -175,6 +175,8 @@ describe("tasks held by email limits on the Reminders page", () => {
     expect(isReminderRuntime(held.reminderRuntime)).toBe(true)
     const centre = digestCentre(held)
     expect(centre.held).toBe(ready.maya.length + ready.jordan.length)
+    // Step 0: the same count per person, and a person with only held tasks still has a row (no email, no Send).
+    expect(centre.people.map(p => [p.recipientId, p.held, !!p.group])).toEqual([["priya", 0, true], ["maya", ready.maya.length, false], ["jordan", ready.jordan.length, false]])
     const limited = [...ready.maya, ...ready.jordan]
     expect(centre.fix.filter(row => limited.includes(row.nodeId))).toEqual([])
     expect(centre.groups.map(g => g.recipientId)).toEqual(["priya"])

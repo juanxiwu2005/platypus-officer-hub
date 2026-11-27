@@ -12,7 +12,6 @@ export function FollowupPanel() {
     <header><h2>Follow-up</h2><span className="small muted">Only you see this</span></header>
     {canNudge && <details className="followup-details" open={entries.length > 0}>
       <summary>Follow-up walkthrough</summary>
-      <p className="small muted">Move the Demo clock to see each private step. Nothing is sent.</p>
       <label className="composer-channel">Follow-up task<select aria-label="Follow-up task" value={selected} onChange={e => setSelected(e.target.value)}>{state.nodes.filter(n => !n.source.startsWith("SEO Ghost Owner Protocol")).map(n => <option key={n.id} value={n.id}>{n.title}</option>)}</select></label>
       <ol className="protocol-log" data-testid="protocol-log">{entries.map(e => {
         const c = state.silenceCases.find(c => c.id === e.caseId)

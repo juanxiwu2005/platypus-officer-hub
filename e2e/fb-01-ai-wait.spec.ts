@@ -73,14 +73,15 @@ test("Reminder: a stalled AI endpoint does not delay the rule-written draft", as
   await page.route("**/api/nudge/draft", route => { calls++; return route.abort() })
   const ai: string[] = []
   page.on("request", r => { if (/\/api\/(?:nudge|chat|command|ask)/.test(r.url())) ai.push(r.url()) })
-  await enableUpdatedReminders(page)
-  // Concept F: today's reminder is the person's combined email, opened in the rail from the Reminders page.
-  await page.getByTestId("rq-person").first().locator(".dg-person-head").click()
-  const panel = page.getByTestId("digest-panel")
-  await expect(panel.getByRole("link", { name: "Open Gmail draft" })).toBeVisible()
+  await enableUpdatedReminders(page, "review_then_self")   // the Gmail draft path; the sample club starts on review_then_auto
+  // Concept F / S2: today's reminder is the person's combined email, opened in place on the Reminders page.
+  const panel = page.getByTestId("rq-person").first()
+  await panel.getByTestId("rq-person-toggle").click()
+  await expect(panel.getByRole("link", { name: "Open in Gmail" })).toBeVisible()
   await expect(panel.getByTestId("ai-wait")).toHaveCount(0)
-  await expect(panel.getByTestId("digest-body")).toContainText("Task due:")
-  await expect(panel.getByTestId("digest-body")).toContainText("Thank you")
+  // R-S0: the email opens as an editable draft.
+  await expect(panel.getByTestId("rq-draft-body")).toHaveValue(/Task due:/)
+  await expect(panel.getByTestId("rq-draft-body")).toHaveValue(/Thank you/)
   expect(await scan(page)).toEqual([])
   expect(calls).toBe(0)
   expect(ai).toEqual([])
@@ -90,12 +91,13 @@ test("Reminder: available AI text is not requested or substituted into the rule 
   await health(page)
   let calls = 0
   await page.route("**/api/nudge/draft", route => { calls++; return route.fulfill({ json: { whyItMatters: "UNREQUESTED AI LINE" } }) })
-  await enableUpdatedReminders(page)
-  await page.getByTestId("rq-person").first().locator(".dg-person-head").click()
-  const panel = page.getByTestId("digest-panel")
-  await expect(panel.getByTestId("digest-body").getByRole("link", { name: "Open task", exact: true }).first()).toBeVisible()
-  await expect(panel.getByTestId("digest-mail")).not.toContainText("UNREQUESTED AI LINE")
-  expect(decodeURIComponent((await panel.getByRole("link", { name: "Open Gmail draft" }).getAttribute("href"))!)).not.toContain("UNREQUESTED AI LINE")
+  await enableUpdatedReminders(page, "review_then_self")   // the Gmail draft path; the sample club starts on review_then_auto
+  const panel = page.getByTestId("rq-person").first()
+  await panel.getByTestId("rq-person-toggle").click()
+  await expect(panel.getByTestId("rq-draft-body")).toHaveValue(/^\[Open task: [^\]]+\]$/m)
+  await expect(panel.getByTestId("rq-draft-body")).not.toHaveValue(/UNREQUESTED AI LINE/)
+  await expect(panel.getByTestId("rq-draft-subject")).not.toHaveValue(/UNREQUESTED AI LINE/)
+  expect(decodeURIComponent((await panel.getByRole("link", { name: "Open in Gmail" }).getAttribute("href"))!)).not.toContain("UNREQUESTED AI LINE")
   await expect(panel.getByTestId("ai-wait")).toHaveCount(0)
   expect(calls).toBe(0)
 })

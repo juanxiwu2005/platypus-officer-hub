@@ -6,7 +6,7 @@ const text = onboardingCopy.founder.constitution
 
 /**
  * Prepare constitution text for the walkthrough: read the file in this browser, hide emails and phone numbers, refuse credentials, fingerprint it.
- * Same steps as `prepare` inside components/setup/ConstitutionStep.tsx (which is not exported and must not change), using the same shared helpers.
+ * It uses the shared helpers in lib/readDocument.ts.
  * Nothing is sent anywhere here.
  */
 export async function prepareDoc(fileName: string, raw: string, file?: File): Promise<ConstitutionDoc> {

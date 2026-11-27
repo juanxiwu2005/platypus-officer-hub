@@ -63,9 +63,12 @@ export function messageText(draft: NudgeDraft, origin: string, nodeId: string, g
   const url = (action?: string) => grant ? officerUrl(origin, grant, action) : taskReplyUrl(origin, nodeId, action)
   return `${draft.subject}\n\n${draft.body}\n\nTask: ${url()}\n${STATUS_ACTIONS.map(a => `${a.label}: ${url(a.key)}`).join("\n")}`
 }
-/** Demo recipients are intentionally blank: the sender chooses a fictional/demo destination. */
-export function composeUrl(channel: Channel, message: string, subject: string): string {
+/**
+ * Demo recipients are intentionally blank: the sender chooses a fictional/demo destination. `to` (optional, email only)
+ * fills Gmail's To field, as the Cheers draft does with the recipient's address; without it the address is unchanged.
+ */
+export function composeUrl(channel: Channel, message: string, subject: string, to?: string): string {
   if (channel === "whatsapp") return `https://wa.me/?text=${encodeURIComponent(message)}`
   if (channel === "sms") return `sms:?body=${encodeURIComponent(message)}`
-  return `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`
+  return `https://mail.google.com/mail/?view=cm&fs=1${to ? `&to=${encodeURIComponent(to)}` : ""}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`
 }

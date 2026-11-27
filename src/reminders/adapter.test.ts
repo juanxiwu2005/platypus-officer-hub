@@ -7,8 +7,8 @@ import { addDays } from "../lib/dates"
 import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
 import { buildReminderMail } from "./mail"
 import { makeTaskAccessGrant, taskAccessUrl } from "./taskAccess"
-import { sendReminderBatch } from "./delivery"
 import { planReminders } from "./engine"
+import { planReminderDigests, sendReminderDigests } from "./digest"
 import { remindersEnabled } from "./adapter"
 import { clubDraft } from "../data/settings"
 import { grantToken, makeOfficerGrant } from "../lib/officerLinks"
@@ -27,8 +27,10 @@ const replyWaiting = (s: DemoState, recipient = "sam") => reducer({ ...s, viewer
 async function record(s: DemoState) {
   const candidate = plan(s).ready[0]
   if (s.org.settings.reminderMode === "auto_email") {
+    // The live automatic path (useAutomaticReminders): one person digest per recipient, recorded all-or-nothing.
     let current = s
-    await sendReminderBatch({getState: () => current, tryDispatch: a => {const next = reducer(current, a); if (next === current) return false; current = next; return true}}, [candidate.id], "https://demo.example.org", "automatic")
+    const store = { getState: () => current, tryDispatch: (a: Parameters<typeof reducer>[1]) => { const next = reducer(current, a); if (next === current) return false; current = next; return true } }
+    await sendReminderDigests(store, planReminderDigests(current).groups.map(g => g.id), "https://demo.example.org", "automatic")
     return current
   }
   const grant = await makeTaskAccessGrant(s, candidate.nodeId, candidate.waitingRequestId)
@@ -41,12 +43,13 @@ async function record(s: DemoState) {
 
 beforeEach(() => { localStorage.clear(); vi.stubGlobal("crypto", webcrypto) })
 
-describe("stage one: actual reducer integration, without changing legacy activation", () => {
-  it("does not silently activate an old saved club, and only leads can enable the new rules", () => {
+describe("stage one: actual reducer integration", () => {
+  it("upgrades an old saved club automatically on load (S2), while the explicit action stays lead-only", () => {
     const s = fixture()
     localStorage.setItem(STORAGE_KEY, JSON.stringify(s))
     const loaded = loadState()
-    expect(loaded.reminderRuntime).toBeUndefined()
+    expect(loaded.reminderRuntime?.version).toBe(2)
+    expect(loaded.reminderRuntime).toEqual(enable(s).reminderRuntime)
     expect(loaded.nodes).toEqual(s.nodes)
     const officer = { ...s, viewerId: "jordan" }
     expect(reducer(officer, { type: "enableReminderPlan" }).reminderRuntime).toBeUndefined()

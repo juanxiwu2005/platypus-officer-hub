@@ -1,0 +1,136 @@
+/* Cheers (R1, 2026-11-26): the personal card on Team (F1), Give points in the rail (F2), the history dialog (F3), the
+   thank prompt in Task Details (F4), received cards (F5) and the president's weekly line (F7).
+   Screens: docs/prototypes/cheers-r1-final/. Tokens only (docs/DESIGN_TOKENS.md); motion is opacity/transform with
+   token durations, so Reduce Motion makes it near-instant; nothing transitions layout properties. */
+
+/* F1 · Your cheers */
+.ch-mine { display: grid; gap: var(--s5); align-content: start; }
+.ch-mine > header { margin-bottom: 0; }
+.ch-stats { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); }
+.ch-stat { background: var(--surface-2); border-radius: var(--r-md); padding: var(--s5); display: grid; gap: var(--s1); align-content: start; min-width: 0; }
+.ch-stat b { font-family: var(--serif); font-size: var(--fs-2xl); line-height: 1.1; color: var(--accent-ink); }
+.ch-stat b small { font-family: var(--sans); font-size: var(--fs-md); color: var(--muted); font-weight: 600; }
+.ch-stat > span { font-size: var(--fs-sm); color: var(--muted); }
+.ch-meter { height: 6px; border-radius: var(--r-pill); background: var(--line); overflow: hidden; margin-top: var(--s2); }
+.ch-meter i { display: block; height: 100%; background: var(--accent); border-radius: var(--r-pill); transform: scaleX(var(--ch-fill, 0)); transform-origin: left center; transition: transform var(--dur-base) var(--ease-out); }
+.ch-feed { list-style: none; margin: 0; padding: 0; display: grid; }
+.ch-fi { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--s5); align-items: start; padding: var(--s4) 0; border-bottom: 1px solid var(--line); }
+.ch-fi:last-child { border-bottom: 0; }
+.ch-fi-main { min-width: 0; display: grid; gap: var(--s1); justify-items: start; }
+.ch-fi-who { font-size: var(--fs-md); }
+/* Team card rows: who and when on one line; the note shows in the row's hover card (or a tap sheet on a phone). */
+.ch-fi.compact .ch-fi-main { display: grid; gap: var(--s1); }
+.ch-fi-trigger { border-radius: var(--r-xs); cursor: default; }
+.ch-hc-note { overflow-wrap: anywhere; }
+/* The note card takes the pointer while shown, like a card with buttons (styles.css), and the strip below it bridges the
+   gap, so moving onto a long note to read it does not close it. */
+.ch-hover:hover > .hover-card, .ch-hover:focus-within > .hover-card { pointer-events: auto; }
+.ch-hover > .hover-card::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: var(--s4); }
+/* History (F3) shows every note in full; only a compact Team row would clamp one to two lines. */
+.ch-fi-note { margin: 0; font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
+.ch-fi.compact .ch-fi-note { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.ch-d { white-space: nowrap; }
+.ch-dir { font-size: var(--fs-xs); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; border-radius: var(--r-sm); padding: 0 var(--s3); margin-right: var(--s3); }
+.ch-dir.in { background: var(--accent-soft); color: var(--accent-ink); }
+.ch-dir.out, .ch-dir.cc { background: var(--surface-2); color: var(--muted); }
+.ch-pts { font-weight: 700; white-space: nowrap; font-size: var(--fs-md); }
+.ch-pts.in { color: var(--accent-ink); }
+.ch-pts.out, .ch-pts.cc { color: var(--muted); }
+.ch-pts.cc { font-weight: 600; }
+.ch-actions { display: flex; gap: var(--s4); justify-content: flex-end; flex-wrap: wrap; }
+.ch-empty { display: flex; align-items: center; justify-content: space-between; gap: var(--s5); flex-wrap: wrap; }
+.ch-empty p { margin: 0; }
+
+/* F2 · Give points */
+.ch-panel { display: grid; gap: var(--s6); padding: var(--s6) var(--s6) var(--s7); }
+.ch-head { display: flex; align-items: baseline; gap: var(--s5); flex-wrap: wrap; }
+.ch-title { font-size: var(--fs-lg); margin: 0; }
+.ch-left { margin-left: auto; font-size: var(--fs-sm); color: var(--muted); }
+.ch-label { display: block; font-size: var(--fs-sm); color: var(--muted); margin-bottom: var(--s3); }
+/* R1.1: a small asterisk marks the required note (screen readers hear "required" from the hidden text and aria-required). */
+.ch-req { color: var(--muted); margin-left: var(--s1); }
+.ch-hint { font-size: var(--fs-xs); color: var(--muted); }
+.ch-cc-hint { margin: var(--s2) 0 0; }
+.ch-seg { display: flex; gap: var(--s3); flex-wrap: wrap; }
+.ch-seg .chip { min-height: 32px; }
+.ch-seg .chip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
+/* R1.1 points: − [number] + */
+.ch-stepper { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.ch-step { min-width: 40px; min-height: 40px; padding: 0; justify-content: center; font-size: var(--fs-lg); line-height: 1; }
+.ch-points { width: 7.5em; min-height: 40px; border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s3) var(--s4); background: var(--surface); font-size: var(--fs-md); font-weight: 600; color: var(--ink); text-align: center; font-variant-numeric: tabular-nums; }
+.ch-stepper .ch-hint { margin-left: var(--s2); }
+.ch-field { display: flex; align-items: center; gap: var(--s4); border: 1px solid var(--line); border-radius: var(--r-md); padding: 0 0 0 var(--s5); background: var(--surface); }
+.ch-field:focus-within { border-color: var(--accent); }
+.ch-field select { flex: 1; min-width: 0; border: 0; background: transparent; font-size: var(--fs-md); padding: var(--s4) var(--s5) var(--s4) 0; color: var(--ink); }
+.ch-field select:focus { outline: none; }
+.ch-select, .ch-add { width: 100%; border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s4) var(--s5); background: var(--surface); font-size: var(--fs-md); color: var(--ink); }
+.ch-add { width: auto; border-style: dashed; border-radius: var(--r-pill); padding: var(--s2) var(--s5); font-size: var(--fs-sm); color: var(--muted); }
+.ch-more { margin-top: var(--s3); }
+.ch-recips { list-style: none; margin: 0; padding: 0; display: flex; gap: var(--s3); flex-wrap: wrap; align-items: center; }
+.ch-recips > li:not(.ch-add-li) { display: inline-flex; align-items: center; gap: var(--s3); border: 1px solid var(--line); border-radius: var(--r-pill); padding: var(--s1) var(--s1) var(--s1) var(--s1); font-size: var(--fs-sm); background: var(--surface); }
+.ch-remove { border: 0; background: transparent; color: var(--muted); cursor: pointer; min-width: 24px; min-height: 24px; border-radius: var(--r-circle); font-size: var(--fs-xs); }
+.ch-remove:hover { color: var(--ink); }
+.ch-note { width: 100%; min-height: 86px; border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--s5); background: var(--surface); font-size: var(--fs-md); line-height: 1.5; color: var(--ink); resize: vertical; }
+.ch-note:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+.ch-count { display: flex; justify-content: space-between; gap: var(--s4); font-size: var(--fs-xs); color: var(--muted); margin-top: var(--s2); }
+/* R1.1 trophy picker: one quiet tile per emoji; the chosen one is outlined. */
+.ch-styles { display: flex; gap: var(--s3); flex-wrap: wrap; }
+.ch-sw { width: 44px; height: 40px; border-radius: var(--r-sm); border: 2px solid transparent; background: var(--surface-2); display: grid; place-items: center; font-size: var(--fs-lg); cursor: pointer; }
+.ch-sw.on { border-color: var(--accent); background: var(--accent-soft); }
+/* Received card backgrounds by trophy (the R1 values thanks, star and teamwork keep their colors). */
+.ch-card-thanks, .ch-card-rocket { background: var(--accent-soft); }
+.ch-card-star, .ch-card-trophy, .ch-card-idea { background: var(--warn-soft); }
+.ch-card-teamwork, .ch-card-party { background: var(--good-soft); }
+.ch-card-heart { background: var(--late-soft); }
+.ch-send { display: flex; align-items: center; justify-content: space-between; gap: var(--s5); flex-wrap: wrap; }
+.ch-panel .btn[disabled] { opacity: .45; cursor: not-allowed; }
+/* R1.1 confirmation before sending */
+.ch-confirm-text { margin: 0; }
+.ch-confirm-act { justify-content: flex-end; }
+
+/* F3 and F5 · dialogs */
+.ch-backdrop { position: fixed; inset: 0; z-index: var(--z-menu); background: color-mix(in srgb, var(--ink) 45%, transparent); display: grid; place-items: center; padding: var(--s6); animation: ch-fade var(--dur-fast) var(--ease-out); }
+.ch-modal { width: min(560px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: auto; background: var(--surface); border-radius: var(--r-lg); padding: var(--s7) var(--s7) var(--s7); display: grid; gap: var(--s5); box-shadow: var(--elev-3); animation: ch-rise var(--dur-base) var(--ease-out); }
+.ch-modal.narrow { width: min(440px, 100%); }
+.ch-modal:focus { outline: none; }
+.ch-mh { display: flex; align-items: center; gap: var(--s5); }
+.ch-mh h2 { font-size: var(--fs-xl); margin: 0; }
+.ch-x { margin-left: auto; }
+.ch-group { font-size: var(--fs-xs); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: var(--s3) 0 0; }
+.ch-privacy { margin: 0; }
+/* R1.1: the small "Email" link on a history row and a received card, and the email text it shows. */
+.ch-link { border: 0; background: transparent; padding: 0; font: inherit; color: var(--accent-ink); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; border-radius: var(--r-xs); min-height: 24px; }
+.ch-link:hover { color: var(--ink); }
+.ch-email { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); padding: var(--s5); display: grid; gap: var(--s2); justify-self: stretch; }
+.ch-email p { margin: 0; overflow-wrap: anywhere; }
+.ch-email-meta { font-size: var(--fs-xs); color: var(--muted); }
+.ch-email-subj { font-size: var(--fs-sm); font-weight: 600; }
+.ch-email-body { font-size: var(--fs-sm); white-space: pre-wrap; color: var(--ink); line-height: 1.5; }
+.ch-card { border-radius: var(--r-lg); padding: var(--s7); display: grid; gap: var(--s4); position: relative; overflow: hidden; }
+.ch-card-pts { font-family: var(--serif); font-size: var(--fs-2xl); font-weight: 700; color: var(--accent-ink); line-height: 1; }
+.ch-card-to { font-family: var(--serif); font-size: var(--fs-xl); font-weight: 700; margin: 0; padding-right: var(--s7); }
+.ch-card-why { margin: 0; font-size: var(--fs-md); line-height: 1.55; overflow-wrap: anywhere; color: var(--ink); }
+.ch-card-meta { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
+.ch-deco { position: absolute; right: var(--s6); top: var(--s5); font-size: var(--fs-2xl); }
+.ch-row { display: flex; align-items: center; gap: var(--s5); flex-wrap: wrap; }
+
+/* F4 · thank prompt; F7 · weekly line */
+.ch-banner { border-radius: var(--r-md); background: var(--good-soft); padding: var(--s5) var(--s6); display: flex; align-items: center; gap: var(--s5); flex-wrap: wrap; margin-bottom: var(--s6); }
+.ch-banner-icon { font-size: var(--fs-xl); line-height: 1; }
+.ch-banner-text { flex: 1; min-width: 0; display: grid; gap: var(--s1); }
+.ch-banner-text b { font-size: var(--fs-md); }
+.ch-strip { display: flex; align-items: center; gap: var(--s5); flex-wrap: wrap; margin-bottom: var(--s6); }
+.ch-strip p { margin: 0; flex: 1; min-width: 0; }
+.ch-strip-act { display: inline-flex; align-items: center; gap: var(--s3); margin-left: auto; }
+
+@keyframes ch-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ch-rise { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ch-backdrop, .ch-modal { animation: none; }
+  .ch-meter i { transition: none; }
+}
+@media (max-width: 860px) {
+  .ch-stats { gap: var(--s4); }
+  .ch-modal { padding: var(--s6); }
+  .ch-card { padding: var(--s6); }
+}

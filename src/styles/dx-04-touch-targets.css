@@ -1,6 +1,6 @@
 /* DX-04 touch targets (docs/design-upgrade/work-packages/DX-04-touch-targets.md).
    Only for a coarse pointer (a finger): main controls get a 44px target, small controls inside tables and cards at least 32px.
-   Tiny dots and swatches keep their look; an invisible area around them grows. A desktop with a mouse does not change at all.
+   Tiny dots keep their look; an invisible area around them grows. A desktop with a mouse does not change at all.
    Not here: .ask-fab and .rail (DX-09). */
 @media (pointer: coarse) {
   /* Main controls: 44px. */
@@ -13,14 +13,14 @@
   }
 
   /* Dense places (table rows, cards, small buttons): at least 32px. */
-  :is(.tbl, .board-card, .mini-card, .crm-card, .task-card, .menu, .m-menu) :is(.btn, .chip, select) {
+  :is(.tbl, .mini-card, .crm-card, .task-card, .menu, .m-menu) :is(.btn, .chip, select) {
     min-height: 32px;
   }
   :is(.owner-chip button, .step-chip button, .focus-chip button) { min-width: 32px; min-height: 32px; }
+  .tbl .group-btn { min-height: 32px; }   /* S3: the task table is the Tasks page's only view, so its group headers are tapped on a phone */
   :is(.check-label, .checks label, .who-picks label) { min-height: 32px; }
 
   /* Small marks keep their size; the area you can hit around them grows to about 32px. */
-  .swatch::after { inset: -6px; }
   .info::after { inset: -8px; }
   .chain-btn::after { inset: -10px; }
   /* A flow-chart dot is 24px with a 2.5px ring, and the invisible area starts inside the ring: -6.5px makes it 32px. */

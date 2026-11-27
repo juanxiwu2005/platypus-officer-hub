@@ -3,7 +3,6 @@ import AxeBuilder from "@axe-core/playwright"
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { EVENT_STEPS } from "../src/engine/playbooks"
 import { closeRail, noOverflow } from "./helpers"
-import { openMenu } from "./workflowLegacyHelpers"
 import { addDays } from "../src/lib/dates"
 import type { DemoState } from "../src/data/types"
 
@@ -54,15 +53,16 @@ test("the original 46-step template opens fully grouped with four preset teams",
 })
 
 test("arbitrary team names survive reload and the preset still creates grouped Plan tasks", async ({ page }) => {
-  await page.goto("/#/settings")
+  // Teams are renamed in Roles & teams (Workflow no longer has its own Teams panel).
+  await page.goto("/#/settings?tab=roles")
   await closeRail(page)
-  await page.getByRole("button", { name: "Workflow", exact: true }).click()
-  await expect(page.getByTestId("workflow-builder")).toBeVisible()
+  await expect(page.getByTestId("org-chart")).toBeVisible()
   const before = await read(page)
   const renamed = ["Board", "Event crew", "Storytelling", "Resources"]
-  await openMenu(page, "More", "Teams")
-  for (let i = 0; i < before.org.workflowTeams!.length; i++) await page.getByLabel(`Team name: ${before.org.workflowTeams![i].name}`, { exact: true }).fill(renamed[i])
-  await page.getByRole("button", { name: "Save teams", exact: true }).click()
+  for (let i = 0; i < before.org.workflowTeams!.length; i++) {
+    await page.locator(`[data-testid="team-zone"][data-team-id="${before.org.workflowTeams![i].id}"] button`).first().click()
+    await page.getByTestId("roles-inspector").getByLabel("Team name", { exact: true }).fill(renamed[i])
+  }
   await expect.poll(async () => (await read(page)).org.workflowTeams?.map(team => team.name)).toEqual(renamed)
   await page.reload()
   await page.getByRole("button", { name: "Workflow", exact: true }).click()

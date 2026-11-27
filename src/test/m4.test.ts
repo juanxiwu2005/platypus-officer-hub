@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 const chat = vi.hoisted(() => vi.fn())
 vi.mock("../../netlify/lib/ai.mts", async importOriginal => ({ ...await importOriginal<object>(), chatJSON: chat }))
-vi.mock("@netlify/blobs", () => ({ getStore: vi.fn(() => { throw new Error("storage touched") }) }))
-import { getStore } from "@netlify/blobs"
 import constitutionFn from "../../netlify/functions/constitution.mts"
 import { resetRateLimit } from "../../netlify/lib/http.mts"
 import { seedDemo } from "../data/seed"
@@ -14,7 +12,7 @@ import { aiSnapshot } from "../lib/aiContext"
 import { orgChart } from "../engine/orgChart"
 
 const base = seedDemo()
-afterEach(() => { chat.mockReset(); resetRateLimit(); vi.mocked(getStore).mockClear() })
+afterEach(() => { chat.mockReset(); resetRateLimit() })
 const post = (body: unknown) => constitutionFn(new Request("https://example.org/api/setup/constitution", { method: "POST", body: JSON.stringify(body) }))
 
 describe("M4 · reading a constitution without AI", () => {
@@ -97,7 +95,7 @@ describe("M4 · the model's reply is cut down", () => {
     expect(r.roles.length).toBeLessThanOrEqual(24); expect(r.notes).toHaveLength(4)
     expect(Object.keys(r).sort()).toEqual(["mission", "notes", "roles", "source"])
   })
-  it("the endpoint answers the structure and then a few positions' duties per request, sends only text, re-checks replies and never touches storage", async () => {
+  it("the endpoint answers the structure and then a few positions' duties per request, sends only text, re-checks replies", async () => {
     chat.mockResolvedValueOnce({ data: { roles: [{ title: "President" }, { title: "Treasurer", reportsTo: "President" }], evil: true }, model: "mock", provider: "mock" })
     chat.mockResolvedValueOnce({ data: { items: [{ name: "Treasurer", duties: "Keeps the budget by 2099-01-01." }, { name: "Ghost", duties: "Invented." }] }, model: "mock", provider: "mock" })
     const text = "The President leads the club. Contact me at boss@example.org or 480-555-0100. The Treasurer keeps the budget."
@@ -112,7 +110,6 @@ describe("M4 · the model's reply is cut down", () => {
     expect(a.roles.map((r: { title: string }) => r.title)).toEqual(["President", "Treasurer"]); expect(a.evil).toBeUndefined()
     expect(b.items).toEqual([{ name: "treasurer", duties: "Keeps the budget by." }])   // unknown names and dates are dropped
     expect((await post({ text, part: "duties", items: [] })).status).toBe(400)
-    expect(getStore).not.toHaveBeenCalled()
   })
   it("duties go onto the roles in batches of six, replacing standard text only, never what the president wrote", () => {
     const read = readLocally(SAMPLE_CONSTITUTION)

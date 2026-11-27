@@ -16,7 +16,7 @@ export function TaskDueFields({ due, onDue }: { due: string; onDue: (d: string) 
     <label>Due<input type="date" aria-label="Due" value={due} min={state.today} onChange={e => onDue(e.target.value)} /></label>
     {valid && <p className="small muted" data-testid="club-deadline">Due <b>{fmtLong(due)}</b></p>}
     {valid && <BtsRow>
-      <Bts label="Rule engine">A new task has one date, its due date. The club buffer in Settings applies only to event steps with an ASU deadline.</Bts>
+      <Bts label="Rule engine">A new task has one date, its due date. Days early (Settings) apply only to event steps with an ASU deadline.</Bts>
       <Bts label="Data">The due date is what you pick; the default is today plus the number of days set in Settings. The assistant never supplies a date.</Bts>
     </BtsRow>}
   </>

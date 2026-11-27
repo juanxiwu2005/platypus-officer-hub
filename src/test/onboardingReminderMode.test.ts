@@ -1,47 +1,53 @@
 import { describe, expect, it } from "vitest"
-import { readFileSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { seedDemo } from "../data/seed"
 import { clubDraft, completeSetup, saveClubSettings, startWorkspace } from "../data/settings"
 import { reducer } from "../data/store"
-import { REMINDER_MODES, isReminderMode } from "../data/reminderMode"
+import { REMINDER_MODES, REMINDER_MODE_COPY, isReminderMode } from "../data/reminderMode"
 import type { ReminderMode } from "../data/types"
 import { parseCommand } from "../lib/commands"
-import { FOUNDER_STEPS } from "../onboarding/engine/flows"
+import { FOUNDER_STEPS, stepAt } from "../onboarding/engine/flows"
 import { FLOW_VERSION } from "../onboarding/record"
 import { onboardingCopy } from "../onboarding/copy"
-import { reminderLine } from "../onboarding/founder/confirm/summary"
 
-// P3-H (Juanxi 2026-11-08): the founder walkthrough asks how reminders should reach officers. The answer is only stored and exported:
-// org.settings.reminderMode, absent after Skip for now. Nothing in the app sends because of it.
+// S2 (Juanxi 2026-11-22): the founder walkthrough no longer asks how reminders go out (flow version ob-5; ob-6 since S6). New clubs start with the default
+// (completeSetup, src/data/settings.ts); the president changes it in Settings. The three choices and their labels stay for Settings and Reminders.
+// P3-H (2026-11-08) introduced the screen in ob-4; older exports still carry its answer (src/test/studySession.test.tsx).
 const base = () => seedDemo("2026-10-22")
 const code = "12345678-1234-1234-1234-123456789abc"
-const c = onboardingCopy.founder.reminders
-const words = (s: string) => s.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length
+// The labels live only in src/data/reminderMode.ts now; the onboarding copy no longer carries a founder Reminders block.
+const c = REMINDER_MODE_COPY
+const read = (f: string) => readFileSync(join(__dirname, "..", f), "utf8")
 
-describe("the Reminders screen in the founder flow", () => {
-  it("is optional and sits after First event and before Confirm; the flow version says so", () => {
-    const ids = FOUNDER_STEPS.map(s => s.id)
-    expect(ids.indexOf("founder.reminders")).toBe(ids.indexOf("founder.first-event") + 1)
-    expect(ids.indexOf("founder.confirm")).toBe(ids.indexOf("founder.reminders") + 1)
-    expect(FOUNDER_STEPS.find(s => s.id === "founder.reminders")).toMatchObject({ path: "founder/reminders", label: "Reminders", optional: true })
-    expect(FLOW_VERSION).toBe("ob-4")
+describe("the founder flow without the Reminders screen (since ob-5)", () => {
+  it("has three steps since ob-6, none of them Reminders, and the flow version says so", () => {
+    expect(FLOW_VERSION).toBe("ob-6")
+    expect(FOUNDER_STEPS.map(s => s.id)).toEqual(["founder.name", "founder.team", "founder.invite"])
+    expect(FOUNDER_STEPS.some(s => /reminder/i.test(s.id) || /reminder/i.test(s.path) || /reminder/i.test(s.label))).toBe(false)
+    expect(stepAt("/welcome/founder/reminders")).toBeNull()
   })
-  it("offers the three answers in a fixed order, each a short title and one line, within the 60-word screen", () => {
+  it("removes the screen, its stylesheet and its draft field; Start workspace (on Team) passes no reminder choice", () => {
+    expect(existsSync(join(__dirname, "../onboarding/founder/ReminderMode.tsx"))).toBe(false)
+    expect(existsSync(join(__dirname, "../styles/ob-10-reminder-mode.css"))).toBe(false)
+    expect(read("styles/index.css")).not.toMatch(/ob-10-reminder-mode/)
+    expect(read("onboarding/draft.tsx")).not.toMatch(/reminderMode/)
+    const team = read("onboarding/founder/Team.tsx")
+    expect(team).not.toMatch(/reminderMode|confirm-reminders/)
+    expect(team).toMatch(/type: "completeSetup"/)
+    expect("reminders" in onboardingCopy.founder || "reminderMode" in onboardingCopy.founder.team).toBe(false)
+  })
+  it("sends the old address on to Team, which now finishes setup (Confirm folded into it in ob-6)", () => {
+    expect(read("App.tsx")).toMatch(/<Route path="founder\/reminders" element=\{<Redirect to="\/welcome\/founder\/team" \/>\} \/>/)
+  })
+})
+
+describe("the three reminder choices (still used by Settings and Reminders)", () => {
+  it("keep a fixed order, each a short title and one line", () => {
     expect(REMINDER_MODES).toEqual(["auto_email", "review_then_self", "review_then_auto"])
     expect(REMINDER_MODES.map(m => c.options[m].title)).toEqual(["Send automatically", "I review, then I send", "I review, Platypus sends"])
-    const text = [c.title, c.lead, ...REMINDER_MODES.flatMap(m => [c.options[m].title, c.options[m].body]), c.demo, onboardingCopy.back, onboardingCopy.next, onboardingCopy.skip].join(" ")
-    expect(words(text)).toBeLessThanOrEqual(60)
-    expect(c.demo).toMatch(/no email is ever sent/)
-  })
-  it("starts with nothing chosen: the draft default is null and no radio is checked by default in the screen", () => {
-    const screen = readFileSync(join(__dirname, "../onboarding/founder/ReminderMode.tsx"), "utf8")
-    expect(screen).toMatch(/checked=\{draft\.reminderMode === mode\}/)
-    expect(screen).not.toMatch(/defaultChecked/)
-    expect(screen).toMatch(/disabled=\{!draft\.reminderMode\}/)
-    expect(readFileSync(join(__dirname, "../onboarding/draft.tsx"), "utf8")).toMatch(/reminderMode: null/)
-    // The screen never reaches the network or storage itself; the shared draft keeps the answer.
-    expect(screen).not.toMatch(/fetch\(|localStorage|indexedDB|\/api\//)
+    for (const m of REMINDER_MODES) expect(c.options[m].body.length).toBeGreaterThan(0)
+    expect(c.title).toBe("How should reminders go out?")
   })
   it("isReminderMode accepts only the three values", () => {
     for (const m of REMINDER_MODES) expect(isReminderMode(m)).toBe(true)
@@ -49,7 +55,7 @@ describe("the Reminders screen in the founder flow", () => {
   })
 })
 
-describe("Start workspace keeps the answer in org.settings.reminderMode", () => {
+describe("completeSetup with an explicit reminder choice", () => {
   it("stores each of the three answers (completeSetup and startWorkspace), and changes nothing about sending", () => {
     for (const mode of REMINDER_MODES) {
       const s = base(), d = clubDraft(s)
@@ -62,12 +68,12 @@ describe("Start workspace keeps the answer in org.settings.reminderMode", () => 
       expect(ws.org.settings.sendMode).toBe("review")
     }
   })
-  it("leaves it absent after Skip for now (null or nothing), and drops an answer from an earlier setup", () => {
+  it("without an answer (null or nothing) a new club gets the default review_then_auto (S2), never an earlier setup's answer", () => {
     const s = base(), d = clubDraft(s)
-    expect("reminderMode" in completeSetup(s, d, null, "", code).org.settings).toBe(false)
-    expect("reminderMode" in completeSetup(s, d, null, "", code, undefined, undefined, undefined, null).org.settings).toBe(false)
+    expect(completeSetup(s, d, null, "", code).org.settings.reminderMode).toBe("review_then_auto")
+    expect(completeSetup(s, d, null, "", code, undefined, undefined, undefined, null).org.settings.reminderMode).toBe("review_then_auto")
     const earlier = completeSetup(s, d, null, "", code, undefined, undefined, undefined, "auto_email")
-    expect("reminderMode" in startWorkspace(earlier, clubDraft(earlier), null, "", code, undefined, undefined, undefined, null).org.settings).toBe(false)
+    expect(startWorkspace(earlier, clubDraft(earlier), null, "", code, undefined, undefined, undefined, null).org.settings.reminderMode).toBe("review_then_auto")
   })
   it("refuses a value that is not one of the three", () => {
     const s = base(), d = clubDraft(s)
@@ -80,27 +86,14 @@ describe("Start workspace keeps the answer in org.settings.reminderMode", () => 
     const next = reducer(s, { type: "completeSetup", draft: d, event, date: "2026-11-19", inviteCode: code, reminderMode: "review_then_auto" })
     expect(next.org.settings.reminderMode).toBe("review_then_auto")
     expect(next.events.some(e => e.id.startsWith("setup-event-"))).toBe(true)
-    expect("reminderMode" in reducer(s, { type: "completeSetup", draft: d, event: null, date: "", inviteCode: code }).org.settings).toBe(false)
+    expect(reducer(s, { type: "completeSetup", draft: d, event: null, date: "", inviteCode: code }).org.settings.reminderMode).toBe("review_then_auto")
   })
-  it("survives saving the club's settings page (old data without it stays valid)", () => {
+  it("survives saving the club's settings page", () => {
     const s = base()
     const club = completeSetup(s, clubDraft(s), null, "", code, undefined, undefined, undefined, "review_then_self")
     expect(saveClubSettings(club, clubDraft(club), structuredClone(club.org.settings)).org.settings.reminderMode).toBe("review_then_self")
-    expect(saveClubSettings(s, clubDraft(s), { ...s.org.settings, clubBufferBusinessDays: 4 }).org.settings.reminderMode).toBeUndefined()
-  })
-  it("Confirm names the answer in a few words", () => {
-    expect(reminderLine("auto_email")).toBe("Reminders: Send automatically.")
-    expect(reminderLine("review_then_self")).toBe("Reminders: I review, then I send.")
-    expect(reminderLine("review_then_auto")).toBe("Reminders: I review, Platypus sends.")
-  })
-})
-
-describe("the Reminders stylesheet", () => {
-  it("uses tokens only, no !important and no motion (a choice shows at once)", () => {
-    const css = readFileSync(join(__dirname, "../styles/ob-10-reminder-mode.css"), "utf8")
-    expect(css).not.toMatch(/!important/)
-    expect(css).not.toMatch(/#[0-9a-fA-F]{3,8}\b/)
-    expect(css).not.toMatch(/\b(transition|animation)\s*:/)
-    expect(readFileSync(join(__dirname, "../styles/index.css"), "utf8")).toMatch(/@import "\.\/ob-10-reminder-mode\.css";/)
+    const { reminderMode: _none, ...oldSettings } = s.org.settings; void _none
+    const old = { ...s, org: { ...s.org, settings: oldSettings } }
+    expect(saveClubSettings(old, clubDraft(old), { ...oldSettings, clubBufferBusinessDays: 4 }).org.settings.reminderMode).toBeUndefined()
   })
 })

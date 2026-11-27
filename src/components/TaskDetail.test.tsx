@@ -58,7 +58,7 @@ describe("the universal task page and edit drawer", () => {
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Student Union, Room 204" } })
     fireEvent.change(screen.getByLabelText("Attach files"), { target: { files: [new File(["hello"], "booking.txt", { type: "text/plain" }), new File(["plan"], "room.txt", { type: "text/plain" })] } })
     await screen.findByRole("button", { name: "Download booking.txt" })
-    await waitFor(() => expect(screen.getByTestId("task-autosave-status").textContent).toContain("Draft saved automatically"))
+    await waitFor(() => expect(screen.getByTestId("task-autosave-status").textContent).toContain("Draft saved"))
     expect(store.state.nodes[0].status).toBe("accepted")
     expect(store.state.nodes[0].taskWork).toBeUndefined()
     const draft = store.state; cleanup(); await show(draft)
@@ -86,7 +86,7 @@ describe("the universal task page and edit drawer", () => {
     const write = Storage.prototype.setItem
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(function(this: Storage, key, value) { if (key === STORAGE_KEY) throw new Error("Storage full"); write.call(this, key, value) })
     fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
-    await waitFor(() => expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toContain("not saved"))
+    await waitFor(() => expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toBe("Can't save in this browser."))   // the store knows the cause
     expect(store.state.nodes[0].status).toBe("accepted")
     expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Keep this result")
     expect(screen.getByRole("button", { name: "Download booking.txt" })).toBeTruthy()
@@ -149,7 +149,7 @@ describe("the universal task page and edit drawer", () => {
     const blocked = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function(this: Storage, key, value) { if (key === STORAGE_KEY) throw new Error("Storage unavailable"); write.call(this, key, value) })
     fireEvent.click(undo)
     expect(store.state.nodes[0].status).toBe("done")
-    expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toContain("not reopened")
+    expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toBe("Can't save in this browser.")
     blocked.mockRestore()
     fireEvent.click(undo)
     expect(store.state.nodes[0].status).toBe("accepted")
@@ -163,6 +163,20 @@ describe("the universal task page and edit drawer", () => {
     fireEvent.change(screen.getByRole("combobox", { name: "Task status" }), { target: { value: "blocked" } })
     expect(store.state.nodes[0].status).toBe("blocked")
     expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toContain("Room 204")
+  })
+  it("keeps Undo mark done after Task Details is closed and reopened, until a reload or a newer change (S3)", async () => {
+    await show(fixture({ id: "undo-reopen" }))
+    fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room 204" } })
+    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
+    await screen.findByRole("button", { name: "Undo mark done" })
+    const finished = store.state
+    cleanup(); await show({ ...finished, nodes: finished.nodes.map(n => ({ ...n, ownerVersion: (n.ownerVersion ?? 0) + 1 })) })
+    expect(screen.queryByRole("button", { name: "Undo mark done" })).toBeNull()
+    cleanup(); await show(finished)
+    fireEvent.click(await screen.findByRole("button", { name: "Undo mark done" }))
+    expect(store.state.nodes[0].status).toBe("accepted")
+    const reopened = store.state; cleanup(); await show(reopened)
+    expect(screen.queryByRole("button", { name: "Undo mark done" })).toBeNull()
   })
   it("updates a target directly with selected teammates, preserves failed input, and removes the approval step", async () => {
     await show()
