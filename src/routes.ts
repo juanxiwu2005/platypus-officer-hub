@@ -4,7 +4,7 @@ export interface PageDef {
   path: string
   /** The navigation label. */
   label: string
-  /** The page head, when it differs from the label (FB-8: the Plan item opens the Events page). */
+  /** The page head, when it differs from the label (FB-8: Plan's Events half is headed "Events"). */
   title?: string
   icon: keyof typeof Icons
   /** The one question the page answers (plan §6). */
@@ -36,6 +36,21 @@ export const PAGES: PageDef[] = [
 
 /** Plan's two pages, in the order of the "Events | Tasks" switch. */
 export const PLAN_PAGES = [{ path: "/events", label: "Events" }, { path: "/tasks", label: "Tasks" }] as const
+
+const PLAN_VIEW_KEY = "platypus.v1.planView"
+/**
+ * Where the Plan navigation item opens (audit I1): the Tasks table its open-task count describes, unless this tab last
+ * chose Events on the "Events | Tasks" switch. sessionStorage only; blocked storage just means Tasks.
+ */
+export function planEntryPath(): string {
+  try { const last = sessionStorage.getItem(PLAN_VIEW_KEY); if (PLAN_PAGES.some(p => p.path === last)) return last! } catch { /* storage blocked */ }
+  return "/tasks"
+}
+/** Remember the Plan half a person is on, so Plan reopens it in this tab. */
+export function rememberPlanView(pathname: string) {
+  if (!PLAN_PAGES.some(p => p.path === pathname)) return
+  try { sessionStorage.setItem(PLAN_VIEW_KEY, pathname) } catch { /* storage blocked: Plan opens Tasks */ }
+}
 
 /** Is `item` the current navigation item at `pathname`? */
 export const isCurrent = (item: PageDef, pathname: string) => item.path === "/" ? pathname === "/" : [item.path, ...(item.also ?? [])].some(p => pathname === p || pathname.startsWith(`${p}/`))
