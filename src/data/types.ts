@@ -719,28 +719,35 @@ export interface DemoState {
   cheers?: CheerBook
 }
 
-/** Cheers (R1). A cheer is visible to its sender and its recipients only; its note never enters AI context or the research log. */
-export type CheerPoints = 10 | 25 | 50 | 100
-export type CheerCard = "thanks" | "star" | "teamwork"
+/**
+ * Cheers (R1; R1.1 amendments of 2026-11-26, docs/feedback-fix/CHEERS_R1_CONTRACT.md §8). A cheer is visible to its sender, its
+ * recipients and the officers they chose to let know (`ccIds`) only; its note never enters AI context or the research log.
+ */
+/** Whole points per recipient. New cheers give at least 100 (src/data/cheerRules.ts); older saves keep 10, 25, 50 or 100. */
+export type CheerPoints = number
+/** The trophy on the card. `thanks`, `star` and `teamwork` are the R1 card values and stay valid in older saves. */
+export type CheerCard = "trophy" | "star" | "thanks" | "teamwork" | "rocket" | "idea" | "party" | "heart"
 export interface Cheer {
   /** `ch-<n>`, assigned by the reducer. */
   id: string
   fromId: string
   /** 1–5 recipients; each costs the sender `points` from their weekly allowance. */
   toIds: string[]
+  /** "Let others know too": up to 5 current officers, not the sender or a recipient, who get a notice with the note. Never charged or credited. */
+  ccIds?: string[]
   points: CheerPoints
   /** Required, 10–280 characters after trimming: why the work was good. */
   note: string
-  /** The task the cheer is for, if any. */
+  /** The task the cheer is for, if any (set from the thank prompt on a finished task). */
   nodeId?: string
   card: CheerCard
   /** The demo date it was sent. */
   on: string
-  /** The sender chose "Also email" (a draft they send themselves; the app sends nothing). */
+  /** The recipients were told by email (every cheer since R1.1; the demo records it and sends nothing). R1 saves: the sender opened a draft. */
   email?: boolean
   /** Recipients who have seen the received card (shown once). */
   seenBy: string[]
-  /** Set when the sender withdrew it (same day only); a withdrawn cheer counts for nobody and is hidden. */
+  /** Set when an R1 sender withdrew it; a withdrawn cheer counts for nobody and is hidden. New withdrawals are refused since R1.1. */
   withdrawnOn?: string
 }
 export interface CheerBook {
