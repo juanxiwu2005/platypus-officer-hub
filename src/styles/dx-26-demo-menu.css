@@ -1,0 +1,27 @@
+/* DX-26 Demo menu and "Viewing as" line (audit finding I12).
+   "View as" and "AI features" moved from the top bar into the Demo menu, on a computer and on a phone alike, so the bar
+   holds the Demo pill, the bell and Ask only. Inside the menu the "View as" words sit above the select. */
+.menu .view-as { display: grid; gap: var(--s2); }
+.menu .view-as span { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
+.menu .view-as select { max-width: none; width: 100%; color: var(--ink); }
+.menu .more-org { margin: 0; color: var(--muted); font-size: var(--fs-md); }
+
+/* While the demo shows someone other than the president: a slim brand-toned line under the top bar (not a status color).
+   Its live-region wrapper stays on the page (empty, so no height) so a screen reader hears the line when it appears. */
+.viewing-as {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  padding: var(--s2) var(--s6);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-sm);
+  animation: viewing-as-in var(--dur-fast) var(--ease-out);
+}
+.viewing-as p { margin: 0; min-width: 0; flex: 1 1 auto; overflow-wrap: anywhere; }
+.viewing-as .btn { flex: none; }
+.viewing-as-hide svg { width: 16px; height: 16px; }
+@keyframes viewing-as-in { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 600px) { .viewing-as { padding: var(--s2) var(--s5); } }
+@media (prefers-reduced-motion: reduce) { .viewing-as { animation: none; } }
