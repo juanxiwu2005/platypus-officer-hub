@@ -3,7 +3,8 @@
 /* ---- Two columns (2026-11-28): summary, people and History on the left, Fix first on the right ---- */
 /* The page is a size container, so the columns follow the room the page really has (side rail open or closed), not the
    window. Fix first spans the three left rows; the last row is flexible, so a tall Fix first never pushes the people list
-   down. Stacked (narrow page, phone, or no Fix first), the order is the DOM order: summary, Fix first, people, History. */
+   down. Stacked (narrow page, phone, or no Fix first), the order is the DOM order, as before the split: summary, people,
+   Fix first, History. Fix first is placed explicitly, so the left column keeps summary, people and History in rows 1-3. */
 .dg { gap: var(--s5); container: dg / inline-size; }
 .dg-cols { display: grid; gap: var(--s5); align-items: start; }
 .dg-cols:empty { display: none; }

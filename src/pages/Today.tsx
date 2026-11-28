@@ -47,7 +47,7 @@ function useVisitOrder(list: DigestPerson[]): DigestPerson[] {
  * that person's email; the row's action follows the sending mode. History's Follow up opens a row here (`?person=`).
  * Step 0 (2026-11-27): one polite status line, always mounted, in the summary card (or the plan card when reminders cannot run).
  * Two columns (2026-11-28): on a wide page the summary and the people list sit on the left and Fix first on the right
- * (`.dg-cols`, digest-centre.css). Stacked, the order is the DOM order: summary, Fix first, people, History.
+ * (`.dg-cols`, digest-centre.css). Stacked, the order is the DOM order, as before the split: summary, people, Fix first, History.
  */
 function ReminderCentre({ q }: { q: Centre }) {
   const { state, tryDispatch, getState, persistenceFailed, automaticReminders, exportData } = useStore()
@@ -145,6 +145,12 @@ function ReminderCentre({ q }: { q: Centre }) {
         {!n && dc.nextCheck && <p className="dg-top-note" data-testid="rq-next">Next check: {fmtLong(dc.nextCheck.on)} · {dc.nextCheck.count} planned this week</p>}
         {status}
       </section>}
+      {ready && rows.length > 0 && <section className="card rq-section dg-people" aria-labelledby="dg-people-h" data-testid="rq-people">
+        <header><h2 id="dg-people-h">{Icons.team}Emails by person</h2></header>
+        <ul className="dg-list" aria-busy={busy || automaticReminders.busy}>{rows.map(p => <PersonRow key={p.recipientId} p={p} mode={q.mode} forecast={forecast} sendingAll={busy}
+          reveal={reveal?.id === p.recipientId ? reveal.n : 0} onAction={() => setFeedback("")} onSent={setFeedback} />)}</ul>
+        <BtsRow><Bts label="Rule engine">Order: overdue, due, other late tasks, then starts and follow-ups.</Bts></BtsRow>
+      </section>}
       {ready && dc.fix.length > 0 && <section className="card rq-section dg-fix" aria-labelledby="dg-fix-h" data-testid="rq-fix">
         {/* Read as "Fix first, 8", not "Fix first8". */}
         <header><h2 id="dg-fix-h" aria-label={`Fix first, ${dc.fix.length}`}>{Icons.alert}Fix first<span className="rq-n">{dc.fix.length}</span></h2></header>
@@ -158,12 +164,6 @@ function ReminderCentre({ q }: { q: Centre }) {
               : <button type="button" className="btn small" aria-label={`Open task: ${x.title}`} onClick={() => openFix(x)}>{x.opens === "waiting" ? "Open task" : x.action}</button>
             : <span />}
         </li>)}</ul>
-      </section>}
-      {ready && rows.length > 0 && <section className="card rq-section dg-people" aria-labelledby="dg-people-h" data-testid="rq-people">
-        <header><h2 id="dg-people-h">{Icons.team}Emails by person</h2></header>
-        <ul className="dg-list" aria-busy={busy || automaticReminders.busy}>{rows.map(p => <PersonRow key={p.recipientId} p={p} mode={q.mode} forecast={forecast} sendingAll={busy}
-          reveal={reveal?.id === p.recipientId ? reveal.n : 0} onAction={() => setFeedback("")} onSent={setFeedback} />)}</ul>
-        <BtsRow><Bts label="Rule engine">Order: overdue, due, other late tasks, then starts and follow-ups.</Bts></BtsRow>
       </section>}
       {history && <p className="dg-history-link" data-testid="rq-history">
         <button type="button" className="btn btn-quiet small" data-testid="open-history" onClick={() => rail.show({ kind: "reminderHistory" })}>History</button>
