@@ -287,3 +287,12 @@ These keep their own size, each for the reason given in `src/test/controlSizing.
 - Primer, Button: three sizes (small, medium as the default, large used sparingly) and at most one primary button per group.
 
 The pixel heights above are Platypus's own choice; none of these pages gives pixel heights for its tiers or rules for focus rings. Material's pages could not be read (they load only with JavaScript) and are not cited.
+
+## 13. Icons (since 2026-11-28)
+
+- **Source.** Every interface icon is a line icon in `src/components/icons.tsx`: a 24px grid, `fill: none`, `stroke: currentColor`, `strokeWidth` 1.8, round caps and joins, `aria-hidden="true"`. Add a new icon there in the same style, as one short path (`p("...")`) where possible, because the file ships in the entry bundle (budget: `e2e/bundle-performance.spec.ts`). Do not use emoji or a second icon set; reuse an existing icon before drawing a new one.
+- **Size.** Inside a control or a row, the glyph follows the tier: 16px in the small tier and in chips (14px in a pill such as "Sent"), 18px in the medium tier, navigation and list rows, 20px in the large tier. A section icon beside a card heading is a 32px tile (the avatar size) with the glyph centred by `--s3` padding and `--r-sm` corners.
+- **Colour.** The glyph is `currentColor`, so it takes the text colour around it, or a muted token (`--muted`) for a row icon. A tile pairs a soft background with its ink: `--accent-soft` / `--accent-ink` for ordinary sections, `--warn-soft` / `--warn` for a section that asks for attention (the reminder page's Fix first). Never a status colour for something that is not that status (section 5.3), and never a hex value.
+- **Always with a label.** An icon is never the only signal: it sits beside visible text that says the same thing (a heading, a chip, a button label). An icon-only button (`.icon-btn`) has an accessible name instead.
+- **Decorative.** Icons are `aria-hidden`; they never change an accessible name or a visible label. A heading's name stays its text (or its `aria-label`).
+- **Where they are used on the reminder page.** Summary card: `mail`; Emails by person: `team`; Fix first: `alert` (warn tile); Fix first rows: `wait` (Waiting on whom?), `stuck` (Stuck), `person` (Not claimed), `mail` (No valid email), `alert` (anything else), chosen by `problemIcon` in `src/reminders/ReasonChip.tsx`; the "Sent" pill: `check`.

@@ -1,4 +1,5 @@
 import { StatusPill } from "../components/ui"
+import { Icons } from "../components/icons"
 import type { NodeStatus } from "../data/types"
 
 /**
@@ -18,3 +19,7 @@ export function ProblemChip({ problem }: { problem: string }) {
   const status = STATUS_PROBLEM[problem]
   return status ? <StatusPill status={status} /> : <ReasonChip label={problem} />
 }
+
+/** The line icon at the start of a Fix first row (2026-11-28). Decorative: the chip beside it names the problem. */
+const PROBLEM_ICON: Record<string, JSX.Element> = { "No owner": Icons.person, "Waiting on whom?": Icons.wait, Stuck: Icons.stuck, "No valid email": Icons.mail }
+export const problemIcon = (problem: string) => PROBLEM_ICON[problem] ?? Icons.alert
