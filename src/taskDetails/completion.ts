@@ -2,9 +2,9 @@ import { useCallback, useSyncExternalStore } from "react"
 import type { TaskAuthorization } from "./contracts"
 
 /**
- * I3 (2026-11-27): one-click Mark done sits beside the status (TaskProgress), but completing keeps one path:
- * TaskSubmission's submit (saveTaskWork with submit: true) and its Undo mark done. TaskProgress only offers this
- * place, and TaskSubmission renders its Mark done or Undo there through a portal, so both share one permission check.
+ * I3 (2026-11-27) put a one-click Mark done beside the status. Juanxi (2026-11-28): it repeated Submit & mark done and
+ * did not match the primary button, so completing has one button again, under Details. TaskProgress still offers this
+ * place beside the status, where TaskSubmission renders its Undo mark done through a portal after completion.
  */
 const slots = new Map<string, HTMLElement>(), listeners = new Set<() => void>()
 const emit = () => listeners.forEach(l => l())

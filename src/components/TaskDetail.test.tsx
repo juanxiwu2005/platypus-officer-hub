@@ -208,23 +208,23 @@ describe("the universal task page and edit drawer", () => {
     const reopened = store.state; cleanup(); await show(reopened)
     expect(screen.queryByRole("button", { name: "Undo mark done" })).toBeNull()
   })
-  it("needs Details before the one-click Mark done or Submit & mark done, then completes and offers Undo beside the status", async () => {
+  it("needs Details before Submit & mark done, the one completion button, then completes and offers Undo beside the status", async () => {
     await show()
     const status = screen.getByTestId("single-task-status")
-    fireEvent.click(within(status).getByRole("button", { name: "Mark done" }))
+    // Juanxi (2026-11-28): no second Mark done beside the status.
+    expect(screen.queryByRole("button", { name: "Mark done" })).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
     expect((await screen.findByRole("alert")).textContent).toBe("Add the result in Details before you mark this done.")
     expect(document.activeElement).toBe(screen.getByLabelText("Details"))
     expect(screen.getByLabelText("Details").getAttribute("aria-invalid")).toBe("true")
-    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
     expect(store.state.nodes[0].status).toBe("accepted")
     expect(store.state.nodes[0].taskWork?.submissions ?? []).toHaveLength(0)
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room 204 booked" } })
     expect(screen.queryByRole("alert")).toBeNull()
-    fireEvent.click(within(status).getByRole("button", { name: "Mark done" }))
+    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
     await waitFor(() => expect(store.state.nodes[0].status).toBe("done"))
     expect(store.state.nodes[0].taskWork?.submissions).toMatchObject([{ authorId: "jordan", details: "Room 204 booked", attachmentIds: [] }])
     expect(screen.getByText("Marked done.").getAttribute("role")).toBe("status")
-    expect(within(status).queryByRole("button", { name: "Mark done" })).toBeNull()
     const undo = await within(status).findByRole("button", { name: "Undo mark done" })
     await waitFor(() => expect(document.activeElement).toBe(undo))
     expect(screen.getAllByRole("button", { name: "Undo mark done" })).toHaveLength(1)
@@ -234,7 +234,7 @@ describe("the universal task page and edit drawer", () => {
   it("still needs Details to update a Done task's submission", async () => {
     await show()
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room 204 booked" } })
-    fireEvent.click(within(screen.getByTestId("single-task-status")).getByRole("button", { name: "Mark done" }))
+    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
     await waitFor(() => expect(store.state.nodes[0].status).toBe("done"))
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: " " } })
     fireEvent.click(screen.getByRole("button", { name: "Update submission" }))
@@ -277,17 +277,18 @@ describe("the universal task page and edit drawer", () => {
     cleanup(); await show(fixture({ status: "in_progress" }, "alex"))
     expect(screen.queryByTestId("task-assign")).toBeNull()
   })
-  it("offers no enabled Mark done to a teammate who may not complete the task, to an unclaimed task or to a budget step (I3)", async () => {
+  it("offers no completion button to a teammate who may not complete the task or to an unclaimed task, and a budget step submits a result", async () => {
     await show(fixture({}, "sam"))
-    expect(screen.queryByRole("button", { name: "Mark done" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Submit & mark done" })).toBeNull()
     cleanup(); await show(fixture({ status: "unclaimed", ownerId: null }))
-    expect(screen.queryByRole("button", { name: "Mark done" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Submit & mark done" })).toBeNull()
     expect(screen.getByRole("button", { name: "I've got it" })).toBeTruthy()
     cleanup(); await show(fixture({ stepKey: "budgetRequest" }))
-    expect(screen.queryByRole("button", { name: "Mark done" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Submit & mark done" })).toBeNull()
     expect(screen.getByRole("button", { name: "Submit result" })).toBeTruthy()
-    cleanup(); await show(fixture({}, "alex"))   // the president may complete any task, as with Submit & mark done
-    expect((screen.getByRole("button", { name: "Mark done" }) as HTMLButtonElement).disabled).toBe(false)
+    cleanup(); await show(fixture({}, "alex"))   // the president may complete any task
+    expect((screen.getByRole("button", { name: "Submit & mark done" }) as HTMLButtonElement).disabled).toBe(false)
+    expect(screen.queryByRole("button", { name: "Mark done" })).toBeNull()
   })
   it("updates a target directly with selected teammates, preserves failed input, and removes the approval step", async () => {
     await show()

@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type CSSProperties } from "react"
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { createPortal } from "react-dom"
 import { Link } from "react-router-dom"
 import type { Node, NodeStatus } from "../data/types"
@@ -12,7 +12,6 @@ import { taskDraftSession } from "./drafts"
 import { taskWorkActor } from "./authorization"
 import type { TaskAuthorization, TaskWork } from "./contracts"
 import type { ReplyInput, TaskReply } from "../data/taskWorkflow"
-import { STATUS_DEFAULTS } from "../components/ui/statusDefaults"
 import { doneSlotKey, useDoneSlot } from "./completion"
 
 export function TaskSubmission({ node, actorId, authorization, readOnly = false }: { node: Node; actorId: string; authorization?: TaskAuthorization; readOnly?: boolean }) {
@@ -51,7 +50,7 @@ function EditableSubmission({ node, actorId, authorization, work }: { node: Node
   const [undo, setUndoState] = useState<UndoOffer | null>(() => { const kept = undoOffers.get(undoKey); return kept && kept.revision === work.revision && kept.ownerId === node.ownerId && kept.ownerVersion === (node.ownerVersion ?? 0) ? kept : null })
   const setUndo = (offer: UndoOffer | null) => { if (offer) undoOffers.set(undoKey, offer); else undoOffers.delete(undoKey); setUndoState(offer) }
   const alive = useRef(true), undoButton = useRef<HTMLButtonElement>(null), [focusUndo, setFocusUndo] = useState(false)
-  // I3: the one-click Mark done beside the status runs this same submit; its Undo then shows there too.
+  // Juanxi (2026-11-28): one completion button only, Submit & mark done below Details; its Undo shows beside the status.
   const slot = useDoneSlot(doneSlotKey(node.id, actorId, authorization))
   useEffect(() => { if (focusUndo && undo && !submitting) { undoButton.current?.focus(); setFocusUndo(false) } }, [focusUndo, undo, submitting])
   useEffect(() => { alive.current = true; return () => { alive.current = false; void session.flush().catch(() => {}) } }, [session])
@@ -62,7 +61,7 @@ function EditableSubmission({ node, actorId, authorization, work }: { node: Node
     try { session.addFiles(Array.from(selected)) } catch (e) { setError(e instanceof Error ? e.message : "These files could not be added.") }
     finally { if (input.current) input.current.value = "" }
   }
-  async function submit(fromStatus = false) {
+  async function submit() {
     setError(""); setNotice(""); setMissing(false)
     // Juanxi (2026-11-27): Details are required to submit or mark done, so the team sees the result. Files are optional.
     if (!session.getSnapshot().details.trim()) { setMissing(true); detailsBox.current?.focus(); return }
@@ -84,7 +83,7 @@ function EditableSubmission({ node, actorId, authorization, work }: { node: Node
         setNotice(savedNode?.status === "done" && before.status !== "done" ? "Marked done." : "Submitted.")
         const offerUndo = before.status !== "done" && savedNode?.status === "done" && authorization?.kind !== "legacy"
         if (offerUndo) setUndo({ workspaceKey: session.scope.workspaceKey, status: before.status, waitingOn: before.waitingOn, waitingOnPersonId: before.waitingOnPersonId ?? null, revision: savedWork.revision, ownerVersion: before.ownerVersion ?? 0, ownerId: before.ownerId })
-        if (fromStatus && slot && offerUndo) setFocusUndo(true); else section.current?.focus()
+        if (slot && offerUndo) setFocusUndo(true); else section.current?.focus()
       }
       await session.submitted(savedWork.revision)
     } catch (e) { if (alive.current) setError(e instanceof Error ? e.message : "Submission not saved. Try again.") }
@@ -116,6 +115,6 @@ function EditableSubmission({ node, actorId, authorization, work }: { node: Node
     {draft.error && <p className="small late-text" role="alert">{draft.error} <button type="button" className="btn small" onClick={() => { void session.flush().catch(() => {}) }}>Retry saving draft</button></p>}
     {isBudgetControlledNode(node) && node.eventId && <p className="small muted">Completion is managed in <Link to={`/events?event=${encodeURIComponent(node.eventId)}&view=budget`}>Event Budget</Link>.</p>}
     {notice && <p role="status" className="small good-text">{notice}</p>}{error && <p role="alert" className="small late-text">{error}</p>}
-    {slot && createPortal(completes ? <button type="button" className="btn small task-mark-done" style={{ "--task-done": STATUS_DEFAULTS.done.color } as CSSProperties} disabled={draft.loading || submitting} onClick={() => { void submit(true) }}><span aria-hidden="true">✓</span> Mark done</button> : undoControl, slot)}
+    {slot && undoControl && createPortal(undoControl, slot)}
   </section>
 }

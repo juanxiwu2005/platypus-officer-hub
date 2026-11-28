@@ -16,8 +16,6 @@
 .task-done-slot { display: contents; }
 .task-progress select { width: 100%; min-width: 140px; }
 /* I3: one-click completion in the fixed Done green (white text keeps AA contrast). */
-.task-mark-done { background: var(--task-done); border-color: var(--task-done); color: var(--on-solid); font-weight: 600; }
-.task-mark-done:hover { background: color-mix(in srgb, var(--task-done) 85%, var(--ink)); }
 .task-progress-form { display: grid; gap: var(--s5); width: 100%; margin-top: var(--s5); }
 .task-progress-form label { display: grid; gap: var(--s3); }
 .task-progress-form input, .task-progress-form textarea { width: 100%; min-width: 0; }
