@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react"
 import { Link, useSearchParams } from "react-router-dom"
 import { useStore, useSchedule } from "../data/store"
 import { PageHead } from "../components/Page"
 import { Bts, BtsRow } from "../components/Bts"
 import { MetroChart } from "../components/flow/MetroChart"
 import { flowChartKind } from "../components/flow/milestoneExecution"
+// The Settings workflow editor, for a saved-template run; loaded only when its Edit flow opens (entry bundle budget).
+const RunFlowEditor = lazy(() => import("../components/flow/RunFlowEditor").then(module => ({ default: module.RunFlowEditor })))
 import { useRail } from "../components/rail/RailContext"
 import { forecastFor } from "../engine/forecast"
 import { daysBetween, fmtLong } from "../lib/dates"
@@ -50,6 +52,8 @@ export default function Events() {
   const view: View = requestedView === "flow" || requestedView === "budget" ? requestedView : params.has("node") ? "flow" : savedView
   const forecast = forecastFor(state)
   const ev = entry.linked ? entry.event : state.events.find(e => e.id === params.get("event")) ?? state.events[0]
+  // Editing belongs to one event: choosing another event closes it.
+  useEffect(() => { setEditingFlow(false) }, [ev?.id])
   const eventsByDate = useMemo(() => [...state.events].sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)), [state.events])
   const selected = entry.linked && !entry.error && !entry.checking ? entry.node?.id ?? null : rail.detail?.kind === "node" || rail.detail?.kind === "task" ? rail.detail.id : null
   const selectionKey = JSON.stringify([params.get("event"), params.get("node"), params.get("access"), params.get("from")])
@@ -124,7 +128,7 @@ export default function Events() {
   const evIssues = sched.events[ev.id]?.issues ?? []
   const done = nodes.filter(n => n.status === "done").length
   const red = nodes.filter(n => isAtRisk(state, sched, forecast, n)).length
-  // A saved-template run is drawn from its template's graph; it is edited in Settings, so Plan offers no Edit flow for it.
+  // A saved-template run is drawn from its own copy of the template graph; its Edit flow opens the Settings editor on that copy.
   const templateGraph = flowChartKind(ev, nodes) === "template-graph"
 
   // The page head sits above the event list, as Settings' head sits above its sections, so the title and the Events | Tasks
@@ -172,11 +176,12 @@ export default function Events() {
           <button type="button" aria-pressed={view === "flow"} onClick={() => setView("flow")} data-testid="view-flow">Flow</button>
           <button type="button" aria-pressed={view === "budget"} onClick={() => setView("budget")} data-testid="view-budget">Budget</button>
         </div>
-        {lead && view === "flow" && !templateGraph && <button type="button" className="btn small" aria-pressed={editingFlow} onClick={() => setEditingFlow(editing => !editing)} data-testid="flow-edit-toggle">{editingFlow ? "Done editing" : "Edit flow"}</button>}
+        {lead && view === "flow" && <button type="button" className="btn small" aria-pressed={editingFlow} onClick={() => setEditingFlow(editing => !editing)} data-testid="flow-edit-toggle">{editingFlow ? "Done editing" : "Edit flow"}</button>}
       </div>
 
-      {view === "flow" && <BtsRow><Bts label="Computed">{templateGraph ? "Branches and the main line come from the saved workflow template. Dates come from the rule engine." : "Each dot's place comes from its dates. Colour: done when finished; at risk with a schedule error, a red forecast, Stuck status or a passed club deadline; started or due when work began or its start day has come; otherwise not started."}</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
-      {view === "flow" && <div className="metro-fade" ref={chart}><MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={openNode} canEdit={lead && !templateGraph} editing={editingFlow} onEditingChange={setEditingFlow} /></div>}
+      {view === "flow" && <BtsRow><Bts label="Computed">{templateGraph ? "Branches and the main line come from this event's copy of its workflow template; Edit flow changes this event only. Dates come from the rule engine." : "Each dot's place comes from its dates. Colour: done when finished; at risk with a schedule error, a red forecast, Stuck status or a passed club deadline; started or due when work began or its start day has come; otherwise not started."}</Bts><Bts label="Forecast">{Math.round((forecast.events[ev.id]?.probability ?? 0) * 100)}% of {forecast.events[ev.id]?.runs.toLocaleString()} simulated runs finish this event on time.</Bts></BtsRow>}
+      {view === "flow" && templateGraph && editingFlow && <Suspense fallback={<p className="small muted" role="status">Loading editor…</p>}><RunFlowEditor key={ev.id} eventId={ev.id} /></Suspense>}
+      {view === "flow" && !(templateGraph && editingFlow) && <div className="metro-fade" ref={chart}><MetroChart key={ev.id} state={state} sched={sched} forecast={forecast} eventId={ev.id} selectedId={selected} onSelect={openNode} canEdit={lead && !templateGraph} editing={editingFlow} onEditingChange={setEditingFlow} /></div>}
       {view === "flow" && !editingFlow && <NextUp eventId={ev.id} sched={sched} forecast={forecast} onOpen={openNode} />}
         {view === "budget" && <EventBudget event={ev} />}
       </div>

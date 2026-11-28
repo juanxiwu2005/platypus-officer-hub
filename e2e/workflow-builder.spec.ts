@@ -135,7 +135,20 @@ test("the default standard workflow draws its Settings branches and main line as
   await expect(page.getByTestId("team-execution-chart")).toHaveCount(0)
   for (const id of ["flow-start", "flow-event-day-1", "flow-done", "flow-node-finalcheck", "flow-node-checkin", "flow-node-headcount"]) await expect(page.getByTestId(id)).toHaveCount(1)
   await expect(page.getByTestId("milestone-execution-branch").first()).toHaveText(/^(Club leadership|Operations|Marketing|Finance) · \d+ steps?$/)
-  await expect(page.getByTestId("flow-edit-toggle")).toHaveCount(0)
+  // Edit flow (Juanxi 2026-11-28): the Settings editor opens on this event's own copy of the workflow, every change is
+  // saved to the event, and Done editing shows it on the chart. The saved template is not changed.
+  const templates = JSON.stringify(saved.org.workflowTemplates ?? null)
+  await page.getByTestId("flow-edit-toggle").click()
+  const editor = page.getByTestId("run-flow-editor")
+  await expect(editor.getByTestId("workflow-builder")).toBeVisible()
+  await editor.getByRole("button", { name: "+ Task", exact: true }).click()
+  await expect.poll(async () => (await read(page)).nodes.filter(node => node.eventId === event.id).length).toBe(tasks.length + 1)
+  await page.getByTestId("flow-edit-toggle").click()
+  await expect(page.getByTestId("run-flow-editor")).toHaveCount(0)
+  await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(tasks.length + 1)
+  const edited = await read(page)
+  expect(edited.nodes.filter(node => node.eventId === event.id && tasks.some(task => task.id === node.id))).toHaveLength(tasks.length)
+  expect(JSON.stringify(edited.org.workflowTemplates ?? null)).toBe(templates)
 })
 
 test("a second template version creates independent tasks without rewriting an existing activity", async ({ page }) => {
@@ -329,7 +342,7 @@ test("changing a target in Details preserves its task identity and dependencies 
     await page.getByRole("button", { name: "Save version", exact: true }).click()
     await expect.poll(async () => (await templateByName(page, "Drag visit timeline")).versions.length).toBe(2)
     await createEvent(page, "Wide company visit", await templateByName(page, "Drag visit timeline"), 2)
-    await expect(page.getByTestId("flow-edit-toggle")).toHaveCount(0)
+    await expect(page.getByTestId("flow-edit-toggle")).toHaveText("Edit flow")
     await page.getByRole("button", { name: "Hide side panel", exact: true }).evaluateAll(buttons => buttons.forEach(button => (button as HTMLButtonElement).click()))
     await page.getByTestId("flow-chart").scrollIntoViewIfNeeded()
     await page.screenshot({ path: info.outputPath("plan-dots-1440.png"), fullPage: false })

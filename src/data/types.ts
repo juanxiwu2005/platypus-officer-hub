@@ -170,7 +170,7 @@ export interface WorkflowRun {
   templateId: string
   templateVersion: number
   templateName: string
-  /** Frozen definition and team names; actual work lives only on the generated Nodes. */
+  /** This event's own copy of the workflow and its team names: it starts as the template version and changes only through Plan's Edit flow (runFlow.ts), never the template. Actual work lives only on the generated Nodes. */
   snapshot: WorkflowTemplateVersion & { teams: WorkflowTeam[] }
 }
 

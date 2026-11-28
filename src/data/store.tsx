@@ -19,6 +19,8 @@ import { ensureWorkflowPresetTeams } from "./workflowTeamDefaults"
 import { saveWorkflowTeams } from "./workflowTeamSettings"
 import { nextCounter } from "../lib/ids"
 import { PHASES, ancestorsOf, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
+import type { RunFlowDefinition } from "./runFlow"
+import { lazyActions } from "./lazyActions"
 import { cannotDelete, insertFlowBranch, insertFlowStep, moveBetween, newStepNode, removalEdits, type FlowInsertionTarget } from "../lib/flowEdit"
 import { DEFAULT_WORKFLOW_BRANCHES, branchConditions, conditionsOf, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
 import { isAsuStep, isCoreStep } from "../engine/workflowPolicy"
@@ -158,6 +160,7 @@ export type Action =
   | { type: "addEventStep"; eventId: string; id: string; uId: string | null; vId: string | null; target?: FlowInsertionTarget }
   | { type: "addEventBranch"; eventId: string; id: string; branch: WorkflowBranch; title: string }
   | { type: "removeEventStep"; eventId: string; nodeId: string }
+  | { type: "editRunFlow"; eventId: string; definition: RunFlowDefinition }
   | { type: "restoreEventNodes"; eventId: string; nodes: Node[]; branches?: WorkflowBranch[] }
   | { type: "updateEvent"; id: string; patch: EventPatch }
   | { type: "draftChanges"; changeSet: ChangeSet }
@@ -516,6 +519,8 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "addEventStep": return canLead(state) ? addEventStep(state, action.eventId, action.id, action.uId, action.vId, action.target) : state
     case "addEventBranch": return canLead(state) ? addEventBranch(state, action.eventId, action.id, action.branch, action.title) : state
     case "removeEventStep": return canLead(state) ? removeEventStep(state, action.eventId, action.nodeId) : state
+    // Loaded with Plan's Edit flow editor (RunFlowEditor imports runFlow.ts), the only sender of this action.
+    case "editRunFlow": return canLead(state) && lazyActions.editRunFlow ? lazyActions.editRunFlow(state, action.eventId, action.definition) : state
     case "restoreEventNodes": return canLead(state) ? restoreEventNodes(state, action.eventId, action.nodes, action.branches) : state
     case "updateEvent": {
       // Event Details stay open to every officer; date, name and headcount follow who may create events.
@@ -898,6 +903,7 @@ function payloadOf(a: Action): unknown {
     case "addEventStep": return { eventId: a.eventId, id: a.id, uId: a.uId, vId: a.vId, target: a.target }
     case "addEventBranch": return { eventId: a.eventId, id: a.id, branch: a.branch, title: a.title }
     case "removeEventStep": return { eventId: a.eventId, nodeId: a.nodeId }
+    case "editRunFlow": return { eventId: a.eventId, steps: Array.isArray(a.definition?.steps) ? a.definition.steps.length : 0, branches: Array.isArray(a.definition?.graph?.teamBranches) ? a.definition.graph.teamBranches.length : 0 }
     case "restoreEventNodes": return { eventId: a.eventId, steps: Array.isArray(a.nodes) ? a.nodes.length : 0, branches: a.branches?.map(b => b.id) }
     case "applyStepEdits": return { eventId: a.eventId, edits: (Array.isArray(a.edits) ? a.edits : []).map(e => ({ id: e?.id, dependsOn: e?.patch?.dependsOn, estDays: e?.patch?.estDays, phase: e?.patch?.phase })), phaseOrder: a.phaseOrder }
     default: return slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
