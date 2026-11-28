@@ -152,6 +152,17 @@ function lanePhases(graph: WorkflowMilestoneGraph, positions: Map<string, number
   return phases
 }
 
+/** Approximate width of one phase-label character at --fs-sm semibold, plus the label's left padding. */
+const PHASE_CHAR = 7.6, PHASE_PAD = 12
+
+/** Left indent of each phase label at `scale`: a narrow phase pushes the next label right instead of overlapping it. */
+export function phaseIndents(phases: readonly LanePhase[], scale: number): number[] {
+  return phases.reduce<{ indents: number[]; end: number }>((acc, phase) => {
+    const start = Math.max(phase.x0 * scale + PHASE_PAD, acc.end + PHASE_PAD)
+    return { indents: [...acc.indents, start - phase.x0 * scale], end: start + phase.label.length * PHASE_CHAR }
+  }, { indents: [], end: -Infinity }).indents
+}
+
 /** Accept an empty lane as well as a populated one; shared spine nodes stay on the main line. */
 export function laneDropTarget(layout: LaneLayout, stepId: string, x: number, y: number): LaneDropTarget | null {
   const lane = layout.lanes.find(item => x >= item.x && x <= item.x + item.width && y >= item.y && y <= item.y + item.height)

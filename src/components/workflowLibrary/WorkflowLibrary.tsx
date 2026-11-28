@@ -16,7 +16,8 @@ const rawDraftOf = (template: WorkflowTemplate): WorkflowTemplateDraft => {
   return { name: version.name, description: version.description, kind: version.kind, teamExecution: version.teamExecution, steps: structuredClone(version.steps), branches: structuredClone(version.branches), teamMap: structuredClone(version.teamMap), milestoneGraph: structuredClone(version.milestoneGraph), baseVersion: version.version }
 }
 
-const draftOf = (template: WorkflowTemplate, state: DemoState): WorkflowTemplateDraft => {
+/** What Settings edits and draws for a template; the template-run chart test compares activities with it. */
+export const draftOf = (template: WorkflowTemplate, state: DemoState): WorkflowTemplateDraft => {
   const draft = rawDraftOf(template)
   const stepTeams = draft.kind === "standard" ? presetWorkflowStepTeams(state, draft.steps, draft.teamMap?.stepTeams) : draft.teamMap?.stepTeams ?? {}
   return { ...draft, teamExecution: "dependencies", steps: draft.steps, milestoneGraph: draft.milestoneGraph ?? createWorkflowMilestoneGraph(draft.steps, stepTeams), teamMap: { version: 1, workflowId: template.id, stepTeams } }

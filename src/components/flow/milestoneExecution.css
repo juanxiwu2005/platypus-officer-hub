@@ -1,10 +1,11 @@
+/* Plan's chart for a saved-template run reuses the Settings canvas (lane-editor.css) without its tinted team band or editing controls. */
 .mxe { min-width: 0; }
+.events-layout:has(.mxe) > .events-content:only-child { grid-column: 1 / -1; }
 .mxe > p { margin-top: 0; }
 .mxe-scroll { max-height: 76vh; }
-.mxe-segment { padding: var(--s4) var(--s5); }
-.mxe-segment > b { font-size: var(--fs-md); }
-.mxe-segment > span { margin-left: var(--s4); font-size: var(--fs-sm); color: var(--muted); }
-.mxe-task.m-dot { width: 96px; height: 102px; transform: translate(-50%, -22px); display: flex; flex-direction: column; align-items: center; gap: var(--s3); border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: var(--s4) 0 0; color: var(--ink); }
+.mxe-lane { border-color: transparent; background: transparent; }
+.mxe-lane .wfx-pill { cursor: default; }
+.mxe-task.m-dot { width: 100px; height: 102px; transform: translate(-50%, -22px); display: flex; flex-direction: column; align-items: center; gap: var(--s3); border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: var(--s4) 0 0; color: var(--ink); }
 .mxe-task.m-dot::after { display: none; }
 .mxe-task > i { width: 24px; height: 24px; flex-shrink: 0; border-radius: var(--r-circle); border: 2px solid var(--info); background: var(--surface); }
 .mxe-task.situation > i { border-color: var(--risk-yellow); }
@@ -12,8 +13,9 @@
 .mxe-task.now > i { background: var(--info); border-color: var(--info); box-shadow: 0 0 0 4px var(--info-glow); }
 .mxe-task.risk > i { border-color: var(--late); border-width: 3px; }
 .mxe-task[aria-pressed="true"] > i { box-shadow: 0 0 0 4px var(--accent-soft), 0 0 0 5px var(--accent); }
-.mxe-task strong { max-width: 92px; font-size: var(--fs-md); line-height: 1.25; text-align: center; overflow-wrap: anywhere; }
-.mxe-task > span { max-width: 108px; font-size: var(--fs-sm); color: var(--muted); text-align: center; line-height: 1.25; }
-.mxe-task.is-shared strong { position: absolute; bottom: calc(100% + var(--s3)); }
+.mxe-task strong { display: -webkit-box; max-width: 100px; font-size: var(--fs-md); font-weight: 600; line-height: 1.25; text-align: center; overflow-wrap: normal; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mxe-task > span { max-width: 108px; font-size: var(--fs-sm); color: var(--muted); text-align: center; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Main-line labels sit on an opaque chip so branch curves leaving the station pass behind them, as in Settings. */
+.mxe-task.is-shared strong, .mxe-task.is-shared > span { padding: 0 var(--s2); border-radius: var(--r-xs); background: var(--surface); }
 .mxe-task:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s1); border-radius: var(--r-sm); }
 .mxe-unplaced { display: flex; flex-wrap: wrap; gap: var(--s4); margin-top: var(--s5); }

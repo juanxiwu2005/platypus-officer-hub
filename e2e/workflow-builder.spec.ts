@@ -112,7 +112,7 @@ test("five manually entered tasks save, instantiate as Plan dots and reopen afte
   expect(calls).toEqual([])
 })
 
-test("the default standard workflow still shows task dots before an organization configures teams", async ({ page }) => {
+test("the default standard workflow draws its Settings branches and main line as task dots", async ({ page }) => {
   await page.goto("/#/events")
   await closeRail(page)
   expect((await read(page)).org.workflowTeams).toHaveLength(4)
@@ -131,8 +131,12 @@ test("the default standard workflow still shows task dots before an organization
   expect(tasks.length).toBeGreaterThanOrEqual(31)
   expect(tasks.every(node => node.id === `${event.id}:${node.stepKey}`)).toBe(true)
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(tasks.length)
-  await expect(page.getByTestId("team-execution-chart")).toHaveCount(1)
-  await expect(page.getByTestId("team-execution-lane")).toHaveCount(4)
+  // A saved-template run draws its template's Settings graph (November 28, 2026), not one row per team.
+  await expect(page.getByTestId("milestone-execution-chart")).toHaveCount(1)
+  await expect(page.getByTestId("team-execution-chart")).toHaveCount(0)
+  for (const id of ["flow-start", "flow-event-day-1", "flow-done", "flow-node-finalcheck", "flow-node-checkin", "flow-node-headcount"]) await expect(page.getByTestId(id)).toHaveCount(1)
+  await expect(page.getByTestId("milestone-execution-branch").first()).toHaveText(/^(Club leadership|Operations|Marketing|Finance) · \d+ steps?$/)
+  await expect(page.getByTestId("flow-edit-toggle")).toHaveCount(0)
 })
 
 test("a second template version creates independent tasks without rewriting an existing activity", async ({ page }) => {
