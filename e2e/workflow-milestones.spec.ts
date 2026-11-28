@@ -254,7 +254,7 @@ test("one/two-day authoring and actual execution remain accessible in both theme
   }
   const template = await publish(page)
   await createEvent(page, template, "Readable two-day execution")
-  const tones = await page.getByTestId("milestone-execution-branch").evaluateAll(branches => branches.map(branch => [...branch.classList].find(name => name.startsWith("wfm-tone-"))))
+  const tones = await page.getByTestId("milestone-execution-branch").evaluateAll(branches => branches.map(branch => [...branch.classList].find(name => name.startsWith("wfx-tone-"))))
   expect(new Set(tones).size).toBe(1)
   const axe = await new AxeBuilder({ page }).include("[data-testid='milestone-execution-chart']").withTags(["wcag2a", "wcag2aa"]).analyze()
   expect(axe.violations.filter(issue => ["serious", "critical"].includes(issue.impact ?? ""))).toEqual([])

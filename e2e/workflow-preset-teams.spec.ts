@@ -88,6 +88,10 @@ test("arbitrary team names survive reload and the preset still creates grouped P
   expect(tasks.length).toBeGreaterThanOrEqual(31)
   expect(tasks.every(node => !!node.teamId)).toBe(true)
   expect(tasks.every(node => node.id === `${event.id}:${node.stepKey}`)).toBe(true)
-  await expect(page.getByTestId("team-execution-lane")).toHaveCount(4)
+  // The run draws the template's Settings branches; each branch pill carries a renamed team name.
+  await expect(page.getByTestId("milestone-execution-chart")).toHaveCount(1)
+  const pills = await page.getByTestId("milestone-execution-branch").allTextContents()
+  expect(pills.length).toBeGreaterThan(0)
+  expect(pills.every(pill => renamed.some(name => pill.startsWith(`${name} · `)))).toBe(true)
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(tasks.length)
 })

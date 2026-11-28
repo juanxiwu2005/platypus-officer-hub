@@ -3,7 +3,7 @@ import type { StepTemplate, WorkflowMilestoneGraph } from "../../data/types"
 import { workflowMilestoneDates, WORKFLOW_DONE, WORKFLOW_START } from "../../engine/workflowMilestones"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import { fmtShort } from "../../lib/dates"
-import { buildLaneLayout, laneDropSlots, nearestDropSlot, PHASE_HEADER, type Lane, type LaneDropSlot, type LaneStation } from "./laneLayout"
+import { buildLaneLayout, laneDropSlots, nearestDropSlot, phaseIndents, PHASE_HEADER, type Lane, type LaneDropSlot, type LaneStation } from "./laneLayout"
 import "./lane-editor.css"
 
 export interface MilestoneWorkflowCanvasProps {
@@ -23,8 +23,6 @@ interface Moving { stepId: string; x: number; y: number; slots: LaneDropSlot[]; 
 const SNAP_PX = 48
 const MISSED_DROP = "Dropped away from a diamond, so nothing changed. Drop a step on a diamond."
 const MIN_ZOOM = 0.5, MAX_ZOOM = 1.6, READABLE_ZOOM = 0.85, ZOOM_STEP = 0.15, TONES = 6
-/** Approximate width of one phase-label character at --fs-sm semibold, plus the label's left padding. */
-const PHASE_CHAR = 7.6, PHASE_PAD = 12
 
 const stationTestId = (station: LaneStation) => station.id === WORKFLOW_START ? "workflow-start" : station.id === WORKFLOW_DONE ? "workflow-done" : station.kind === "day" ? `workflow-event-day-${(station.dayIndex ?? 0) + 1}` : `workflow-task-${station.id}`
 
@@ -39,11 +37,7 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
   const scale = zoom ?? Math.max(READABLE_ZOOM, fit)
   // The phase header is a fixed-height strip; the scaled stage starts right under it.
   const screenY = (y: number) => PHASE_HEADER + (y - PHASE_HEADER) * scale
-  // Narrow phases (one event day at a small zoom) push the next label right instead of overlapping it.
-  const phaseIndents = layout.phases.reduce<{ indents: number[]; end: number }>((acc, phase) => {
-    const start = Math.max(phase.x0 * scale + PHASE_PAD, acc.end + PHASE_PAD)
-    return { indents: [...acc.indents, start - phase.x0 * scale], end: start + phase.label.length * PHASE_CHAR }
-  }, { indents: [], end: -Infinity }).indents
+  const indents = phaseIndents(layout.phases, scale)
   const cancel = () => { gesture.current = null; setMoving(null) }
   const teamOf = (lane: Lane) => {
     const index = teams.findIndex(team => team.id === lane.branch.teamId)
@@ -141,7 +135,7 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
     <p className="small wfx-drop-note" role="status" data-testid="workflow-drop-note">{dropNote}</p>
     <div className="wfx-scroll" ref={viewport} role="region" tabIndex={0} aria-label="Workflow main line and team branches" style={{ "--wfx-scale": scale, "--wfx-head": `${PHASE_HEADER}px` } as CSSProperties}>
       <ol className="wfx-phases" aria-label="Workflow phases" style={{ width: layout.width * scale }}>
-        {layout.phases.map((phase, index) => <li key={phase.id} data-testid={`workflow-phase-${phase.id}`} className={`wfx-phase is-${phase.id}`} style={{ left: phase.x0 * scale, width: (phase.x1 - phase.x0) * scale, "--wfx-indent": `${phaseIndents[index]}px` } as CSSProperties}><span>{phase.label}</span><i aria-hidden="true" /></li>)}
+        {layout.phases.map((phase, index) => <li key={phase.id} data-testid={`workflow-phase-${phase.id}`} className={`wfx-phase is-${phase.id}`} style={{ left: phase.x0 * scale, width: (phase.x1 - phase.x0) * scale, "--wfx-indent": `${indents[index]}px` } as CSSProperties}><span>{phase.label}</span><i aria-hidden="true" /></li>)}
       </ol>
       <div className="wfx-size" style={{ width: layout.width * scale, height: (layout.height - PHASE_HEADER) * scale }}>
         <div className="wfx-stage" style={{ width: layout.width, height: layout.height }}>

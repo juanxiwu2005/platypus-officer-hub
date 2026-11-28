@@ -15,7 +15,11 @@ interface Props { state: DemoState; sched: Schedule; forecast: Forecast; eventId
 const MilestoneExecutionChart = lazy(() => import("./MilestoneExecutionChart").then(module => ({ default: module.MilestoneExecutionChart })))
 const LEFT = 194, COL = 144, ROW = 136, TOP = 154
 
-/** Saved workflow definitions become actual tasks here; a dot never has separate state or a separate ID. */
+/**
+ * Saved workflow definitions become actual tasks here; a dot never has separate state or a separate ID.
+ * Since November 28, 2026 Plan no longer picks this team-row view: MetroChart draws saved-template runs with
+ * MilestoneExecutionChart, the template's Settings graph. Kept only until its removal is agreed.
+ */
 export function TeamMetroChart({ state, sched, forecast, eventId, selectedId, onSelect }: Props) {
   const event = state.events.find(item => item.id === eventId)
   const snapshot = executionTeamSnapshot(event)

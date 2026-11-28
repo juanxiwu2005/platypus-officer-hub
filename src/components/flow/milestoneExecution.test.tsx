@@ -92,11 +92,14 @@ describe("milestone activity viewport", () => {
     const view = (next: DemoState, selectedId: string | null) => <RailProvider><MilestoneExecutionChart state={next} eventId={event.id} sched={{ nodes: {}, events: {} }} forecast={{ nodes: {}, events: {} }} selectedId={selectedId} onSelect={onSelect} /></RailProvider>
     const rendered = render(view(state, null)), viewport = screen.getByTestId("flow-chart")
     expect(viewport.scrollTop).toBeGreaterThan(0)
-    viewport.scrollTop = 40
+    // Scroll well below the branch row (the Settings layout puts all three fixture branches above the main line).
+    viewport.scrollTop = 400
     const updated: DemoState = { ...state, nodes: state.nodes.map((node, index) => index ? node : { ...node, status: "in_progress" }) }
     rendered.rerender(view(updated, null))
-    expect(viewport.scrollTop).toBe(40)
+    expect(viewport.scrollTop).toBe(400)
     rendered.rerender(view(updated, "actual:between"))
-    expect(viewport.scrollTop).toBeGreaterThan(40)
+    const top = Number.parseFloat(screen.getByTestId("flow-node-between").style.top)
+    expect(viewport.scrollTop).toBeLessThan(400)
+    expect(viewport.scrollTop).toBeLessThanOrEqual(top)
   })
 })

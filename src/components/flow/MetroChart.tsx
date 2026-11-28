@@ -17,9 +17,9 @@ import { isolateDialog, trapTabKey } from "../../lib/focus"
 import { branchConditionLabel, conditionLabel, conditionsOf, placementOf, resolveBranches, scopeKey } from "../../engine/workflowBranches"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import { WorkflowBranchDialog, type BranchDraft } from "../setup/WorkflowBranchDialog"
-import { hasTeamExecutionTracks } from "./teamMetro"
+import { flowChartKind } from "./milestoneExecution"
 
-const TeamMetroChart = lazy(() => import("./TeamMetroChart").then(module => ({ default: module.TeamMetroChart })))
+const MilestoneExecutionChart = lazy(() => import("./MilestoneExecutionChart").then(module => ({ default: module.MilestoneExecutionChart })))
 
 const SHORT: Record<string, string> = {
   plan: "Event plan", backup: "Back-up plan", venuechoice: "Candidate venue", registry: "Event Registry", venue: "Book room",
@@ -58,9 +58,9 @@ const ENABLE_LINK_HOVER = false
 /** One main line; parallel work forks off and merges back. Look → hover → click. */
 export function MetroChart(props: Props) {
   const event = props.state.events.find(item => item.id === props.eventId)
-  // Authoring belongs to Settings. New saved-template runs use the same task
-  // records as details/reminders, rendered as points on unique team tracks.
-  if (!props.port && hasTeamExecutionTracks(event, props.state.nodes.filter(node => node.eventId === props.eventId))) return <Suspense fallback={<p className="small muted" role="status">Loading task tracks…</p>}><TeamMetroChart {...props} /></Suspense>
+  // Authoring belongs to Settings. A saved-template run draws its template's Settings
+  // graph (main line, team branches, joins) with its real task records as the dots.
+  if (!props.port && flowChartKind(event, props.state.nodes.filter(node => node.eventId === props.eventId)) === "template-graph") return <Suspense fallback={<p className="small muted" role="status">Loading workflow…</p>}><MilestoneExecutionChart {...props} /></Suspense>
   return <LegacyMetroChart {...props} />
 }
 
