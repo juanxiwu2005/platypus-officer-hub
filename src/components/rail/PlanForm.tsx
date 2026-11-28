@@ -11,15 +11,14 @@ import { teamLeadChoices } from "../../data/teamLeads"
 import { sourceName } from "../../lib/sourceNames"
 import { COMMON_EVENT_CHECKS, EVENT_CHECKLIST, OTHER_EVENT_CHECKLIST } from "../../data/eventChecklist"
 import { findWorkflowTemplateVersion } from "../../data/workflowTemplates"
-import { useRail } from "./RailContext"
 import { initialWorkflowChoice, WorkflowTemplatePicker, type WorkflowChoice } from "./WorkflowTemplatePicker"
 
 /*
- * The New event form and its "created" card (Option A, Juanxi 2026-11-28). Loaded on demand from AskPanel, so the startup
- * bundle does not carry the form. Pressing Create event is the person's approval: the event is created and applied at once
- * through the same store path the Review changes card uses (draftChanges, then reviewChange "applied"), so validation,
- * permissions, the pinned workflow version and the research log are unchanged. Review changes stays for change sets the
- * assistant proposes from free text.
+ * The New event form and its "created" card. Loaded on demand from AskPanel, so the startup bundle does not carry the form.
+ * Review option B (Juanxi 2026-11-28): Review event drafts the event and the chat shows it in the change list, with what it
+ * would make (tasks, people, first due date). Nothing is saved and nobody gets a task until Create event is pressed there.
+ * Creating goes through the same store path as every reviewed change (draftChanges, then reviewChange "applied"), so
+ * validation, permissions, the pinned workflow version and the research log are unchanged.
  */
 
 type FormCard = Extract<ChatCard, { kind: "form" }>
@@ -34,8 +33,8 @@ const COMMON = COMMON_EVENT_CHECKS.map(key => ({ key, label: CHIP_LABEL[key] ?? 
 export const planSummary = (c: FormCard) => [c.prefill.name, c.date, `${c.prefill.headcount} people`, `food: ${c.prefill.food && c.prefill.food !== "none" ? FOOD[c.prefill.food] : "no"}`, c.prefill.speaker ? "guest speaker or performer" : null].filter(Boolean).join(" · ")
 
 /**
- * The change set and the approval inputs the form's press stands for: exactly what ChangeItem.apply sends for a reviewed
- * create_event. Checked against the current state first, so a problem shows in the form and nothing is drafted.
+ * The change set the form drafts, and the approval inputs that Create event will send: exactly what the change list sends
+ * for a reviewed create_event. Checked against the current state first, so a problem shows in the form and nothing is drafted.
  */
 export function eventFromForm(state: DemoState, c: FormCard, workflowChoice: WorkflowChoice | undefined, id: string, teamLeads?: Record<string, string>): { error: string } | { changeSet: ChangeSet; op: CommandOp; human: HumanInputs } {
   if (!workflowChoice) return { error: "Choose a saved workflow version." }
@@ -44,35 +43,22 @@ export function eventFromForm(state: DemoState, c: FormCard, workflowChoice: Wor
   const human: HumanInputs = { date: c.date, buffered: false, workflowTemplateId: workflowChoice.templateId, workflowTemplateVersion: workflowChoice.templateVersion, ...(teamLeads ? { teamLeads } : {}) }
   const problem = validateReview(state, op, human)
   if (problem) return { error: problem }
-  return { op, human, changeSet: { id, sentence: `Plan ${op.name} on ${c.date}`, ops: [op], status: "pending", source: "Your details + the saved workflow", by: state.viewerId, workflowChoices: { 0: workflowChoice } } }
+  return { op, human, changeSet: { id, sentence: `Plan ${op.name} on ${c.date}`, ops: [op], status: "pending", source: "Your details + the saved workflow", by: state.viewerId, workflowChoices: { 0: workflowChoice }, formInputs: { 0: { date: c.date, ...(teamLeads ? { teamLeads } : {}) } } } }
 }
 
-/** What happened after Create event: the event exists (`eventId`), or it could not be applied and waits for review. */
-export interface PlanResult { changeSetId: string; eventId?: string; name: string; summary: string }
+/** What the form drafted: the change set that the chat now shows in the change list. */
+export interface PlanResult { changeSetId: string; name: string; summary: string }
 
-/** The form as it sits in the chat: Create event creates the event, opens it, and starts the plan check for a saved workflow. */
+/** The form as it sits in the chat: Review event drafts the event, and the change list below it creates it. */
 export default function PlanFormCard({ card, onCreated }: { card: FormCard; onCreated: (c: FormCard, result: PlanResult) => void }) {
   const { dispatch, getState } = useStore()
-  const navigate = useNavigate()
-  const rail = useRail()
   return <PlanForm card={card} onDone={(c, workflowChoice, teamLeads) => {
-    const state = getState()
     const id = `change-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-    const plan = eventFromForm(state, c, workflowChoice, id, teamLeads)
+    const plan = eventFromForm(getState(), c, workflowChoice, id, teamLeads)
     if ("error" in plan) return plan.error
     dispatch({ type: "draftChanges", changeSet: plan.changeSet })
     if (!getState().changeSets.some(x => x.id === id)) return "This event could not be saved in this browser. Try again."
-    dispatch({ type: "reviewChange", id, index: 0, decision: "applied", op: plan.op, human: plan.human })
-    const eventId = `${id}:0`
-    const created = getState().events.some(e => e.id === eventId)
-    onCreated(c, { changeSetId: id, eventId: created ? eventId : undefined, name: c.prefill.name ?? "", summary: planSummary(c) })
-    if (!created) return null
-    setTimeout(() => {
-      navigate(`/events?event=${encodeURIComponent(eventId)}`)
-      // Manual workflows are ready to execute directly; the plan check runs for the saved standard workflows (as before).
-      const version = findWorkflowTemplateVersion(state, workflowChoice!.templateId, workflowChoice!.templateVersion)
-      if (version?.kind !== "custom") rail.requestReview(eventId)
-    }, 0)
+    onCreated(c, { changeSetId: id, name: c.prefill.name ?? "", summary: planSummary(c) })
     return null
   }} />
 }
@@ -121,7 +107,7 @@ export function PlanForm({ card, onDone }: { card: FormCard; onDone: PlanDone })
     const human: HumanInputs = { date: /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= state.today ? date : state.today, workflowTemplateId: workflowChoice.templateId, workflowTemplateVersion: workflowChoice.templateVersion }
     return teamLeadChoices(state, draftEventNodes(state, op, human))
   }, [state, f, date, workflowChoice])
-  if (card.done) return <div className="mini-card done"><b>{card.prefill.name}</b><span className="small muted">Created · {fmtLong(card.date)}</span></div>
+  if (card.done) return <div className="mini-card done"><b>{card.prefill.name}</b><span className="small muted">Sent for review · {fmtLong(card.date)}</span></div>
   const hasFood = f.food !== "none"
   const checked = (key: EventCheck) => key === "speaker" ? f.speaker : f.checks[key] === true
   const toggle = (key: EventCheck, on: boolean) => edit(key === "speaker" ? { speaker: on, checks: { ...f.checks, speaker: on } } : { checks: { ...f.checks, [key]: on } })
@@ -175,7 +161,7 @@ export function PlanForm({ card, onDone }: { card: FormCard; onDone: PlanDone })
     <label>Details<textarea rows={3} maxLength={500} autoComplete="off" value={f.details} onChange={e => edit({ details: e.target.value })} placeholder="Anything unusual: a stage build, a company visit, flying out of state, a competition…" /></label>
     {blocked && <p className="small muted">{blocked}</p>}
     {error && <p className="small late-text" role="alert">{error}</p>}
-    <button className="btn btn-primary" type="submit" disabled={!allowed}>Create event</button>
+    <button className="btn btn-primary" type="submit" disabled={!allowed}>Review event</button>
   </form>
 }
 

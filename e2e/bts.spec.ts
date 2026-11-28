@@ -105,7 +105,9 @@ test("when on: the new-task form explains its one date and the plan check says w
   await expect(form.locator(".bts").filter({ hasText: "one date" }).first()).toBeVisible()
   await expect(form.locator(".bts").filter({ hasText: "never supplies a date" })).toBeVisible()
   await ask(page, "Plan Founders Welcome Dinner on Nov 19, 30 people, outside caterer, USG funding")
-  await page.getByTestId("plan-form").getByRole("button", { name: "Create event" }).click()
+  await page.getByTestId("plan-form").getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect(page.getByTestId("flow-chart")).toBeVisible()
   await openAsk(page) // Navigation closes the side panel on phones; reopen it to read the plan check.
   const review = page.getByTestId("event-review")

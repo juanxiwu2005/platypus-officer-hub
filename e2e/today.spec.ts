@@ -17,10 +17,11 @@ test("plans an event from one sentence: form, Create event, flow chart; persists
   await expect(form.getByLabel("Event name")).toHaveValue("Founders Welcome Dinner")
   await expect(form.getByLabel("Date")).toHaveValue("2026-11-19")
   // M2b: the form asks only Yes/No for food; the caterer type the person wrote travels with the request.
-  // Option A (2026-11-28): the person edits in the form, and Create event is the approval (no Review changes step).
   await form.getByLabel("Event name").fill("Founder Dinner Preview")
   await form.getByLabel("Date").fill("2027-02-18")
-  await form.getByRole("button", { name: "Create event" }).click()
+  await form.getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect(page.getByText("food: outside caterer")).toBeVisible()
   await expect(page.getByTestId("change-item")).toHaveCount(0)
   expect((await savedEvent(page, "Founder Dinner Preview")).date).toBe("2027-02-18")
@@ -62,17 +63,19 @@ test("AI off: a command becomes a labelled change set; owner edits apply and rej
   await openMore(page)
   await page.getByRole("checkbox", { name: "AI features" }).uncheck()
   await ask(page, "Assign Send the October newsletter to Priya")
-  const card = page.getByTestId("change-item")
-  await expect(page.getByTestId("change-set")).toContainText("AI off")
+  // Review option B: one row per change; Edit opens its fields and Apply applies the ticked rows.
+  const card = page.getByTestId("change-set").last()
+  await expect(card).toContainText("AI off")
+  await card.getByRole("button", { name: "Edit" }).click()
   await card.getByLabel("Owner", { exact: true }).selectOption("jordan")
-  await card.getByRole("button", { name: "Apply this change" }).click()
+  await card.getByRole("button", { name: "Apply 1 change" }).click()
   await expect.poll(async () => (await savedDemo(page)).nodes.find(n => n.id === "t-news")?.ownerId).toBe("jordan")
   // Concept F: the reassigned newsletter leaves Fix first and becomes a line of Jordan's email on the reminder centre.
   await expect(page.locator('[data-testid="rq-person"][data-recipient="jordan"]').locator('[data-testid="rq-person-task"][data-node="t-news"]')).toBeVisible()
   await expect(page.getByTestId("rq-fix").locator('[data-node="t-news"]')).toHaveCount(0)
   await ask(page, "Unassign Send the October newsletter")
-  await page.getByTestId("change-item").last().getByRole("button", { name: "Reject", exact: true }).click()
-  await expect(page.getByTestId("change-item").last()).toContainText("Rejected")
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Discard" }).click()
+  await expect(page.getByTestId("review-row").last()).toContainText("Not applied")
   // Small edits apply at once and can be undone (v1.2).
   await ask(page, "Set Send the October newsletter to heavy")
   await expect(page.getByTestId("applied-set").last()).toContainText("Done")
@@ -128,7 +131,7 @@ test("officers cannot prepare a reminder or approve a change", async ({ page }) 
   await expect(page.getByRole("button", { name: "Review & open draft" })).toHaveCount(0)   // FB-8: an officer's home is read-only
   await expect(page.getByTestId("your-reminders")).toBeVisible()
   await ask(page, "Assign Send the October newsletter to Priya")
-  await expect(page.getByRole("button", { name: "Apply this change" })).toBeDisabled()
+  await expect(page.getByTestId("change-set").last().getByRole("button", { name: /^Apply/ })).toBeDisabled()
   await ask(page, "Set Send the October newsletter to heavy")
   await expect(page.getByTestId("applied-set").last()).toContainText("Not changed")
 })

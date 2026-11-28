@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { MemoryRouter, useLocation } from "react-router-dom"
 import { seedDemo } from "../data/seed"
 import { reducer, type Action } from "../data/store"
@@ -9,8 +9,9 @@ import type { DemoState } from "../data/types"
 import type { ChatCard } from "../lib/assistant"
 
 /**
- * New event, Option A (Juanxi, 2026-11-28): one compact card; Create event creates and applies the event at once through the
- * same store path as Review changes (draftChanges, then reviewChange "applied"), and the chat card's Undo removes it again.
+ * New event (Juanxi, 2026-11-28): one compact card. Review option B: Review event drafts the event and the change list shows
+ * it; its Create event applies it through the store path every reviewed change uses (draftChanges, then reviewChange
+ * "applied"), and the created card's Undo removes it again.
  */
 const store = vi.hoisted(() => ({ state: undefined as unknown as DemoState }))
 const rail = vi.hoisted(() => ({ requestReview: vi.fn(), show: vi.fn() }))
@@ -19,6 +20,7 @@ vi.mock("../data/store", async importOriginal => ({ ...(await importOriginal<typ
 vi.mock("../components/rail/RailContext", () => ({ useRail: () => rail }))
 
 import PlanFormCard, { CreatedCard, eventFromForm, PlanForm } from "../components/rail/PlanForm"
+import { ChangeCard } from "../components/rail/ChangeCard"
 
 const base = seedDemo(undefined, "v2")
 const as = (id: string, s: DemoState = base): DemoState => ({ ...s, viewerId: id })
@@ -26,7 +28,7 @@ const choice = { templateId: "standard-event", templateVersion: 1 }
 const date = addDays(base.today, 60)
 const form = (prefill: Extract<ChatCard, { kind: "form" }>["prefill"] = { name: "Fictional mixer" }): Extract<ChatCard, { kind: "form" }> => ({ kind: "form", id: "f1", date, prefill })
 const everyone = (s: DemoState): DemoState => ({ ...s, org: { ...s.org, settings: { ...s.org.settings, eventCreators: "everyone" } } })
-/** What Create event dispatches, run through the real reducer. */
+/** What Review event and then Create event dispatch, run through the real reducer. */
 function create(s: DemoState, id = "made", prefill?: Extract<ChatCard, { kind: "form" }>["prefill"]): DemoState {
   const plan = eventFromForm(s, form(prefill), choice, id)
   if ("error" in plan) throw new Error(plan.error)
@@ -45,10 +47,11 @@ describe("the common checklist chips", () => {
   })
 })
 
-describe("Create event applies at once", () => {
-  it("creates the event with the same approval inputs the Review changes card sends, and leaves nothing pending", () => {
+describe("the form's draft", () => {
+  it("keeps the person's date for the change list, and creates the event with the same approval inputs, leaving nothing pending", () => {
     const plan = eventFromForm(base, form(), choice, "made")
-    expect(plan).toMatchObject({ human: { date, buffered: false, workflowTemplateId: "standard-event", workflowTemplateVersion: 1 }, changeSet: { by: "alex", workflowChoices: { 0: choice } } })
+    expect(plan).toMatchObject({ human: { date, buffered: false, workflowTemplateId: "standard-event", workflowTemplateVersion: 1 }, changeSet: { by: "alex", status: "pending", workflowChoices: { 0: choice }, formInputs: { 0: { date } } } })
+    expect(reducer(base, { type: "draftChanges", changeSet: (plan as { changeSet: DemoState["changeSets"][number] }).changeSet }).changeSets.at(-1)).toMatchObject({ status: "pending", formInputs: { 0: { date } } })
     const next = create(base)
     expect(next.events.find(e => e.id === "made:0")).toMatchObject({ name: "Fictional mixer", date })
     expect(next.nodes.some(n => n.eventId === "made:0")).toBe(true)
@@ -108,7 +111,7 @@ describe("the compact New event card", () => {
     const more = screen.getByTestId("other-checklists") as HTMLDetailsElement
     expect(more.open).toBe(false)
     expect(more.querySelector("summary")?.textContent).toBe("Other checklists · 11 more")
-    expect(screen.getByRole("button", { name: "Create event" })).toBeTruthy()
+    expect(screen.getByRole("button", { name: "Review event" })).toBeTruthy()
   })
   it("opens Other checklists when one of its items is ticked, including by the AI reading", () => {
     const { rerender } = render(<PlanForm card={form()} onDone={vi.fn()} />)
@@ -123,32 +126,52 @@ describe("the compact New event card", () => {
     render(<PlanForm card={form()} onDone={done} />)
     fireEvent.click(screen.getByLabelText("Guest speaker or performer"))
     fireEvent.click(screen.getByLabelText("RSVP registration needed"))
-    fireEvent.click(screen.getByRole("button", { name: "Create event" }))
+    fireEvent.click(screen.getByRole("button", { name: "Review event" }))
     expect(done.mock.calls[0][0].prefill).toMatchObject({ speaker: true, checks: { speaker: true, rsvp: true } })
   })
   it("shows a problem the form's owner returns in the form itself", () => {
     render(<PlanForm card={form()} onDone={() => "Choose a saved workflow version before creating this event."} />)
-    fireEvent.click(screen.getByRole("button", { name: "Create event" }))
+    fireEvent.click(screen.getByRole("button", { name: "Review event" }))
     expect(screen.getByRole("alert").textContent).toBe("Choose a saved workflow version before creating this event.")
   })
 })
 
-describe("Create event in the chat", () => {
+describe("a new event in the chat", () => {
   const Where = () => { const l = useLocation(); return <output data-testid="where">{l.pathname + l.search}</output> }
-  it("creates the event at once, opens it and starts the plan check, with no Review changes step", async () => {
-    vi.useFakeTimers()
-    try {
-      const created = vi.fn()
-      render(<MemoryRouter><PlanFormCard card={form()} onCreated={created} /><Where /></MemoryRouter>)
-      fireEvent.click(screen.getByRole("button", { name: "Create event" }))
-      const result = created.mock.calls[0][1]
-      expect(result).toMatchObject({ eventId: `${result.changeSetId}:0`, name: "Fictional mixer" })
-      expect(store.state.events.some(e => e.id === result.eventId)).toBe(true)
-      expect(store.state.changeSets.some(c => c.status === "pending")).toBe(false)
-      await act(async () => { vi.runAllTimers() })
-      expect(screen.getByTestId("where").textContent).toBe(`/events?event=${encodeURIComponent(result.eventId)}`)
-      expect(rail.requestReview).toHaveBeenCalledWith(result.eventId)
-    } finally { vi.useRealTimers() }
+  it("Review event saves no event; the change list shows what it makes, and its Create event creates, opens and checks it", async () => {
+    const created = vi.fn()
+    render(<MemoryRouter><PlanFormCard card={form()} onCreated={created} /></MemoryRouter>)
+    fireEvent.click(screen.getByRole("button", { name: "Review event" }))
+    const result = created.mock.calls[0][1]
+    expect(result).toMatchObject({ name: "Fictional mixer" })
+    const eventId = `${result.changeSetId}:0`
+    expect(store.state.events.some(e => e.id === eventId)).toBe(false)
+    expect(store.state.nodes.some(n => n.eventId === eventId)).toBe(false)
+    expect(store.state.changeSets.find(c => c.id === result.changeSetId)).toMatchObject({ status: "pending", formInputs: { 0: { date } } })
+    cleanup()
+    render(<MemoryRouter><ChangeCard id={result.changeSetId} /><Where /></MemoryRouter>)
+    const row = await screen.findByTestId("review-row")
+    expect(screen.getByText("Check before you create")).toBeTruthy()
+    expect(row.textContent).toContain("Create event: Fictional mixer")
+    expect(row.textContent).toContain("30 people")
+    expect(within(row).getByTestId("review-tasks").textContent).toMatch(/\d+ tasks for \d+ people/)
+    expect(screen.queryByRole("button", { name: "Apply this change" })).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Create event" }))
+    expect(store.state.events.find(e => e.id === eventId)).toMatchObject({ name: "Fictional mixer", date })
+    expect(store.state.changeSets.find(c => c.id === result.changeSetId)).toMatchObject({ status: "applied" })
+    await waitFor(() => expect(screen.getByTestId("where").textContent).toBe(`/events?event=${encodeURIComponent(eventId)}`))
+    expect(rail.requestReview).toHaveBeenCalledWith(eventId)
+  })
+  it("Discard in the change list saves nothing", async () => {
+    const created = vi.fn()
+    render(<MemoryRouter><PlanFormCard card={form()} onCreated={created} /></MemoryRouter>)
+    fireEvent.click(screen.getByRole("button", { name: "Review event" }))
+    const { changeSetId } = created.mock.calls[0][1]
+    cleanup()
+    render(<MemoryRouter><ChangeCard id={changeSetId} /></MemoryRouter>)
+    fireEvent.click(await screen.findByRole("button", { name: "Discard" }))
+    expect(store.state.changeSets.find(c => c.id === changeSetId)).toMatchObject({ status: "rejected" })
+    expect(store.state.events.some(e => e.id === `${changeSetId}:0`)).toBe(false)
   })
   it("the created card opens the event and Undo removes it", () => {
     store.state = create(base)

@@ -99,7 +99,7 @@ describe("the New event form", () => {
     expect(select.value).toBe("jordan")
     expect(within(group).getByText("Maya Chen")).toBeTruthy()
     fireEvent.change(select, { target: { value: "priya" } })
-    fireEvent.click(screen.getByRole("button", { name: "Create event" }))
+    fireEvent.click(screen.getByRole("button", { name: "Review event" }))
     expect(done).toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.objectContaining({ [ops]: "priya", [teamId("Finance")]: "maya" }))
   })
 })

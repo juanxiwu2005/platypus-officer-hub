@@ -8,8 +8,8 @@ export async function savedDemo(page: Page): Promise<DemoState> {
 }
 
 /**
- * The newest saved event with this name, once the app has saved it. Create event in Ask applies the event at once (Option A,
- * 2026-11-28), so a test that used to read the review card checks the created event here instead.
+ * The newest saved event with this name, once the app has saved it. The New event form drafts the event and Create event in the
+ * change list creates it (review option B, 2026-11-28); a test that used to read the review card checks the created event here.
  */
 export async function savedEvent(page: Page, name: string): Promise<DemoState["events"][number]> {
   const read = () => page.evaluate(x => (JSON.parse(localStorage.getItem("platypus.v1.demo") ?? "{}").events ?? []).filter((e: { name: string }) => e.name === x).at(-1) ?? null, name)

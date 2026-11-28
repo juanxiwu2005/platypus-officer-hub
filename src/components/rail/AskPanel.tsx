@@ -232,15 +232,14 @@ export function AskPanel() {
   }
   const patchCard = (msgId: string, cardIndex: number, card: ChatCard) => setMessages(m => m.map(x => x.id === msgId ? { ...x, cards: x.cards?.map((c, i) => i === cardIndex ? card : c) } : x))
   /**
-   * Create event (Option A, Juanxi 2026-11-28): the person's press is the approval, so the event is created at once
-   * (PlanForm.tsx) and the chat shows a small "created" card with Open event and Undo. Only if it could not be applied does
-   * the change set wait on a Review changes card instead.
+   * New event (review option B, Juanxi 2026-11-28): Review event drafts the event, and the chat shows it in the change list,
+   * where Create event makes it (with Open event and Undo). Nothing is saved before that press.
    */
   function planCreated(msgId: string, index: number, c: Extract<ChatCard, { kind: "form" }>, r: PlanResult) {
     patchCard(msgId, index, c)
     setMessages(m => [...m,
       { id: uid(), role: "user", text: r.summary },
-      { id: uid(), role: "assistant", cards: r.eventId ? [{ kind: "created", changeSetId: r.changeSetId, eventId: r.eventId, name: r.name }] : [{ kind: "text", text: "It could not be created at once. Check it here." }, { kind: "changes", changeSetId: r.changeSetId }], source: "Saved workflow" },
+      { id: uid(), role: "assistant", cards: [{ kind: "changes", changeSetId: r.changeSetId }], source: "Saved workflow" },
     ])
   }
   /** The task form creates at once, as the viewer, with Undo: one task per owner. Its one date is Due (FB-5): no buffer. */

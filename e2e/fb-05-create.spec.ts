@@ -68,7 +68,9 @@ test.describe("+ New event (PLAN 8.1)", () => {
     await form.getByLabel("Event name").fill("Stage Night")
     await form.getByLabel("Date").fill(date)
     // Option A (2026-11-28): Create event makes the event at once and the chat shows it with Undo.
-    await form.getByRole("button", { name: "Create event" }).click()
+    await form.getByRole("button", { name: "Review event" }).click()
+    // Review option B: the form drafts; Create event in the change list is the approval.
+    await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
     await expect(rail.getByTestId("event-created")).toContainText("Stage Night created")
     await expect.poll(async () => (await demo(page)).events.find(e => e.name === "Stage Night")?.date).toBe(date)
     expect(chatCalls).toBe(0)

@@ -662,6 +662,8 @@ export interface HandoffSeason {
 export interface ChangeSet {
   /** Human-selected templates survive the trip from New event to its approval card. */
   workflowChoices?: Record<number, { templateId: string; templateVersion: number }>
+  /** New event form (review option B, Juanxi 2026-11-28): the date and team leads the person typed, kept until they press Create event. */
+  formInputs?: Record<number, { date: string; teamLeads?: Record<string, string> }>
   id: string
   sentence: string
   ops: { op: string; [key: string]: unknown }[]

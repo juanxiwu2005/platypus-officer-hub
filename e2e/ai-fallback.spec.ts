@@ -36,7 +36,9 @@ test("Ask: planning an event shows the form at once and keeps it when the AI tim
   expect(sent[0].purpose).toBe("form")
   expect(sent[0].data).not.toHaveProperty("tasks")
   // And it works: Create event makes the event at once with the person's date (Option A, 2026-11-28).
-  await form.getByRole("button", { name: "Create event" }).click()
+  await form.getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect(page.getByTestId("event-created")).toContainText("Networking night created")
   expect((await savedEvent(page, "Networking night")).date).toBe(march3(demo.today))
 })

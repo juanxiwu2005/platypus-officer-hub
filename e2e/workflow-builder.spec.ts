@@ -71,8 +71,9 @@ async function createEvent(page: Page, name: string, template: Template, version
   const workflowName = template.versions.find(item => item.version === version)!.name
   await form.getByLabel("Workflow template", { exact: true }).selectOption({ label: `${workflowName} · v${version}` })
   await expect(form.getByLabel("Workflow template", { exact: true }).locator("option:checked")).toHaveText(`${workflowName} · v${version}`)
-  // Option A (2026-11-28): Create event is the approval and makes the event at once; no Review changes step.
-  await form.getByRole("button", { name: "Create event", exact: true }).click()
+  await form.getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect.poll(async () => (await read(page)).events.find(event => event.name === name)?.workflowRun?.templateVersion).toBe(version)
   await closeRail(page)
   return (await read(page)).events.find(event => event.name === name)!
@@ -120,8 +121,9 @@ test("the default standard workflow draws its Settings branches and main line as
   await form.getByLabel("Event name", { exact: true }).fill("Standard workflow without team setup")
   await form.getByLabel("Date", { exact: true }).fill(addDays((await read(page)).today, 90))
   await expect(form.getByLabel("Workflow template", { exact: true }).locator("option:checked")).toHaveText("Speaker series · v1")
-  // Option A (2026-11-28): Create event is the approval and makes the event at once; no Review changes step.
-  await form.getByRole("button", { name: "Create event", exact: true }).click()
+  await form.getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect.poll(async () => (await read(page)).events.some(event => event.name === "Standard workflow without team setup")).toBe(true)
   await closeRail(page)
   const saved = await read(page)

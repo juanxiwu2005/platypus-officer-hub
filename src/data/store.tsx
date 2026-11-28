@@ -551,7 +551,14 @@ function baseReducer(state: DemoState, action: Action): DemoState {
         const choice = action.changeSet.workflowChoices?.[originalIndex]
         return op.op === "create_event" && choice && typeof choice.templateId === "string" && Number.isInteger(choice.templateVersion) ? [[index, choice]] : []
       }))
-      return { ...state, changeSets: [...state.changeSets, { ...action.changeSet, workflowChoices, ops, status: "pending", reviews: ops.map(() => "pending") }] }
+      // Form inputs are kept only for a create_event, with a well-formed date and plain team → person ids.
+      const formInputs = Object.fromEntries(accepted.flatMap(({ op, originalIndex }, index) => {
+        const input = action.changeSet.formInputs?.[originalIndex]
+        if (op.op !== "create_event" || !input || typeof input.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return []
+        const leads = input.teamLeads && typeof input.teamLeads === "object" ? Object.fromEntries(Object.entries(input.teamLeads).filter(([team, person]) => typeof team === "string" && typeof person === "string")) : undefined
+        return [[index, { date: input.date, ...(leads ? { teamLeads: leads } : {}) }]]
+      }))
+      return { ...state, changeSets: [...state.changeSets, { ...action.changeSet, workflowChoices, ...(Object.keys(formInputs).length ? { formInputs } : { formInputs: undefined }), ops, status: "pending", reviews: ops.map(() => "pending") }] }
     }
     case "aiAutoApply": return aiAutoApply(state, action.changeSet)
     case "undoAuto": {

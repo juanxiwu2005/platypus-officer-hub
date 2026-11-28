@@ -93,8 +93,9 @@ async function createEvent(page: Page, name: string, templateId: string, version
   await form.getByLabel("Event name", { exact: true }).fill(name)
   await form.getByLabel("Date", { exact: true }).fill(addDays((await read(page)).today, 150))
   await form.getByRole("combobox", { name: "Workflow template", exact: true }).selectOption({ label: `${definition.name} · v${version}` })
-  // Option A (2026-11-28): Create event is the approval and makes the event at once; no Review changes step.
-  await form.getByRole("button", { name: "Create event", exact: true }).click()
+  await form.getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect.poll(async () => (await read(page)).events.some(event => event.name === name)).toBe(true)
   await closeRail(page)
   return (await read(page)).events.find(event => event.name === name)!

@@ -115,6 +115,19 @@ export function draftEventNodes(s: DemoState, op: CommandOp, human: HumanInputs)
   return result.error ? [] : result.nodes
 }
 
+/**
+ * What creating this event would do, for the review checklist (option B, Juanxi 2026-11-28): how many tasks, how many
+ * people get one, and the first due date. Call it only once validateReview passes. Nothing is saved.
+ */
+export function previewNewEvent(s: DemoState, op: CommandOp, human: HumanInputs): { tasks: number; people: number; firstDue: string | null } | null {
+  if (op.op !== "create_event") return null
+  const made = newObjects(s, op, "preview-event", human)
+  if (!made.events) return null
+  const nodes = applySchedule({ ...s, ...made }).nodes.filter(n => n.eventId === "preview-event" && !n.clubTask)
+  const dues = nodes.flatMap(n => n.clubDeadline ? [n.clubDeadline] : []).sort()
+  return { tasks: nodes.length, people: new Set(nodes.flatMap(n => n.ownerId ? [n.ownerId] : [])).size, firstDue: dues[0] ?? null }
+}
+
 /** New objects only; all edits to existing nodes are routed through store.updateNode. */
 export function newObjects(s: DemoState, op: CommandOp, id: string, human: HumanInputs): { events?: Event[]; nodes?: Node[] } {
   if (op.op === "create_event") {

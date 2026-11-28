@@ -228,6 +228,21 @@ progress { accent-color: var(--accent); height: 8px; }
 .change-set { display: grid; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; overflow-wrap: anywhere; }
 .change-set > header { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .change-item { display: grid; gap: 10px; border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px; }
+/* Review option B (2026-11-28): one row per change, + new or ~ changed, a line on what it does, one button for the ticked rows. */
+.review-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.review-row { display: grid; gap: 8px; border: 1px solid var(--line); border-radius: var(--r-md); padding: 10px 12px; background: var(--surface); }
+.review-row.is-off { background: var(--surface-2); }
+.review-row.is-off .review-text b { color: var(--muted); text-decoration: line-through; }
+.review-line { display: grid; grid-template-columns: auto auto 1fr auto; gap: 8px; align-items: start; }
+.review-line > input[type="checkbox"] { margin-top: 3px; }
+.review-sub { grid-template-columns: auto 1fr; padding-left: 28px; }
+.review-text { display: grid; gap: 2px; min-width: 0; }
+.review-mark { display: inline-grid; place-items: center; width: 1.25rem; height: 1.25rem; border-radius: var(--r-sm); font-weight: 700; line-height: 1; }
+.review-mark.is-new { background: var(--good-soft); color: var(--good); }
+.review-mark.is-edit { background: var(--accent-soft); color: var(--accent-ink); }
+.review-done { width: 1rem; text-align: center; color: var(--good); font-weight: 700; }
+.review-actions { justify-content: flex-end; }
+.change-quote { margin: 0; }
 .review-fields { border: 0; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; min-width: 0; }
 .review-fields label, .composer-channel { display: grid; gap: 4px; font-size: var(--fs-sm); min-width: 0; }
 .review-fields input:not([type="checkbox"]), .review-fields select, .composer-channel select { width: 100%; min-width: 0; background-color: var(--surface-2); }

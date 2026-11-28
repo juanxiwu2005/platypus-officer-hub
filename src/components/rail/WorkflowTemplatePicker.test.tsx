@@ -7,7 +7,7 @@ import { initialWorkflowChoice, WorkflowTemplatePicker } from "./WorkflowTemplat
 import { PlanForm } from "./PlanForm"
 import { ChangeCard } from "./ChangeCard"
 
-const store = vi.hoisted(() => ({ state: undefined as unknown as DemoState, dispatch: vi.fn() }))
+const store = vi.hoisted(() => { const s = { state: undefined as unknown as DemoState, dispatch: vi.fn(), getState: () => s.state }; return s })
 const rail = vi.hoisted(() => ({ requestReview: vi.fn(), show: vi.fn() }))
 vi.mock("../../data/store", () => ({ useStore: () => store, useViewer: () => ({ person: { id: "alex", name: "Alex Example" } }) }))
 vi.mock("./RailContext", () => ({ useRail: () => rail }))
@@ -54,7 +54,7 @@ describe("human workflow selection", () => {
   it("includes the pinned human selection in the actual New event form submission", () => {
     const done = vi.fn()
     render(<PlanForm card={{ kind: "form", id: "form-visit", date: "2027-04-16", prefill: { name: "Fictional company visit" } }} onDone={done} />)
-    fireEvent.click(screen.getByRole("button", { name: "Create event" }))
+    fireEvent.click(screen.getByRole("button", { name: "Review event" }))
     expect(done).toHaveBeenCalledWith(expect.objectContaining({ done: true, date: "2027-04-16" }), choice, undefined)
     expect(store.dispatch).not.toHaveBeenCalled()
     expect(rail.requestReview).not.toHaveBeenCalled()
@@ -65,7 +65,7 @@ describe("human workflow selection", () => {
     store.state = { ...store.state, viewerId: "maya", org: { ...store.state.org, settings: { ...store.state.org.settings, eventCreators: "everyone" } }, people: store.state.people.map(p => p.id === "maya" ? { ...p, leftOn: "2026-10-01" } : p) }
     render(<PlanForm card={{ kind: "form", id: "form-visit", date: "2027-04-16", prefill: { name: "Fictional company visit" } }} onDone={done} />)
     expect(screen.getByText("Only current officers can create events.")).toBeTruthy()
-    const submit = screen.getByRole("button", { name: "Create event" }) as HTMLButtonElement
+    const submit = screen.getByRole("button", { name: "Review event" }) as HTMLButtonElement
     expect(submit.disabled).toBe(true)
     fireEvent.submit(submit.closest("form")!)
     expect(done).not.toHaveBeenCalled()
@@ -76,7 +76,7 @@ describe("human workflow selection", () => {
     const { rerender } = render(<PlanForm card={{ kind: "form", id: "form-visit", date: "2027-04-16", prefill: { name: "Fictional company visit" } }} onDone={done} />)
     store.state = { ...store.state, org: { ...store.state.org, workflowTemplates: [] } }
     rerender(<PlanForm card={{ kind: "form", id: "form-visit", date: "2027-04-16", prefill: { name: "Fictional company visit" } }} onDone={done} />)
-    fireEvent.click(screen.getByRole("button", { name: "Create event" }))
+    fireEvent.click(screen.getByRole("button", { name: "Review event" }))
     expect(screen.getByRole("alert").textContent).toMatch(/Choose a saved workflow version/)
     expect(done).not.toHaveBeenCalled()
   })
@@ -84,9 +84,13 @@ describe("human workflow selection", () => {
   it("carries the saved selection into approval and opens the custom Plan without automatic AI review", async () => {
     store.state.changeSets = [{ id: "choose-visit", sentence: "Plan Company visit on 2027-04-16", status: "pending", workflowChoices: { 0: choice }, ops: [{ op: "create_event", name: "Fictional company visit", type: "offcampus", headcount: 20, venue: "offcampus", food: "none", funding: "none", speaker: false, checks: {} }] }]
     const Location = () => <output>{useLocation().pathname}</output>
+    const { reducer } = await vi.importActual<typeof import("../../data/store")>("../../data/store")
+    store.dispatch.mockImplementation(a => { store.state = reducer(store.state, a) })
     render(<MemoryRouter><ChangeCard id="choose-visit" /><Location /></MemoryRouter>)
+    // Review option B: the fields sit behind the row's Edit button; the one button creates the event.
+    fireEvent.click(await screen.findByRole("button", { name: "Edit" }))
     expect((screen.getByLabelText("Workflow template") as HTMLSelectElement).value).toBe("company-visit@1")
-    fireEvent.click(screen.getByRole("button", { name: "Apply this change" }))
+    fireEvent.click(screen.getByRole("button", { name: "Create event" }))
     expect(store.dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "reviewChange", human: { date: "2027-04-16", buffered: false, workflowTemplateId: "company-visit", workflowTemplateVersion: 1 } }))
     await screen.findByText("/events")
     expect(rail.requestReview).not.toHaveBeenCalled()
