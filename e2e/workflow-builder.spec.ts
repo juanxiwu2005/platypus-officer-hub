@@ -143,6 +143,8 @@ test("the default standard workflow draws its Settings branches and main line as
   await expect(editor.getByTestId("workflow-builder")).toBeVisible()
   await editor.getByRole("button", { name: "+ Task", exact: true }).click()
   await expect.poll(async () => (await read(page)).nodes.filter(node => node.eventId === event.id).length).toBe(tasks.length + 1)
+  // The new task's details open in the side panel, as in Settings; on a phone that panel covers the page until closed.
+  await closeRail(page)
   await page.getByTestId("flow-edit-toggle").click()
   await expect(page.getByTestId("run-flow-editor")).toHaveCount(0)
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(tasks.length + 1)
