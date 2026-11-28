@@ -6,8 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Platypus</title>
   <meta name="color-scheme" content="light dark" />
-  <meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#0f1312" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#fbfaf7" media="(prefers-color-scheme: light)" data-scheme="light" />
+  <meta name="theme-color" content="#0f1312" media="(prefers-color-scheme: dark)" data-scheme="dark" />
+  <!-- Appearance before first paint (docs/DESIGN_TOKENS.md section 14): Settings > My preferences stores "light" or "dark"
+       under platypus.v1.appearance; nothing stored means Follow system. src/lib/appearance.ts applies later changes the same way. -->
+  <script>try{var t=localStorage.getItem("platypus.v1.appearance"),d=document;if(t=="light"||t=="dark"){d.documentElement.dataset.theme=t;d.querySelector("meta[name=color-scheme]").content=t;d.querySelectorAll("meta[data-scheme]").forEach(function(m){m.setAttribute("media",m.dataset.scheme==t?"all":"not all")})}}catch(e){}</script>
   <meta name="description" content="Platypus v1 prototype: a team AI chief of staff for student organizations. Fictional organization and example data." />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 </head>
