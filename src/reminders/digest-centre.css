@@ -1,7 +1,28 @@
 /* Reminder digest centre (concept F, Juanxi 2026-11-19): one email per person. Tokens only (docs/DESIGN_TOKENS.md, AGENTS.md 7). */
 
+/* ---- Two columns (2026-11-28): summary, people and History on the left, Fix first on the right ---- */
+/* The page is a size container, so the columns follow the room the page really has (side rail open or closed), not the
+   window. Fix first spans the three left rows; the last row is flexible, so a tall Fix first never pushes the people list
+   down. Stacked (narrow page, phone, or no Fix first), the order is the DOM order: summary, Fix first, people, History. */
+.dg { gap: var(--s5); container: dg / inline-size; }
+.dg-cols { display: grid; gap: var(--s5); align-items: start; }
+.dg-cols:empty { display: none; }
+@container dg (min-width: 45rem) {
+  .dg-cols:has(> .dg-fix) { grid-template-columns: minmax(0, 3fr) minmax(20rem, 2fr); grid-template-rows: auto auto 1fr; }
+  .dg-cols > * { grid-column: 1; }
+  .dg-cols > .dg-fix { grid-column: 2; grid-row: 1 / span 3; }
+}
+
+/* ---- Icons (docs/DESIGN_TOKENS.md, Icons): decorative line icons, always beside a text label ---- */
+/* A section's icon is a small tinted tile; a row's icon is a bare muted glyph. */
+.dg-top-row > svg, .dg :is(.dg-fix, .dg-people) h2 > svg {
+  flex: none; box-sizing: border-box; width: 32px; height: 32px; padding: var(--s3);
+  border-radius: var(--r-sm); background: var(--accent-soft); color: var(--accent-ink);
+}
+.dg .dg-fix h2 > svg { background: var(--warn-soft); color: var(--warn); }
+.dg-fix-row > svg { width: 18px; height: 18px; color: var(--muted); }
+
 /* ---- Top card: one summary line and the mode's one action (S2, 2026-11-22) ---- */
-.dg { gap: var(--s5); }
 .dg-top { display: grid; gap: var(--s3); }
 .dg-top-row { display: flex; align-items: center; gap: var(--s5); flex-wrap: wrap; }
 /* "Choose how reminders go out" is a link styled as the primary button. DX-04's touch rule for `a.small` (inline-block,
@@ -13,7 +34,7 @@
 /* Step 0 (W1): the page's one status line stays mounted (so it is announced); empty, it takes no room in the card's grid. */
 .dg-top > .dg-feedback:empty { margin-top: calc(-1 * var(--s3)); }
 /* ---- People, one below the other (works for 10+ people) ---- */
-.dg-people { padding-top: var(--s4); padding-bottom: var(--s4); }
+.dg-people { padding-bottom: var(--s4); }
 .dg-list { list-style: none; margin: 0; padding: 0; display: grid; }
 .dg-person { padding: var(--s3) 0 var(--s4); border-top: 1px solid var(--line); }
 .dg-person:first-child { border-top: 0; }
@@ -36,7 +57,8 @@
 .dg-av { width: 32px; height: 32px; font-size: var(--fs-sm); }
 .dg-name { flex: 0 1 auto; min-width: 0; font-weight: 700; font-size: var(--fs-base); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dg-state { flex: none; font-size: var(--fs-md); font-weight: 600; color: var(--muted); }
-.dg-state.sent { padding: var(--s1) var(--s4); border-radius: var(--r-pill); background: var(--good-soft); color: var(--good); }
+.dg-state.sent { display: inline-flex; align-items: center; gap: var(--s2); padding: var(--s1) var(--s4); border-radius: var(--r-pill); background: var(--good-soft); color: var(--good); }
+.dg-state.sent > svg { width: 14px; height: 14px; }
 /* R-S0 W2: task lines start under the person's name (toggle padding + avatar + gap), with no empty mark column. A title is
    never cut: it wraps, and "At risk" follows it as quiet text. Below 600px the reason chip moves under the title. */
 .dg-tasks { list-style: none; margin: 0; padding: 0 var(--s4) 0 calc(var(--s4) + 32px + var(--s5)); display: grid; gap: var(--s1); }
@@ -46,10 +68,17 @@
 /* One neutral chip for every reminder reason ("5 days overdue", "No start update"): a fact about timing, not a status.
    Real task statuses use StatusPill (src/reminders/ReasonChip.tsx). */
 .dg-chip { flex: none; justify-self: end; padding: var(--s1) var(--s4); border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--surface-2); color: var(--ink); font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; }
-/* ---- Fix first: one line each, task + problem + one button ---- */
-.dg-fix-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: var(--s5); min-height: 44px; padding: var(--s3) 0; border-top: 1px solid var(--line); font-size: var(--fs-md); }
+/* ---- Fix first: one line each, icon + task + problem + one button ---- */
+/* A narrow Fix first (the right column, or a phone) puts the problem and the button under the title. */
+.dg-fix { container-type: inline-size; }
+.dg-fix-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto auto; align-items: center; gap: var(--s5); min-height: 44px; padding: var(--s3) 0; border-top: 1px solid var(--line); font-size: var(--fs-md); }
 .dg-fix-row:first-child { border-top: 0; }
 .dg-fix-row .pill { justify-self: end; }
+@container (max-width: 30rem) {
+  .dg-fix-row { grid-template-columns: 18px minmax(0, 1fr) auto; row-gap: var(--s2); }
+  .dg-fix-row .dg-task-title { grid-column: 2 / -1; }
+  .dg-fix-row > :nth-child(3) { grid-column: 2; justify-self: start; }
+}
 
 /* ---- Inline email: opens in place under the person's tasks; only a token fade, nothing moves (AGENTS.md 6) ---- */
 .dg-inline:not([hidden]) { display: grid; gap: var(--s4); margin: var(--s4) var(--s4) 0; animation: dg-fade var(--dur-fast) var(--ease-out); }
@@ -101,14 +130,11 @@
   .dg-inline:not([hidden]) { margin-inline: 0; }
 }
 /* A phone (R-S0 W2: 600px, so an iPad at 820px keeps one line per task): the whole title wraps and the reason chip or
-   status sits under it; a Fix first row puts its chip and button under the title. */
+   status sits under it. Fix first rows follow their card's width instead (the container rule above). */
 @media (max-width: 600px) {
   .dg-tasks { padding-left: var(--s4); gap: var(--s4); }
   .dg-task { grid-template-columns: minmax(0, 1fr); row-gap: var(--s2); }
   .dg-task .dg-chip { justify-self: start; }
-  .dg-fix-row { grid-template-columns: minmax(0, 1fr) auto; row-gap: var(--s2); }
-  .dg-fix-row .dg-task-title { grid-column: 1 / -1; }
-  .dg-fix-row :is(.dg-chip, .pill) { justify-self: start; }
 }
 
 /* Headings inside the page (R-S0 W2): sans with weight steps; the page title (h1, outside .rq) keeps the serif. Scoped to

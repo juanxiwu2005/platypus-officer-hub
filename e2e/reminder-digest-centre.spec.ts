@@ -167,7 +167,7 @@ for (const [width, height] of [[390, 844], [320, 640]]) {
       }).map(el => el.textContent)
     })
     expect(await covered()).toEqual([])
-    // The people list alone (no Fix first after it): its last Send still clears the button.
+    // The people list alone (no Fix first on the page): its last Send still clears the button.
     await page.evaluate(() => document.querySelector<HTMLElement>("[data-testid=rq-fix]")!.remove())
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
     expect(await covered()).toEqual([])

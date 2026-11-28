@@ -940,7 +940,6 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "saveClubSettings": out = { name: s.org.name, mission: s.org.mission, settings: s.org.settings }; break
     case "saveProfile": out = fields(s.people.find(p => p.id === a.personId), Object.keys(a.patch)); break
     case "markNoticeRead": out = fields(s.notifications.find(n => n.id === a.id), ["read"]); break
-    case "sendTaskEmail": out = { taskEmails: (s.taskEmails ?? []).length }; break
     case "resolveReport": out = fields(s.feedback.find(f => f.id === a.id), ["resolved"]); break
     case "reviewExtension": out = fields(s.extensionRequests.find(r => r.id === a.id), ["status"]); break
     case "undoAuto": out = fields(s.changeSets.find(c => c.id === a.id), ["undone"]); break

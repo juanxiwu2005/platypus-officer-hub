@@ -13,7 +13,8 @@ import { loadedDraftModule, useSendAllBlocker } from "../reminders/draftLoader"
 import { draftTitleOf } from "../reminders/draftLinks"
 import type { PreparedDigest } from "../reminders/digestContracts"
 import { PersonRow } from "../reminders/PersonRow"
-import { ProblemChip } from "../reminders/ReasonChip"
+import { ProblemChip, problemIcon } from "../reminders/ReasonChip"
+import { Icons } from "../components/icons"
 import { YourReminders } from "../reminders/YourReminders"
 import { isReminderRuntime } from "../reminders/runtime"
 import { WeeklyLine } from "../components/cheers/WeeklyLine"
@@ -45,6 +46,8 @@ function useVisitOrder(list: DigestPerson[]): DigestPerson[] {
  * Concept F (Juanxi 2026-11-19), simplified in S2 (2026-11-22): one email per person. Each row expands in place to show
  * that person's email; the row's action follows the sending mode. History's Follow up opens a row here (`?person=`).
  * Step 0 (2026-11-27): one polite status line, always mounted, in the summary card (or the plan card when reminders cannot run).
+ * Two columns (2026-11-28): on a wide page the summary and the people list sit on the left and Fix first on the right
+ * (`.dg-cols`, digest-centre.css). Stacked, the order is the DOM order: summary, Fix first, people, History.
  */
 function ReminderCentre({ q }: { q: Centre }) {
   const { state, tryDispatch, getState, persistenceFailed, automaticReminders, exportData } = useStore()
@@ -131,36 +134,40 @@ function ReminderCentre({ q }: { q: Centre }) {
     {persistenceFailed && <p role="alert" className="rq-note">Can't save in this browser.</p>}
     {/* Cheers (R1, F7): president and VP, Monday to Wednesday. */}
     <WeeklyLine />
-    {ready && <section className="card dg-top" data-testid="rq-summary" aria-label="Today's reminder emails">
-      <div className="dg-top-row">
-        <p className="dg-top-text" ref={summary} tabIndex={-1} data-testid="rq-summary-line"><b>{headline}</b></p>
-        {action}
-      </div>
-      {notSent.length > 0 && <p className="dg-top-note" data-testid="rq-auto-failed">Not sent: {notSent.join(", ")}</p>}
-      {!n && dc.nextCheck && <p className="dg-top-note" data-testid="rq-next">Next check: {fmtLong(dc.nextCheck.on)} · {dc.nextCheck.count} planned this week</p>}
-      {status}
-    </section>}
-    {ready && rows.length > 0 && <section className="card dg-people" aria-labelledby="dg-people-h" data-testid="rq-people">
-      <h2 id="dg-people-h" className="sr-only">Emails by person</h2>
-      <ul className="dg-list" aria-busy={busy || automaticReminders.busy}>{rows.map(p => <PersonRow key={p.recipientId} p={p} mode={q.mode} forecast={forecast} sendingAll={busy}
-        reveal={reveal?.id === p.recipientId ? reveal.n : 0} onAction={() => setFeedback("")} onSent={setFeedback} />)}</ul>
-      <BtsRow><Bts label="Rule engine">Order: overdue, due, other late tasks, then starts and follow-ups.</Bts></BtsRow>
-    </section>}
-    {ready && dc.fix.length > 0 && <section className="card rq-section dg-fix" aria-labelledby="dg-fix-h" data-testid="rq-fix">
-      {/* Read as "Fix first, 8", not "Fix first8". */}
-      <header><h2 id="dg-fix-h" aria-label={`Fix first, ${dc.fix.length}`}>Fix first<span className="rq-n">{dc.fix.length}</span></h2></header>
-      <ul className="rq-list">{dc.fix.map(x => <li key={x.id} className="dg-fix-row" data-testid="rq-row" data-node={x.nodeId}>
-        <span className="dg-task-title">{x.title}</span>
-        {x.problem ? <ProblemChip problem={x.problem} /> : <span />}
-        {x.opens === "legacy" ? <button type="button" className="btn small" disabled={persistenceFailed} onClick={() => { setFeedback(""); reviewLegacy(x.nodeId) }}>{x.action}</button>
-          : x.taskAvailable ? x.opens === "waiting" && canChooseWaiting(x)
-            ? <button type="button" className="btn small" aria-label={`Choose who this waits on: ${x.title}`} onClick={() => openFix(x)}>{x.action}</button>
-            : <button type="button" className="btn small" aria-label={`Open task: ${x.title}`} onClick={() => openFix(x)}>{x.opens === "waiting" ? "Open task" : x.action}</button>
-          : <span />}
-      </li>)}</ul>
-    </section>}
-    {history && <p className="dg-history-link" data-testid="rq-history">
-      <button type="button" className="btn btn-quiet small" data-testid="open-history" onClick={() => rail.show({ kind: "reminderHistory" })}>History</button>
-    </p>}
+    <div className="dg-cols">
+      {ready && <section className="card dg-top" data-testid="rq-summary" aria-label="Today's reminder emails">
+        <div className="dg-top-row">
+          {Icons.mail}
+          <p className="dg-top-text" ref={summary} tabIndex={-1} data-testid="rq-summary-line"><b>{headline}</b></p>
+          {action}
+        </div>
+        {notSent.length > 0 && <p className="dg-top-note" data-testid="rq-auto-failed">Not sent: {notSent.join(", ")}</p>}
+        {!n && dc.nextCheck && <p className="dg-top-note" data-testid="rq-next">Next check: {fmtLong(dc.nextCheck.on)} · {dc.nextCheck.count} planned this week</p>}
+        {status}
+      </section>}
+      {ready && dc.fix.length > 0 && <section className="card rq-section dg-fix" aria-labelledby="dg-fix-h" data-testid="rq-fix">
+        {/* Read as "Fix first, 8", not "Fix first8". */}
+        <header><h2 id="dg-fix-h" aria-label={`Fix first, ${dc.fix.length}`}>{Icons.alert}Fix first<span className="rq-n">{dc.fix.length}</span></h2></header>
+        <ul className="rq-list">{dc.fix.map(x => <li key={x.id} className="dg-fix-row" data-testid="rq-row" data-node={x.nodeId}>
+          {problemIcon(x.problem)}
+          <span className="dg-task-title">{x.title}</span>
+          {x.problem ? <ProblemChip problem={x.problem} /> : <span />}
+          {x.opens === "legacy" ? <button type="button" className="btn small" disabled={persistenceFailed} onClick={() => { setFeedback(""); reviewLegacy(x.nodeId) }}>{x.action}</button>
+            : x.taskAvailable ? x.opens === "waiting" && canChooseWaiting(x)
+              ? <button type="button" className="btn small" aria-label={`Choose who this waits on: ${x.title}`} onClick={() => openFix(x)}>{x.action}</button>
+              : <button type="button" className="btn small" aria-label={`Open task: ${x.title}`} onClick={() => openFix(x)}>{x.opens === "waiting" ? "Open task" : x.action}</button>
+            : <span />}
+        </li>)}</ul>
+      </section>}
+      {ready && rows.length > 0 && <section className="card rq-section dg-people" aria-labelledby="dg-people-h" data-testid="rq-people">
+        <header><h2 id="dg-people-h">{Icons.team}Emails by person</h2></header>
+        <ul className="dg-list" aria-busy={busy || automaticReminders.busy}>{rows.map(p => <PersonRow key={p.recipientId} p={p} mode={q.mode} forecast={forecast} sendingAll={busy}
+          reveal={reveal?.id === p.recipientId ? reveal.n : 0} onAction={() => setFeedback("")} onSent={setFeedback} />)}</ul>
+        <BtsRow><Bts label="Rule engine">Order: overdue, due, other late tasks, then starts and follow-ups.</Bts></BtsRow>
+      </section>}
+      {history && <p className="dg-history-link" data-testid="rq-history">
+        <button type="button" className="btn btn-quiet small" data-testid="open-history" onClick={() => rail.show({ kind: "reminderHistory" })}>History</button>
+      </p>}
+    </div>
   </div>
 }

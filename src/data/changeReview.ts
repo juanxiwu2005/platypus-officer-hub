@@ -158,7 +158,8 @@ export function createTasks(s: DemoState, a: { id: string; sentence: string; tas
   if (s.changeSets.some(c => c.id === a.id) || !a.tasks.length || a.tasks.length > 10) return s
   if (a.tasks.some(task => task.eventId !== null)) return s
   // A linked club task needs an event still ahead and a due date before its event day (clubTasks.ts linkError says why to the user).
-  if (a.tasks.some(({ link }) => link && !(s.events.some(e => e.id === link.eventId && e.date > s.today && a.date < e.date) && typeof link.branchId === "string" && Number.isFinite(link.order)))) return s
+  // A malformed branch place is harmless: placementOf (engine/workflowBranches.ts) shows it as an unrecognized branch.
+  if (a.tasks.some(({ link }) => link && !(s.events.some(e => e.id === link.eventId && e.date > s.today && a.date < e.date)))) return s
   const lead = canLead(s)
   // Only a lead can post a task nobody owns yet; anyone else's task without an owner is their own.
   const raw = a.tasks.map(t => ({ op: "add_node", title: t.title, eventId: t.eventId, ownerId: t.ownerId ?? (lead ? null : s.viewerId), tier: t.tier ?? "light" }))

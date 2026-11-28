@@ -7,6 +7,7 @@ import { prepareReminderDigest, recordReminderDigests } from "./digest"
 import type { ReminderDelivery } from "./contracts"
 import { Mail, digestVia, usePreparedDigest } from "./DigestMail"
 import { ReasonChip } from "./ReasonChip"
+import { Icons } from "../components/icons"
 import { loadedDraftModule, useRowDraft } from "./draftLoader"
 
 // The compose box loads when a row first opens, so it adds nothing to the startup bundle.
@@ -94,7 +95,7 @@ export function PersonRow({ p, mode, forecast, sendingAll, reveal = 0, onAction,
         </button>}
       </h3>
       {p.held > 0 && <span className="dg-state" data-testid="rq-person-held">+{p.held} in the next email</span>}
-      {status === "sent" ? <span className="dg-state sent">Sent</span>
+      {status === "sent" ? <span className="dg-state sent">{Icons.check}Sent</span>
         : status === "next" && mode === "review_then_auto" ? <button type="button" className="btn small" data-testid="rq-person-send" aria-label={`Send to ${first}`} disabled={busy || sendingAll || persistenceFailed || !!blocker} onClick={event => record("platypus", event.detail)}>{busy ? "Sending…" : "Send"}</button>
         : null}
     </div>
