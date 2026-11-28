@@ -107,8 +107,9 @@
 .route-loading-page { min-height: 100dvh; }
 html, body { margin: 0; overflow-x: clip; }
 /* A page that grows past the window height gains a scroll bar; with classic (non-overlay) scroll bars that made the whole
-   page narrower and shifted it. The gutter is kept either way, so switching to a long or short tab moves nothing (§15). */
-html { scrollbar-gutter: stable; }
+   page narrower and shifted it. On computer widths the gutter is kept either way, so switching to a long or short tab moves
+   nothing (§15). Narrow windows keep their full width: there the 15px gutter would only waste room. */
+@media (min-width: 1024px) { html { scrollbar-gutter: stable; } }
 body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased; font-size: var(--fs-base); }
 a { color: var(--accent-ink); }
 button, select, input, textarea { font: inherit; color: inherit; }
@@ -199,7 +200,8 @@ main { min-width: 0; display: grid; gap: 16px; max-width: 1180px; width: 100%; j
    Workflow and Roles & teams, and Plan's title jumped between Events and Tasks. Now every page sits next to the navigation
    (Juanxi 2026-11-01: no empty strip beside it) and uses the same width. The plain rule above stays for the few pages outside
    the shell (the error page, a single task opened from an email). */
-.shell:not(.single) > main { max-width: var(--page-max); justify-self: start; }
+/* width: 100% matters: with justify-self: start alone the column shrinks to its content, so a wide tab (Roles & teams' chart) made it wider than the others. */
+.shell:not(.single) > main { width: 100%; max-width: var(--page-max); justify-self: start; }
 
 /* Page parts */
 .page-head { display: flex; gap: 12px; max-width: none; align-items: center; justify-content: space-between; flex-wrap: wrap; min-height: 40px; }

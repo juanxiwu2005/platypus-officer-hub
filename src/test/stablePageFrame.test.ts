@@ -44,10 +44,10 @@ describe("stable page frame (DESIGN_TOKENS §15)", () => {
     }
     expect(found).toEqual([
       "src/styles.css|main|justify-self,max-width,min-width,width",
-      "src/styles.css|.shell:not(.single) > main|justify-self,max-width",
+      "src/styles.css|.shell:not(.single) > main|justify-self,max-width,width",
     ])
     const shell = rules.find(r => r.rule.selector === ".shell:not(.single) > main")!
-    expect(decls(shell.rule)).toMatchObject({ "max-width": "var(--page-max)", "justify-self": "start" })
+    expect(decls(shell.rule)).toMatchObject({ width: "100%", "max-width": "var(--page-max)", "justify-self": "start" })
   })
 
   it("never lets content choose the width of the Settings or Events frame", () => {
