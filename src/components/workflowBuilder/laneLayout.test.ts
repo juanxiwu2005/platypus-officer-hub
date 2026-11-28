@@ -71,30 +71,10 @@ describe("one-row lane layout", () => {
     expect(buildLaneLayout(steps, graph, { availableWidth: 300 }).width).toBe(natural.width)
   })
 
-  it("labels Plan, Prepare, Event day and Close in order across the canvas", () => {
+  it("has no phase strip: the main line starts just under the top padding (Juanxi 2026-11-28 removed Plan · Prepare · Event day · Close)", () => {
     const { steps, graph } = standardLike(), layout = buildLaneLayout(steps, graph)
-    expect(layout.phases.map(phase => phase.id)).toEqual(["plan", "prepare", "event", "close"])
-    expect(layout.phases.map(phase => phase.label)).toEqual(["Plan", "Prepare", "Event day", "Close"])
-    for (const [index, phase] of layout.phases.entries()) {
-      expect(phase.x1).toBeGreaterThan(phase.x0)
-      if (index) expect(phase.x0).toBe(layout.phases[index - 1].x1)
-    }
-    const day = layout.stations.find(station => station.id === "__event__")!, event = layout.phases[2]
-    expect(event.x0).toBeLessThan(day.x)
-    expect(event.x1).toBeGreaterThan(day.x)
-    const plan = layout.points.find(point => point.step.key === "p0-2")!
-    expect(layout.phases[0].x1).toBe(plan.x + 54)
-  })
-
-  it("omits Plan without leading planning steps and names two event days", () => {
-    const { steps, graph } = standardLike()
-    graph.eventDays.push({ id: "__event2__", title: "Day 2", offsetDays: 1, details: "" })
-    graph.spine.splice(4, 0, "__event2__")
-    const layout = buildLaneLayout(steps.map(step => ({ ...step, phase: step.phase === "plan" ? "prepare" : step.phase })), graph)
-    expect(layout.phases.map(phase => phase.id)).toEqual(["prepare", "event", "close"])
-    expect(layout.phases[1].label).toBe("Event days")
-    const second = layout.stations.find(station => station.id === "__event2__")!
-    expect(layout.phases[1].x1).toBeGreaterThan(second.x)
+    expect("phases" in layout).toBe(false)
+    expect(Math.min(...layout.lanes.map(lane => lane.y))).toBeLessThan(40)
   })
 
   it("wraps only a branch longer than the row limit, onto a second row under the first", () => {

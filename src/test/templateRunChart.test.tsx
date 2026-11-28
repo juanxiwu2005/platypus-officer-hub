@@ -195,4 +195,28 @@ describe("chart selection", () => {
     for (const lane of lanes) expect(lane.textContent).toMatch(/^(Club leadership|Operations|Marketing|Finance) · \d+ steps?$/)
     expect(screen.queryByTestId("team-execution-chart")).toBeNull()
   })
+
+  it("draws each dot in its own line's colour and shows no phase strip (Juanxi 2026-11-28)", async () => {
+    const { state, event, projection } = expectRunMatchesSettings(appState(), STANDARD_WORKFLOW_TEMPLATE_ID)
+    render(<RailProvider><MetroChart state={state} sched={computeSchedule(state)} forecast={{ nodes: {}, events: {} }} eventId={event.id} selectedId={null} onSelect={() => {}} canEdit /></RailProvider>)
+    await screen.findByTestId("milestone-execution-chart")
+    const chart = screen.getByTestId("flow-chart")
+    expect(within(chart).queryByRole("list", { name: "Workflow phases" })).toBeNull()
+    const tracks = within(chart).getAllByTestId("milestone-execution-track")
+    const toneOf = (element: Element) => [...element.classList].find(name => name.startsWith("wfx-tone-"))
+    let checked = 0
+    for (const lane of within(chart).getAllByTestId("milestone-execution-branch")) {
+      const track = tracks.find(item => item.getAttribute("data-branch-id") === lane.getAttribute("data-branch-id"))!
+      expect(toneOf(track)).toBe(toneOf(lane))
+      const ids = projection.graph!.teamBranches.find(branch => branch.id === lane.getAttribute("data-branch-id"))?.stepIds ?? []
+      for (const id of ids) {
+        const dot = chart.querySelector(`[data-step-id="${id}"]`)
+        if (!dot || dot.classList.contains("is-shared")) continue
+        expect(toneOf(dot), id).toBe(toneOf(track)); checked++
+      }
+    }
+    expect(checked).toBeGreaterThan(5)
+    // Main-line dots carry no branch tone, so they take the main line's colour.
+    for (const dot of chart.querySelectorAll(".mxe-task.is-shared")) expect(toneOf(dot)).toBeUndefined()
+  })
 })

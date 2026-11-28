@@ -5,14 +5,25 @@
 .mxe-scroll { max-height: 76vh; }
 .mxe-lane { border-color: transparent; background: transparent; }
 .mxe-lane .wfx-pill { cursor: default; }
-.mxe-task.m-dot { width: 100px; height: 102px; transform: translate(-50%, -22px); display: flex; flex-direction: column; align-items: center; gap: var(--s3); border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: var(--s4) 0 0; color: var(--ink); }
-.mxe-task.m-dot::after { display: none; }
-.mxe-task > i { width: 24px; height: 24px; flex-shrink: 0; border-radius: var(--r-circle); border: 2px solid var(--info); background: var(--surface); }
-.mxe-task.situation > i { border-color: var(--risk-yellow); }
-.mxe-task.done > i { background: var(--good); border-color: var(--good); }
-.mxe-task.now > i { background: var(--info); border-color: var(--info); box-shadow: 0 0 0 4px var(--info-glow); }
-.mxe-task.risk > i { border-color: var(--late); border-width: 3px; }
+/* z-index lifts the dot above the line layer (.wfx-lines), so a line stops at the ring instead of crossing it.
+   The circle's centre sits on the line: padding-top (--s4, 8px) + half the 24px circle = 20px. */
+.mxe .mxe-task.m-dot { z-index: var(--z-raised); width: 100px; height: 102px; transform: translate(-50%, -20px); display: flex; flex-direction: column; align-items: center; gap: var(--s3); border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: var(--s4) 0 0; color: var(--ink); }
+.mxe .mxe-task.m-dot::after { display: none; }
+/* Every ring takes its line's colour (--wfx-line, lane-editor.css); status is the fill and a small mark, not another colour:
+   empty = not started, centre dot = started or due, filled with a check = done, red corner mark = at risk. */
+.mxe-task > i, .mxe-key { position: relative; box-sizing: border-box; flex-shrink: 0; width: 24px; height: 24px; border-radius: var(--r-circle); border: 2px solid var(--wfx-line, var(--mline-main)); background: var(--surface); }
+.mxe-task.situation > i, .mxe-key.is-situation { border-style: dashed; }
+.mxe-task.done > i, .mxe-key.is-done { border-style: solid; background: var(--wfx-line, var(--mline-main)); }
+.mxe-task.done > i::before, .mxe-key.is-done::before { content: ""; position: absolute; left: 50%; top: 45%; width: 5px; height: 9px; border: solid var(--surface); border-width: 0 2px 2px 0; transform: translate(-50%, -50%) rotate(45deg); }
+.mxe-task.now > i, .mxe-key.is-now { background: radial-gradient(circle, var(--wfx-line, var(--mline-main)) 0 5px, var(--surface) 5.5px); }
+.mxe-task.risk > i::after, .mxe-key.is-risk::after { content: ""; position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; box-sizing: border-box; border-radius: var(--r-circle); border: 2px solid var(--surface); background: var(--late); }
 .mxe-task[aria-pressed="true"] > i { box-shadow: 0 0 0 4px var(--accent-soft), 0 0 0 5px var(--accent); }
+.mxe-legend { display: flex; flex-wrap: wrap; gap: var(--s4) var(--s7); margin-top: var(--s5); color: var(--muted); }
+.mxe-legend > span { display: inline-flex; align-items: center; gap: var(--s3); }
+.mxe-key { width: 16px; height: 16px; }
+.mxe-key.is-done::before { width: 4px; height: 7px; border-width: 0 1.5px 1.5px 0; }
+.mxe-key.is-now { background: radial-gradient(circle, var(--mline-main) 0 3px, var(--surface) 3.5px); }
+.mxe-key.is-risk::after { top: -3px; right: -3px; width: 8px; height: 8px; }
 .mxe-task strong { display: -webkit-box; max-width: 100px; font-size: var(--fs-md); font-weight: 600; line-height: 1.25; text-align: center; overflow-wrap: normal; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .mxe-task > span { max-width: 108px; font-size: var(--fs-sm); color: var(--muted); text-align: center; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Main-line labels sit on an opaque chip so branch curves leaving the station pass behind them, as in Settings. */

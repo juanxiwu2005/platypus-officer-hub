@@ -10,7 +10,7 @@ import { firstName } from "../../pages/helpers"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import { statusStyles } from "../ui"
 import { useRail } from "../rail/RailContext"
-import { buildLaneLayout, phaseIndents, PHASE_HEADER } from "../workflowBuilder/laneLayout"
+import { buildLaneLayout } from "../workflowBuilder/laneLayout"
 import { projectMilestoneExecution } from "./milestoneExecution"
 import "../workflowBuilder/lane-editor.css"
 import "./milestoneExecution.css"
@@ -35,8 +35,7 @@ export function MilestoneExecutionChart({ state, sched, forecast, eventId, selec
   const rail = useRail(), styles = statusStyles(state)
   const station = layout?.stations.find(item => item.id === stationId && item.kind !== "task")
   const scale = layout ? Math.max(READABLE_ZOOM, Math.min(1, Math.max(MIN_ZOOM, (available - 4) / layout.width))) : 1
-  // The phase header is a fixed-height strip; the scaled stage starts right under it.
-  const screenY = (y: number) => PHASE_HEADER + (y - PHASE_HEADER) * scale
+  const screenY = (y: number) => y * scale
   useEffect(() => {
     const element = viewport.current
     if (!element) return
@@ -78,25 +77,22 @@ export function MilestoneExecutionChart({ state, sched, forecast, eventId, selec
     const index = projection?.teams.findIndex(team => team.id === teamId) ?? -1
     return index < 0 ? "none" : String(index % TONES)
   }
-  const renderTask = (key: string, x: number, y: number, shared = false) => {
+  // `tone` is the branch line the dot sits on, so its ring has the line's colour; main-line dots take the main line's.
+  const renderTask = (key: string, x: number, y: number, shared = false, tone = "none") => {
     const node = projection?.nodeByStep.get(key)
     if (!node) return null
     const plan = sched.nodes[node.id]
     const status = nodeStop(node, state.today, isAtRisk(state, sched, forecast, node))
     const kind = workflowStepKind(node, event?.workflowBranches) === "core" ? "baseline" : "situation"
     const owner = state.people.find(person => person.id === node.ownerId)?.name ?? "No owner"
-    return <button key={key} type="button" className={`m-dot mxe-task ${kind} ${status}${shared ? " is-shared" : ""}`} data-testid={`flow-node-${node.stepKey ?? node.id}`} data-task-id={node.id} data-step-id={key} aria-pressed={!stationId && selectedId === node.id} aria-label={`${node.title}. ${styles[node.status].label}. Owner ${owner}. Due ${plan ? fmtShort(plan.club) : "pending"}.`} title={`${node.title} · ${owner}${plan ? ` · Due ${fmtShort(plan.club)}` : ""}`} style={{ left: x, top: y }} onClick={() => selectTask(node)}>
+    return <button key={key} type="button" className={`m-dot mxe-task ${kind} ${status}${shared ? " is-shared" : ` wfx-tone-${tone}`}`} data-testid={`flow-node-${node.stepKey ?? node.id}`} data-task-id={node.id} data-step-id={key} aria-pressed={!stationId && selectedId === node.id} aria-label={`${node.title}. ${styles[node.status].label}. Owner ${owner}. Due ${plan ? fmtShort(plan.club) : "pending"}.`} title={`${node.title} · ${owner}${plan ? ` · Due ${fmtShort(plan.club)}` : ""}`} style={{ left: x, top: y }} onClick={() => selectTask(node)}>
       <i aria-hidden="true" /><strong>{node.title}</strong><span>{firstName(state, node.ownerId)}{plan ? ` · ${fmtShort(plan.club)}` : ""}</span>
     </button>
   }
   if (!event || !projection) return null
-  const indents = layout ? phaseIndents(layout.phases, scale) : []
   return <div className="mxe" data-testid="milestone-execution-chart">
-    {layout && graph && <div className="wfx-scroll mxe-scroll" data-testid="flow-chart" ref={viewport} tabIndex={0} role="region" aria-label="Activity workflow: main line and team branches" style={{ "--wfx-scale": scale, "--wfx-head": `${PHASE_HEADER}px` } as CSSProperties}>
-      <ol className="wfx-phases" aria-label="Workflow phases" style={{ width: layout.width * scale }}>
-        {layout.phases.map((phase, index) => <li key={phase.id} className={`wfx-phase is-${phase.id}`} style={{ left: phase.x0 * scale, width: (phase.x1 - phase.x0) * scale, "--wfx-indent": `${indents[index]}px` } as CSSProperties}><span>{phase.label}</span><i aria-hidden="true" /></li>)}
-      </ol>
-      <div className="wfx-size" style={{ width: layout.width * scale, height: (layout.height - PHASE_HEADER) * scale }}><div className="wfx-stage" style={{ width: layout.width, height: layout.height }}>
+    {layout && graph && <div className="wfx-scroll mxe-scroll" data-testid="flow-chart" ref={viewport} tabIndex={0} role="region" aria-label="Activity workflow: main line and team branches" style={{ "--wfx-scale": scale} as CSSProperties}>
+      <div className="wfx-size" style={{ width: layout.width * scale, height: layout.height * scale }}><div className="wfx-stage" style={{ width: layout.width, height: layout.height }}>
         {layout.lanes.map(lane => {
           const team = projection.teams.find(item => item.id === lane.branch.teamId)?.name ?? "Team unavailable", count = lane.points.length
           return <div key={lane.branch.id} className={`wfx-lane mxe-lane wfx-tone-${toneOf(lane.branch.teamId)}`} data-testid="milestone-execution-branch" data-branch-id={lane.branch.id} data-team-id={lane.branch.teamId} role="group" aria-label={`${team} branch`} style={{ left: lane.x, top: lane.y, width: lane.width, height: lane.height }}>
@@ -111,10 +107,10 @@ export function MilestoneExecutionChart({ state, sched, forecast, eventId, selec
           <i aria-hidden="true" /><strong>{item.title}</strong>
           {item.kind === "day" && <><span>{projection.dates[item.id] ? fmtShort(projection.dates[item.id]) : "Date unavailable"}</span><small>{item.dayIndex ? `Event day + ${graph.eventDays[item.dayIndex].offsetDays}` : "Event day"}</small></>}
         </button>)}
-        {layout.points.map(point => renderTask(point.step.key, point.x, point.y))}
+        {layout.points.map(point => renderTask(point.step.key, point.x, point.y, false, toneOf(layout.lanes.find(lane => lane.branch.id === point.branchId)?.branch.teamId ?? "")))}
       </div></div>
     </div>}
-    {layout && <div className="m-legend small" aria-label="Legend"><span><i className="m-dot done" />Done</span><span><i className="m-dot now" />Started or due</span><span><i className="m-dot todo" />Not started</span><span><i className="m-dot risk" />At risk</span></div>}
+    {layout && <div className="mxe-legend small" aria-label="Legend"><span><i className="mxe-key" aria-hidden="true" />Not started</span><span><i className="mxe-key is-now" aria-hidden="true" />Started or due</span><span><i className="mxe-key is-done" aria-hidden="true" />Done</span><span><i className="mxe-key is-risk" aria-hidden="true" />At risk</span><span><i className="mxe-key is-situation" aria-hidden="true" />Conditional step</span></div>}
     {!!projection.issues.length && <div role="status">{projection.issues.map(issue => <p className="small muted" key={issue}>{issue}</p>)}</div>}
     {!!projection.unplaced.length && <section className="mxe-unplaced" aria-label="Other activity tasks">{projection.unplaced.map(node => <button type="button" className="btn small" data-task-id={node.id} key={node.id} onClick={() => selectTask(node)}>{node.title}</button>)}</section>}
   </div>

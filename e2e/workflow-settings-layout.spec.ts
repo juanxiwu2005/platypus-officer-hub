@@ -25,7 +25,7 @@ async function open(page: Page) {
 const dotBranches = (page: Page) => page.getByTestId("workflow-builder").locator(".wfx-task").evaluateAll(elements => Object.fromEntries(elements.map(element => [element.getAttribute("data-testid")!.replace("workflow-task-", ""), element.getAttribute("data-branch-id")!])))
 const laneIds = (page: Page) => page.locator('[data-testid^="workflow-branch-pill-"]').evaluateAll(elements => elements.map(element => element.getAttribute("data-testid")!.replace("workflow-branch-pill-", "")))
 
-test("each team branch is one row, phases run left to right and Fit shows the start station", async ({ page, isMobile }) => {
+test("each team branch is one row, there is no phase strip and Fit shows the start station", async ({ page, isMobile }) => {
   const builder = await open(page)
   const lanes = await laneIds(page)
   expect(lanes.length).toBeGreaterThan(1)
@@ -37,14 +37,8 @@ test("each team branch is one row, phases run left to right and Fit shows the st
     expect(tops[0]).toBeGreaterThan(lane.y)
     expect(tops[0]).toBeLessThan(lane.y + lane.height)
   }
-  const phases = []
-  for (const id of ["plan", "prepare", "event", "close"]) {
-    const phase = builder.getByTestId(`workflow-phase-${id}`)
-    await expect(phase).toBeVisible()
-    phases.push((await phase.boundingBox())!.x)
-  }
-  expect([...phases].sort((a, b) => a - b)).toEqual(phases)
-  expect(new Set(phases).size).toBe(4)
+  // Juanxi 2026-11-28: the Plan · Prepare · Event day · Close strip was removed.
+  await expect(builder.getByRole("list", { name: "Workflow phases" })).toHaveCount(0)
   if (!isMobile) {
     await builder.getByRole("button", { name: "Fit", exact: true }).click()
     const region = (await builder.getByRole("region", { name: "Workflow main line and team branches", exact: true }).boundingBox())!
