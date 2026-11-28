@@ -243,7 +243,7 @@ export function installUiCapture(doc: Document, emit: (e: UiEvent) => void, opts
 
 interface CardLike { kind: string; citations?: string[]; inScope?: boolean; risks?: { rules?: string[] }[] }
 const ANSWER_KIND: Record<string, string> = {
-  rule: "rule-answer", form: "plan-form", taskform: "task-form", changes: "change-card", applied: "change-applied",
+  rule: "rule-answer", form: "plan-form", taskform: "task-form", changes: "change-card", applied: "change-applied", created: "event-created",
   eventdate: "event-date-form", tasks: "task-list", nudge: "reminder-card", review: "plan-check", text: "text",
 }
 

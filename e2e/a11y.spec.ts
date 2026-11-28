@@ -16,7 +16,12 @@ test("no accessibility violations in the Ask panel, a task's details and the boa
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
   await page.goto("/#/")
   await ask(page, "Plan Founder Dinner on Nov 19, 30 people")
+  // The New event form loads on demand (Option A, 2026-11-28): wait for it so its chips are part of the scan.
+  await expect(page.getByTestId("plan-form")).toBeVisible()
   await ask(page, "What are my top 5 tasks?")
+  expect(await scan(page)).toEqual([])
+  await page.getByTestId("other-checklists").locator("summary").click()
+  await expect(page.getByTestId("other-checklists").getByLabel("Alcohol", { exact: true })).toBeVisible()
   expect(await scan(page)).toEqual([])
   await closeRail(page) // on a phone the panel covers the page
   await page.goto("/#/tasks?node=e-night:purchaseRequest")

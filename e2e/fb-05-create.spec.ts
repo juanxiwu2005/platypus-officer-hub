@@ -67,8 +67,9 @@ test.describe("+ New event (PLAN 8.1)", () => {
     const date = addDays(s.today, 40)
     await form.getByLabel("Event name").fill("Stage Night")
     await form.getByLabel("Date").fill(date)
-    await form.getByRole("button", { name: "Continue" }).click()
-    await rail.getByTestId("change-item").last().getByRole("button", { name: "Apply this change" }).click()
+    // Option A (2026-11-28): Create event makes the event at once and the chat shows it with Undo.
+    await form.getByRole("button", { name: "Create event" }).click()
+    await expect(rail.getByTestId("event-created")).toContainText("Stage Night created")
     await expect.poll(async () => (await demo(page)).events.find(e => e.name === "Stage Night")?.date).toBe(date)
     expect(chatCalls).toBe(0)
     // Everything after the form is as before: the plan check follows in Ask, and the new event opens on the Events page.

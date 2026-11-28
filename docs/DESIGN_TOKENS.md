@@ -288,6 +288,10 @@ These keep their own size, each for the reason given in `src/test/controlSizing.
 
 The pixel heights above are Platypus's own choice; none of these pages gives pixel heights for its tiers or rules for focus rings. Material's pages could not be read (they load only with JavaScript) and are not cited.
 
+### 12.5 Toggle chips (since 2026-11-28)
+
+A short set of yes/no choices that most people scan at a glance (the New event form's "This event has…") may show as toggle chips instead of a checkbox list. Each chip is a `<label class="check-chip">` around a native checkbox, so the checkbox keeps its accessible name (the label text), keyboard behavior and the global focus ring; the group is a `<fieldset>` with a visible `<legend>`. The chip is a pill at the small-tier height (`--control-h-sm`, `--r-pill`, `--control-line` border, `--surface` background); a ticked chip takes `--accent-soft` with an `--accent` border and `--accent-ink` text, which work in both themes. The checkbox stays visible inside the chip (16px), so the state never depends on color alone. Keep chips to about six; longer lists stay checkbox rows, folded in a `<details>` whose summary gives the count and how many are ticked, and which opens when any of its items is ticked. Rules: `src/styles/fb-05-create.css`.
+
 ## 13. Icons (since 2026-11-28)
 
 - **Source.** Every interface icon is a line icon in `src/components/icons.tsx`: a 24px grid, `fill: none`, `stroke: currentColor`, `strokeWidth` 1.8, round caps and joins, `aria-hidden="true"`. Add a new icon there in the same style, as one short path (`p("...")`) where possible, because the file ships in the entry bundle (budget: `e2e/bundle-performance.spec.ts`). Do not use emoji or a second icon set; reuse an existing icon before drawing a new one.

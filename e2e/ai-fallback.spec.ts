@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { ask, viewAs } from "./helpers"
-import { savedDemo } from "./demo-contract"
+import { savedDemo, savedEvent } from "./demo-contract"
 
 /**
  * Production 2026-11-07: "Plan an event about March 3 for networking night with 50 people" waited 31 s for /api/chat, got a 504,
@@ -35,9 +35,10 @@ test("Ask: planning an event shows the form at once and keeps it when the AI tim
   expect(sent).toHaveLength(1) // asked once, never retried
   expect(sent[0].purpose).toBe("form")
   expect(sent[0].data).not.toHaveProperty("tasks")
-  // And it works: the draft goes to review with the person's date.
-  await form.getByRole("button", { name: "Continue" }).click()
-  await expect(page.getByTestId("change-item").getByLabel("Event date", { exact: true })).toHaveValue(march3(demo.today))
+  // And it works: Create event makes the event at once with the person's date (Option A, 2026-11-28).
+  await form.getByRole("button", { name: "Create event" }).click()
+  await expect(page.getByTestId("event-created")).toContainText("Networking night created")
+  expect((await savedEvent(page, "Networking night")).date).toBe(march3(demo.today))
 })
 
 test("Ask: a planning message left to the AI still ends in the form when the AI fails", async ({ page }) => {

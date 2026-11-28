@@ -31,8 +31,8 @@ test("participant path: clean browser → shared setup → task → event → ru
   await expect(page.getByTestId("applied-set").last()).toBeVisible()
   // an event
   await ask(page, "Plan Spring Mixer on Dec 3, 20 people, outside caterer, USG funding")
-  await page.getByTestId("plan-form").getByRole("button", { name: "Continue" }).click()
-  await page.getByTestId("change-item").getByRole("button", { name: "Apply this change" }).click()
+  await page.getByTestId("plan-form").getByRole("button", { name: "Create event" }).click()
+  await expect(page.getByTestId("event-created")).toContainText("Spring Mixer created")
   // a rule question (the answer is built from the rule book, so it works with the AI off)
   await ask(page, "What do outside caterers need?")
   await expect(page.getByTestId("rule-answer").last()).toContainText("Student Organization Handbook 2025–26")

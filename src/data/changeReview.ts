@@ -183,3 +183,33 @@ export function createTasks(s: DemoState, a: { id: string; sentence: string; tas
   const record: ChangeSet = { id: a.id, sentence: a.sentence, ops, status: "applied", reviews: ops.map(() => "applied"), source: a.source, auto: true, by: s.viewerId, before: { nodes: [], contacts: [] }, createdIds }
   return applySchedule({ ...next, changeSets: [...next.changeSets, record] })
 }
+
+/**
+ * Undo on the New event form's "created" card (Option A, Juanxi 2026-11-28). Removes every event this change set created,
+ * with the event's own tasks, the notices about them and any funding record started for it, and marks the set undone.
+ * Allowed for whoever created it or a lead. A club task someone linked to the event stays, unlinked, because it is theirs.
+ */
+export function undoCreatedEvent(s: DemoState, id: string): DemoState {
+  const change = s.changeSets.find(c => c.id === id)
+  if (!change || change.undone || (change.by !== s.viewerId && !canLead(s))) return s
+  const eventIds = new Set(change.ops.flatMap((op, i) => op.op === "create_event" && change.reviews?.[i] === "applied" ? [`${change.id}:${i}`] : []))
+  if (![...eventIds].some(eventId => s.events.some(e => e.id === eventId))) return s
+  const removed = new Set(s.nodes.filter(n => n.eventId && eventIds.has(n.eventId) && !n.clubTask).map(n => n.id))
+  const nodes = s.nodes.filter(n => !removed.has(n.id)).map(n => {
+    let next = n.dependsOn.some(d => removed.has(d)) ? { ...n, dependsOn: n.dependsOn.filter(d => !removed.has(d)) } : n
+    if (next.clubTask && next.eventId && eventIds.has(next.eventId)) {
+      const { placement: _placement, ...rest } = next
+      void _placement
+      next = { ...rest, eventId: null }
+    }
+    return next
+  })
+  return applySchedule({
+    ...s,
+    events: s.events.filter(e => !eventIds.has(e.id)),
+    nodes,
+    notifications: s.notifications.filter(n => !removed.has(n.nodeId)),
+    funding: s.funding.filter(f => !eventIds.has(f.eventId)),
+    changeSets: s.changeSets.map(c => c.id === change.id ? { ...c, undone: true } : c),
+  })
+}

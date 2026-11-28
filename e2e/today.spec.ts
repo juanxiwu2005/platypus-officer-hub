@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test"
 import { ask, closeRail, noOverflow, resetDemo, openMore, viewAs } from "./helpers"
-import { savedDemo } from "./demo-contract"
+import { savedDemo, savedEvent } from "./demo-contract"
 import { enableUpdatedReminders } from "./reminderHelpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
 })
 
-test("plans an event from one sentence: form, change set, approval, flow chart; persists and resets", async ({ page }) => {
+test("plans an event from one sentence: form, Create event, flow chart; persists and resets", async ({ page }) => {
   let chatCalls = 0
   await page.route("**/api/chat", r => { chatCalls++; return r.fulfill({ status: 503, json: {} }) })
   await page.goto("/#/")
@@ -17,14 +17,13 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
   await expect(form.getByLabel("Event name")).toHaveValue("Founders Welcome Dinner")
   await expect(form.getByLabel("Date")).toHaveValue("2026-11-19")
   // M2b: the form asks only Yes/No for food; the caterer type the person wrote travels with the request.
-  await expect(form.getByLabel("Food", { exact: true })).toHaveValue("yes")
-  await form.getByRole("button", { name: "Continue" }).click()
+  // Option A (2026-11-28): the person edits in the form, and Create event is the approval (no Review changes step).
+  await form.getByLabel("Event name").fill("Founder Dinner Preview")
+  await form.getByLabel("Date").fill("2027-02-18")
+  await form.getByRole("button", { name: "Create event" }).click()
   await expect(page.getByText("food: outside caterer")).toBeVisible()
-  const card = page.getByTestId("change-item")
-  await expect(card.getByLabel("Event date", { exact: true })).toHaveValue("2026-11-19")
-  await card.getByLabel("Event name").fill("Founder Dinner Preview")
-  await card.getByLabel("Event date", { exact: true }).fill("2027-02-18")
-  await card.getByRole("button", { name: "Apply this change" }).click()
+  await expect(page.getByTestId("change-item")).toHaveCount(0)
+  expect((await savedEvent(page, "Founder Dinner Preview")).date).toBe("2027-02-18")
   await expect(page.locator("main").getByRole("heading", { name: "Founder Dinner Preview" })).toBeVisible()
   await expect(page.getByTestId("flow-chart")).toBeVisible()
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).changeSets[0].status)).toBe("applied")

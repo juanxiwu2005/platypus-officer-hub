@@ -27,6 +27,8 @@ export type ChatCard =
   | { kind: "tasks"; title: string; nodeIds: string[]; remind?: boolean }
   | { kind: "changes"; changeSetId: string }
   | { kind: "applied"; changeSetId: string }
+  /** The New event form created this event at once (Option A, 2026-11-28): its name, Open and Undo. */
+  | { kind: "created"; changeSetId: string; eventId: string; name: string }
   | { kind: "nudge"; nodeId: string }
   | { kind: "rule"; question: string; answer: string; citations: string[]; inScope: boolean; label: string }
   /** The event review (M2b): risks for one new event; its suggested steps follow as a changes card. */
