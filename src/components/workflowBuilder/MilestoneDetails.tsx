@@ -109,7 +109,7 @@ function TaskDetails({ step, graph, snapshot, state, teams, policy, eventDate, o
   const { steps, branches } = snapshot
   const patch = (value: Partial<StepTemplate>) => onChange({ ...snapshot, steps: steps.map(item => item.key === step.key ? { ...item, ...value } : item) })
   const labels = roleLabels(state.roles), locked = isAsuStep(step), cannotDelete = builderDeletionReason(step, policy, steps)
-  // A step that came with the preset can be brought back by More → Restore Platypus preset.
+  // A step that came with the preset can be brought back by Versions → Restore Platypus preset.
   const restorable = policy === "standard" && !cannotDelete && !step.custom && EVENT_STEPS.some(original => original.key === step.key)
   const waits = step.dependsOn ?? []
   const candidates = steps.filter(candidate => candidate.key !== step.key && !waits.includes(candidate.key) && !graphError(steps.map(item => item.key === step.key ? { ...item, dependsOn: [...waits, candidate.key] } : item)))
@@ -129,7 +129,7 @@ function TaskDetails({ step, graph, snapshot, state, teams, policy, eventDate, o
     <label>Event day<select disabled={locked} value={anchor.eventDayId} onChange={event => anchorPatch({ eventDayId: event.target.value })}>{graph.eventDays.map((day, index) => <option value={day.id} key={day.id}>Day {index + 1} · {day.title}</option>)}</select></label>
     <WholeNumber label="Finish by (T±)" value={anchor.offsetDays} min={-365} max={365} disabled={locked} onCommit={offsetDays => anchorPatch({ offsetDays })} />
     <label>Target unit<select disabled={locked} value={anchor.unit ?? "calendar"} onChange={event => anchorPatch({ unit: event.target.value as "calendar" | "business" })}><option value="calendar">Calendar days</option><option value="business">Business days</option></select></label>
-    <p className="small muted">−7 is before the selected event day; +2 is after. {due ? `Preview target: ${fmtLong(due)}.` : ""} Start is calculated from workdays, buffers and prerequisites.</p>
+    <p className="small muted">−7 is before the selected event day; +2 is after. {due ? `Preview target: ${fmtLong(due)}.` : ""} Start is calculated from workdays, days early, extra days and prerequisites.</p>
     <label>Details<textarea aria-label="Details" rows={4} maxLength={400} value={step.why} onChange={event => patch({ why: event.target.value })} /></label>
     {!!definitions.length && <label>Include with<select disabled={locked || (policy === "standard" && ["finalcheck", "checkin", "headcount"].includes(step.key))} value={placementOf(step).branchId} onChange={event => {
       const definition = definitions.find(item => item.id === event.target.value)

@@ -7,7 +7,7 @@
 .wfl-header { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4) var(--s5); padding-bottom: var(--s5); border-bottom: 1px solid var(--line); }
 .wfl-header h2 { margin: 0; font-size: var(--fs-lg); }
 .wfl-picker { display: flex; }
-.wfl-picker select { min-width: 220px; max-width: 100%; padding: var(--s3) var(--s5); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-md); }
+.wfl-picker select { min-width: 220px; max-width: 100%; }
 .wfl-badges { display: flex; flex-wrap: wrap; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
 .wfl-header-end { margin-left: auto; }
 
@@ -15,7 +15,7 @@
 .wfl-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4) var(--s5); }
 .wfl-name { flex: 1 1 280px; min-width: 0; }
 .wfl-bar .wfl-name input { width: 100%; padding: var(--s2) var(--s4); border: 1px solid transparent; border-radius: var(--r-sm); background: transparent; color: var(--ink); font-size: var(--fs-xl); font-weight: 600; }
-.wfl-bar .wfl-name input:hover { border-color: var(--line); }
+.wfl-bar .wfl-name input:hover { border-color: var(--control-line); }
 .wfl-bar .wfl-name input:focus-visible { border-color: var(--accent); outline: 2px solid var(--accent-soft); background: var(--surface); }
 .wfl-autosave { margin: 0; min-height: 1lh; }
 .wfl-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4); }

@@ -4,6 +4,7 @@ import type { Forecast } from "../../engine/forecast"
 import type { Schedule } from "../../engine/schedule"
 import { fmtShort } from "../../lib/dates"
 import { nodeStop } from "../../lib/phases"
+import { isAtRisk } from "../../lib/nextUp"
 import { firstName, worstIssue } from "../../pages/helpers"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import { statusStyles } from "../ui"
@@ -14,7 +15,11 @@ interface Props { state: DemoState; sched: Schedule; forecast: Forecast; eventId
 const MilestoneExecutionChart = lazy(() => import("./MilestoneExecutionChart").then(module => ({ default: module.MilestoneExecutionChart })))
 const LEFT = 194, COL = 144, ROW = 136, TOP = 154
 
-/** Saved workflow definitions become actual tasks here; a dot never has separate state or a separate ID. */
+/**
+ * Saved workflow definitions become actual tasks here; a dot never has separate state or a separate ID.
+ * Since November 28, 2026 Plan no longer picks this team-row view: MetroChart draws saved-template runs with
+ * MilestoneExecutionChart, the template's Settings graph. Kept only until its removal is agreed.
+ */
 export function TeamMetroChart({ state, sched, forecast, eventId, selectedId, onSelect }: Props) {
   const event = state.events.find(item => item.id === eventId)
   const snapshot = executionTeamSnapshot(event)
@@ -29,7 +34,6 @@ export function TeamMetroChart({ state, sched, forecast, eventId, selectedId, on
   const height = TOP + Math.max(1, graph.lanes.length) * ROW
   const point = (position: { col: number; row: number }) => ({ x: LEFT + position.col * COL, y: TOP + position.row * ROW })
   return <div className="team-metro-wrap" data-testid="team-execution-chart">
-    <p className="small muted team-metro-help">Follow the dots. Select a task to see its instructions and update progress. Arrows show prerequisites.</p>
     <div className="metro team-metro" data-testid="flow-chart" tabIndex={0} role="region" aria-label="Task tracks by team">
       <div className="metro-canvas" style={{ width, height }}>
         <svg width={width} height={height} aria-hidden="true">
@@ -48,8 +52,7 @@ export function TeamMetroChart({ state, sched, forecast, eventId, selectedId, on
           {lane.tasks.map(({ node, col }) => {
             const plan = sched.nodes[node.id]
             const issue = worstIssue(plan?.issues)
-            const late = node.status !== "done" && (plan?.club ?? "9999") < state.today
-            const status = nodeStop(node, state.today, issue?.severity === "error" || late || forecast.nodes[node.id]?.color === "red" || node.status === "blocked")
+            const status = nodeStop(node, state.today, isAtRisk(state, sched, forecast, node))
             const kind = workflowStepKind(node, event.workflowBranches) === "core" ? "baseline" : "situation"
             const owner = state.people.find(person => person.id === node.ownerId)?.name ?? "No owner"
             const tooltip = hovered === node.id || focused === node.id
@@ -63,9 +66,9 @@ export function TeamMetroChart({ state, sched, forecast, eventId, selectedId, on
           })}
         </div>)}
       </div>
-      <div className="m-legend small" aria-label="Legend"><span><i className="m-dot done" />Done</span><span><i className="m-dot now" />In progress</span><span><i className="m-dot todo" />Not started</span><span><i className="m-dot risk" />At risk</span></div>
+      <div className="m-legend small" aria-label="Legend"><span><i className="m-dot done" />Done</span><span><i className="m-dot now" />Started or due</span><span><i className="m-dot todo" />Not started</span><span><i className="m-dot risk" />At risk</span></div>
     </div>
     {!!graph.issues.length && <div className="team-metro-issues" role="status">{graph.issues.map(issue => <p className="small muted" key={issue}>{issue}</p>)}</div>}
-    {!!graph.unassigned.length && <section className="team-metro-unassigned" aria-label="Tasks needing a team"><p className="small muted">These tasks remain available while their team assignment is resolved.</p>{graph.unassigned.map(node => <button type="button" className="btn small" key={node.id} onClick={() => onSelect(node.id)} data-task-id={node.id}>{node.title}</button>)}</section>}
+    {!!graph.unassigned.length && <section className="team-metro-unassigned" aria-label="Tasks needing a team"><p className="small muted">No team yet</p>{graph.unassigned.map(node => <button type="button" className="btn small" key={node.id} onClick={() => onSelect(node.id)} data-task-id={node.id}>{node.title}</button>)}</section>}
   </div>
 }

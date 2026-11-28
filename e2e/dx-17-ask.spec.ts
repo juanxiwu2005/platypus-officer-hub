@@ -15,7 +15,7 @@ test.describe("before the first message", () => {
     test.skip(info.project.name.startsWith("mobile"), "uses the docked panel")
     await fresh(page)
     const welcome = page.getByTestId("ask-welcome")
-    await expect(welcome).toContainText("What do you need?")
+    await expect(welcome).toContainText("Ask about this page or your tasks.")
     await expect(welcome.getByRole("button")).not.toHaveCount(0)
     const r = await page.evaluate(() => {
       const w = document.querySelector("[data-testid=ask-welcome]")!.getBoundingClientRect()

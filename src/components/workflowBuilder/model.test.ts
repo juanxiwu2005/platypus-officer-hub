@@ -61,8 +61,8 @@ describe("workflow editor graph operations", () => {
   it("lets the preset remove its organization core steps but never an ASU step or one an ASU step waits for", () => {
     for (const key of ["finalcheck", "checkin", "headcount", "plan"]) expect(builderDeletionReason(task(key), "standard")).toBeNull()
     const school = { ...task("registry", ["venuechoice"]), ruleIds: ["R01"] }
-    expect(builderDeletionReason(school, "standard")).toContain("R01")
-    expect(builderDeletionReason(school, "custom")).toContain("R01")
+    expect(builderDeletionReason(school, "standard")).toContain("Event Registry guidelines")
+    expect(builderDeletionReason(school, "custom")).toContain("Event Registry guidelines")
     const steps = [task("venuechoice"), school]
     expect(builderDeletionReason(steps[0], "standard", steps)).toBe("A school-required step waits for this step.")
     expect(builderDeletionReason(steps[0], "custom", steps)).toBe("A school-required step waits for this step.")

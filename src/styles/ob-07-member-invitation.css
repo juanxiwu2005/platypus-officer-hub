@@ -4,9 +4,10 @@
 /* The Demo strip: the shell's amber strip, here as a rounded bar at the top of the card. */
 .ob-m-strip .ob-demo-strip { border: 1px solid var(--warn-line); border-radius: var(--r-md); display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--s2) var(--s4); }
 .ob-m-strip .ob-demo-strip > span { display: contents; }
-.ob-m-note { flex-basis: 100%; }
 .ob-m-link { background: none; border: 0; padding: var(--s3) var(--s4); min-height: 32px; color: inherit; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
-.ob-m-pick { max-width: 100%; min-height: 32px; padding: var(--s3) var(--s4); border: 1px solid var(--warn-line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); font-size: var(--fs-md); }
+/* The demo strip is a small-tier row inside a large-tier page. */
+.ob-m-strip { --control-h: var(--control-h-sm); --control-px: var(--s4); --field-px: var(--s3); --control-r: var(--r-sm); }
+.ob-m-pick { max-width: 100%; border-color: var(--warn-line); }
 
 /* Invitation. */
 .ob-m-role { display: grid; gap: var(--s4); padding: var(--s7); border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--elev-1); }
@@ -20,7 +21,6 @@
 /* You. */
 .ob-m-fields { display: grid; gap: var(--s6); }
 .ob-m-fields .field { font-size: var(--fs-md); }
-.ob-m-fields .field input { min-height: 44px; }
 .ob-m-error { color: var(--late); font-size: var(--fs-md); }
 
 /* Reminders: option rows (a whole row is the target), a two-part time control, and the example bubble. */
@@ -33,7 +33,7 @@
 .ob-m-opt svg { flex: none; color: var(--muted); }
 .ob-m-opt span { flex: 1; }
 .ob-m-phone { display: grid; gap: var(--s3); }
-.ob-m-phone .field input { min-height: 44px; font-size: var(--fs-base); }
+.ob-m-phone .field input { font-size: var(--fs-base); }
 .ob-m-seg { display: flex; gap: var(--s2); padding: var(--s2); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
 .ob-m-seg label { position: relative; flex: 1; display: grid; place-items: center; min-height: 44px; border-radius: var(--r-sm); color: var(--muted); cursor: pointer; transition: background-color var(--dur-press) var(--ease-out); }
 .ob-m-seg label:has(input:checked) { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: var(--elev-1); }
@@ -49,13 +49,14 @@
 
 /* Each screen is a column as tall as the window, so the bottom bar rests at the bottom even when the card is short. */
 .ob-m-page { display: flex; flex-direction: column; min-height: calc(100dvh - 96px); width: min(100%, 640px); }
+/* The member screens are a large-tier pane: 44px fields and buttons on every pointer (DESIGN_TOKENS §12). */
+.ob-m-page, .ob-m-foot { --control-h: var(--control-h-lg); --control-px: var(--s6); --field-px: var(--s5); --control-r: var(--r-md); }
 .ob-m-page > .ob-card { width: 100%; }
 .ob-m-page > .ob-m-foot { margin-top: auto; }
 
 /* The bottom bar: it floats over the content, so it alone gets the blur; solid when transparency is off. */
 .ob-m-foot { position: sticky; bottom: 0; z-index: var(--z-sticky); background: color-mix(in srgb, var(--bg) 82%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .ob-m-foot-in { display: flex; justify-content: flex-end; gap: var(--s5); max-width: 640px; margin: 0 auto; padding: var(--s5) 0 max(var(--s5), env(safe-area-inset-bottom)); }
-.ob-m-foot .btn { min-height: 44px; padding-inline: var(--s7); }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { .ob-m-foot { background: var(--bg); } }
 @media (prefers-reduced-transparency: reduce) { .ob-m-foot { background: var(--bg); -webkit-backdrop-filter: none; backdrop-filter: none; } }
 @media (max-width: 600px) {

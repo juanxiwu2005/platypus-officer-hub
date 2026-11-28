@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
 import { reducer } from "../data/store"
-import { addDays } from "../lib/dates"
+import { addDays, fmtLong } from "../lib/dates"
 import { createReminderRuntime } from "./engine"
-import { reminderCentre, taskReminderSummary } from "./centre"
+import { digestCentre, personRowPath, reminderCentre, sendAllFeedback, taskReminderSummary } from "./centre"
 import type { DemoState } from "../data/types"
 import type { ReminderDelivery, ReminderRuntime, ReminderUpdate } from "./contracts"
 
@@ -37,7 +37,7 @@ describe("shared reminder centre presentation", () => {
       expect(q.needsOk).toEqual([])
       expect(q.sent).toEqual([])
       expect(q.noReply).toEqual([])
-      expect(taskReminderSummary(saved, NODE)).toMatchObject({ canPrepare: false, blockedReason: "Enable updated reminders in the reminder centre." })
+      expect(taskReminderSummary(saved, NODE)).toMatchObject({ canPrepare: false, blockedReason: "Reminder plan unavailable." })
     }
   })
 
@@ -88,6 +88,16 @@ describe("shared reminder centre presentation", () => {
     }
   })
 
+  it("shows the next planned check for a no-reply task as a readable date, not an ISO date", () => {
+    const s = base(), saved = withLedger(s, [delivery(s)])
+    const active: DemoState = { ...saved, today: addDays(s.today, 2), reminderRuntime: { ...saved.reminderRuntime!, version: 2, mailRequiredAfter: 1 } as ReminderRuntime }
+    const q = reminderCentre(active)
+    expect(q.runtimeState).toBe("active")
+    const next = q.thisWeek.find(x => x.nodeId === NODE)!.scheduledOn!
+    expect(q.noReply[0].blockedReason).toBe(`Next check: ${fmtLong(next)}. You can review the task now.`)
+    expect(q.noReply[0].blockedReason).not.toMatch(/\d{4}-\d{2}-\d{2}/)
+  })
+
   it("matches helper replies only to their own waiting request and recipient", () => {
     const s = base(), d = delivery(s, { reason: "waiting_on", recipientId: "sam", recipientName: "Sam", waitingRequestId: "waiting:1" })
     const helperReply = reply(s, { actorId: "sam", ownerReply: false, waitingRequestId: "waiting:1", waitingResponse: "provided" })
@@ -111,5 +121,33 @@ describe("shared reminder centre presentation", () => {
     const officer = { ...active, viewerId: "jordan" }
     expect(reminderCentre(officer).approvableCandidateIds).toEqual([])
     expect(taskReminderSummary(officer, NODE).canPrepare).toBe(false)
+  })
+})
+
+describe("step 0 presentation helpers (2026-11-27)", () => {
+  it("Send all feedback counts today, not only this click, and keeps a failure apart", () => {
+    expect(sendAllFeedback(3, 0, null)).toBe("Sent to all 3 today.")
+    expect(sendAllFeedback(1, 0, null)).toBe("Sent to 1 person today.")
+    expect(sendAllFeedback(2, 1, null)).toBe("Sent to 2 people. 1 was sent earlier today.")
+    expect(sendAllFeedback(1, 2, null)).toBe("Sent to 1 person. 2 were sent earlier today.")
+    expect(sendAllFeedback(2, 0, "One email changed.")).toBe("Sent to 2 people. One email changed.")
+    expect(sendAllFeedback(0, 1, "Not saved.")).toBe("Not saved.")
+    expect(sendAllFeedback(0, 0, null)).toBe("These emails were not sent. Please try again.")
+  })
+
+  it("Follow up links to a person's row on the home page", () => {
+    expect(personRowPath("jordan")).toBe("/?person=jordan")
+    expect(personRowPath("a b&c")).toBe("/?person=a%20b%26c")
+  })
+
+  it("Fix first buttons say what they open: nothing claims a task, waiting opens its editor, legacy confirms in place", () => {
+    const seed = seedDemo(undefined, "v2")
+    const s = reducer({ ...seed, org: { ...seed.org, settings: { ...seed.org.settings, reminderMode: "review_then_auto" } } }, { type: "upgradeReminderPlan" })
+    const centre = digestCentre(s)
+    expect(centre.fix).toHaveLength(8)
+    for (const row of centre.fix) expect(row.action).toBe(row.opens === "waiting" ? "Choose" : "Open task")
+    expect(centre.fix.filter(row => row.opens === "waiting").every(row => row.problem === "Waiting on whom?")).toBe(true)
+    expect(centre.fix.find(row => row.nodeId === "t-photos")).toMatchObject({ problem: "No owner", action: "Open task", opens: "task", legacy: false })
+    expect(centre.people.every(p => p.held === 0)).toBe(true)
   })
 })

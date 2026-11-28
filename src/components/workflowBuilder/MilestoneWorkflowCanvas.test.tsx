@@ -57,12 +57,13 @@ describe("editable lane workflow canvas", () => {
     expect(value.onAddTask).toHaveBeenCalledWith("empty")
   })
 
-  it("marks the selected lane and shows the phase header and legend", () => {
+  it("marks the selected lane, shows the legend and no phase header", () => {
     const value = props()
     render(<MilestoneWorkflowCanvas {...value} selected="branch:empty" />)
     expect(screen.getByTestId("workflow-segment-empty").className).toContain("is-selected")
     expect(screen.getByTestId("workflow-branch-pill-empty").getAttribute("aria-pressed")).toBe("true")
-    expect(["plan", "prepare", "event", "close"].map(id => screen.getByTestId(`workflow-phase-${id}`).textContent)).toEqual(["Plan", "Prepare", "Event day", "Close"])
+    expect(screen.queryByRole("list", { name: "Workflow phases" })).toBeNull()
+    for (const text of ["Plan", "Prepare", "Close"]) expect(screen.queryByText(text, { exact: true })).toBeNull()
     for (const text of ["Core step", "Required in all events", "Conditional step", "Used only when needed", "Team area", "Owned by an organization team", "Event day", "fixed date"]) expect(screen.getAllByText(text).length).toBeGreaterThan(0)
   })
 
@@ -88,7 +89,6 @@ describe("editable lane workflow canvas", () => {
     const { rerender } = render(<MilestoneWorkflowCanvas {...value} />)
     expect(screen.getByTestId("workflow-event-day-1").textContent).toContain("May 14")
     expect(screen.getByTestId("workflow-event-day-2").textContent).toContain("May 16")
-    expect(screen.getByTestId("workflow-phase-event").textContent).toBe("Event days")
     fireEvent.click(screen.getByRole("button", { name: "Edit Workshop" }))
     expect(value.onSelect).toHaveBeenLastCalledWith("__event2__")
     rerender(<MilestoneWorkflowCanvas {...value} steps={steps.map(step => ({ ...step, estDays: 20 }))} />)

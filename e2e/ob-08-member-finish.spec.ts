@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test"
 import AxeBuilder from "@axe-core/playwright"
 import { WELCOME_ON, onboardingRecord } from "./ob-helpers"
 
-// OB-08: the last three member screens (Busy weeks, About you, Done). Run on desktop and phone.
+// OB-08: the last two member screens (Busy weeks, Done; About you was removed in ob-6). Run on desktop and phone.
 const BUSY = "/#/welcome/member/busy-weeks"
 const MEMBER_KEY = "platypus.v1.onboarding.member"
 const EXTRA_KEY = "platypus.v1.onboarding.member.extra"
@@ -25,7 +25,7 @@ const begin = async (page: Page) => {
   await page.evaluate(() => { location.hash = "#/welcome/member/invitation" })
   await expect(page.getByTestId("role-card")).toBeVisible()
 }
-const toBusy = async (page: Page) => { await begin(page); await cont(page); await cont(page); await cont(page); await expect(page).toHaveURL(/member\/busy-weeks$/) }
+const toBusy = async (page: Page) => { await begin(page); await cont(page); await cont(page); await expect(page).toHaveURL(/member\/busy-weeks$/) }
 
 test("the week strip: many weeks can be chosen, finals and breaks are marked, every saved week is a Monday", async ({ page }) => {
   await page.goto(BUSY)
@@ -71,55 +71,27 @@ test("Skip on Busy weeks leaves a hollow dashed dot, keeps nothing, and moves on
   await toBusy(page)
   await page.getByTestId("week-strip").getByRole("button").nth(2).click()
   await page.getByRole("button", { name: "Skip — nothing busy yet" }).click()
-  await expect(page).toHaveURL(/member\/about$/)
+  await expect(page).toHaveURL(/member\/done$/)
   const dot = page.locator(".ob-dot.is-skipped")
   await expect(dot).toHaveCount(1)
   await expect(dot).toContainText("Busy weeks, skipped")
   await expect(dot.locator(".ob-dot-mark")).toHaveCSS("border-top-style", "dashed")
-  expect(await session(page, EXTRA_KEY)).not.toHaveProperty("busyWeeks")
+  expect((await session(page, EXTRA_KEY))?.busyWeeks).toBeUndefined()   // Done follows now and clears what was staged
   expect((await onboardingRecord(page)).attempts[0].steps.some(s => s.step === "member.busy-weeks" && s.event === "skip")).toBe(true)
 })
-test("About you: a suggestion fills or adds to the answer; more than 500 characters is stopped", async ({ page }) => {
+test("About you is gone (ob-6): its address goes on to Done, and nothing asks for a career goal or interests", async ({ page }) => {
   await page.goto("/#/welcome/member/about")
-  await expect(page.getByRole("heading", { name: "What would make this role worthwhile?" })).toBeVisible()
-  await expect(page.locator(".ob-m-chip")).toHaveCount(9)
-  const goal = page.getByRole("textbox", { name: "Career goal" })
-  await goal.fill("")   // the sample officer already has an answer
-  await page.getByRole("group", { name: "Career goal suggestions" }).getByRole("button", { name: "Leadership" }).click()
-  await expect(goal).toHaveValue("Leadership")
-  await page.getByRole("group", { name: "Career goal suggestions" }).getByRole("button", { name: "Finance" }).click()
-  await expect(goal).toHaveValue("Leadership, Finance")
-  await page.getByRole("group", { name: "Career goal suggestions" }).getByRole("button", { name: "Finance" }).click()   // no duplicates
-  await expect(goal).toHaveValue("Leadership, Finance")
-  await page.getByRole("textbox", { name: "Interests" }).fill("Concerts and design")
-  expect(await session(page, EXTRA_KEY)).toMatchObject({ personId: "maya", careerGoal: "Leadership, Finance", interests: "Concerts and design" })
-  await page.getByRole("textbox", { name: "Expectations" }).fill("x".repeat(501))
-  await expect(page.getByRole("alert")).toContainText("under 500 characters")
-  await cont(page)
-  await expect(page).toHaveURL(/member\/about$/)
-  expect((await session(page, EXTRA_KEY))?.expectations).toBeUndefined()
-  await page.getByRole("textbox", { name: "Expectations" }).fill("x".repeat(500))
-  await expect(page.getByRole("alert")).toHaveCount(0)
-  expect(await words(page)).toBeLessThanOrEqual(40)
-  await cont(page)
   await expect(page).toHaveURL(/member\/done$/)
-})
-test("Skip on About you keeps nothing and goes to Done", async ({ page }) => {
-  await page.goto("/#/welcome/member/about")
-  await page.getByRole("group", { name: "Interests suggestions" }).getByRole("button", { name: "Events" }).click()
-  await page.getByRole("button", { name: "Skip for now" }).click()
-  await expect(page).toHaveURL(/member\/done$/)
-  expect(await session(page, EXTRA_KEY)).not.toHaveProperty("interests")
-  await expect(page.locator(".ob-dot.is-skipped")).toHaveCount(1)
+  await expect(page.getByRole("textbox", { name: "Career goal" })).toHaveCount(0)
+  await expect(page.getByRole("heading", { name: "What would make this role worthwhile?" })).toHaveCount(0)
 })
 test("the whole preview: Done saves the officer once, with no ASU ID, keeps the viewer, and clears what was staged", async ({ page }) => {
   const calls: string[] = []
   page.on("request", r => { if (/\/api\/(org|workspace)/.test(r.url())) calls.push(r.url()) })
   await begin(page)
   const before = await club(page)
-  await cont(page)   // invitation -> you
-  await page.getByLabel("Name").fill("Maya C.")
-  await cont(page)   // you -> reminders
+  await page.getByLabel("Name").fill("Maya C.")   // on the Invitation since ob-6
+  await cont(page)   // invitation -> reminders
   await page.getByRole("radio", { name: "SMS" }).check()
   await page.getByLabel("Phone (optional)").fill("480-555-0142")
   await page.getByRole("radio", { name: "Morning" }).check()
@@ -128,18 +100,16 @@ test("the whole preview: Done saves the officer once, with no ASU ID, keeps the 
   await page.getByTestId("week-strip").getByRole("button").nth(1).click()
   await page.getByTestId("week-strip").getByRole("button").nth(4).click()
   const picked = ((await session(page, EXTRA_KEY))!.busyWeeks as string[]).slice()
-  await cont(page)
-  await page.getByRole("textbox", { name: "Career goal" }).fill("")   // the sample officer already has answers
-  await page.getByRole("group", { name: "Career goal suggestions" }).getByRole("button", { name: "Marketing" }).click()
-  await page.getByRole("textbox", { name: "Interests" }).fill("Concerts")
-  await cont(page)
+  await cont(page)   // busy weeks -> done
   await expect(page).toHaveURL(/member\/done$/)
   await expect(page.getByRole("heading", { name: "You're in." })).toBeVisible()
 
   const after = await club(page)
   const maya = after.people.find(p => p.id === "maya")!
   const was = before.people.find(p => p.id === "maya")!
-  expect(maya).toMatchObject({ name: "Maya C.", phone: "480-555-0142", channels: ["sms"], remindAt: "morning", busyWeeks: picked, careerGoal: "Marketing", interests: "Concerts" })
+  expect(maya).toMatchObject({ name: "Maya C.", phone: "480-555-0142", channels: ["sms"], remindAt: "morning", busyWeeks: picked })
+  // Not asked since ob-6: the officer's career goal, interests and expectations stay as they were.
+  expect({ careerGoal: maya.careerGoal, interests: maya.interests, expectations: maya.expectations }).toEqual({ careerGoal: was.careerGoal, interests: was.interests, expectations: was.expectations })
   expect(maya.asuId ?? "").toBe("")
   expect(maya.personalBufferDays).toBe(was.personalBufferDays)
   expect(maya.personalBufferEnabled).toBe(was.personalBufferEnabled)
@@ -179,7 +149,7 @@ test("Done does not save a profile that fails the Settings rules, and says so", 
   expect((await club(page)).people).toEqual(before.people)
   expect(await session(page, MEMBER_KEY)).not.toBeNull()   // kept, so Back can fix it
   await page.getByRole("button", { name: "Back" }).click()
-  await expect(page).toHaveURL(/member\/about$/)
+  await expect(page).toHaveURL(/member\/busy-weeks$/)
 })
 test("Done with no task for the officer shows the empty line and a Tasks preview line", async ({ page }) => {
   await page.goto("/#/welcome/member/invitation")
@@ -210,17 +180,12 @@ test("Done: the chart box appears with a fade only; with reduced motion it is si
   expect(parseFloat(await box.evaluate(el => getComputedStyle(el).animationDuration))).toBeLessThan(0.01)
   await expect(box).toHaveCSS("border-top-width", "2px")
 })
-test("the three screens have no accessibility problems, in light and dark", async ({ page }) => {
+test("both screens have no accessibility problems, in light and dark", async ({ page }) => {
   for (const scheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme: scheme })
     await page.goto(BUSY)
     await page.getByTestId("week-strip").getByRole("button").nth(1).click()
     expect(await scan(page), `busy ${scheme}`).toEqual([])
-    await page.goto("/#/welcome/member/about")
-    await page.getByRole("button", { name: "Leadership" }).click()
-    expect(await scan(page), `about ${scheme}`).toEqual([])
-    await page.getByRole("textbox", { name: "Interests" }).fill("x".repeat(501))
-    expect(await scan(page), `about error ${scheme}`).toEqual([])
     await page.goto("/#/welcome/member/done")
     await expect(page.getByTestId("first-task")).toBeVisible()
     expect(await scan(page), `done ${scheme}`).toEqual([])
@@ -228,7 +193,7 @@ test("the three screens have no accessibility problems, in light and dark", asyn
 })
 test("each screen stays within 40 words you see at once, and nothing overflows the phone", async ({ page }) => {
   await page.goto("/#/welcome/member/invitation"); await cont(page)
-  for (const path of ["busy-weeks", "about", "done"]) {
+  for (const path of ["busy-weeks", "done"]) {
     await page.evaluate(p => { location.hash = `#/welcome/member/${p}` }, path)
     await expect(page.locator("main h1")).toBeVisible()
     expect(await words(page), path).toBeLessThanOrEqual(40)

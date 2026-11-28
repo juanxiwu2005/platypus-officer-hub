@@ -8,7 +8,7 @@ import { RailProvider } from "../components/rail/RailContext"
 import { clubAgendaEntryFixture, planEntryFixture, PLAN_EVENT, PLAN_OTHER, PLAN_ROOM } from "../test/planEntryFixture"
 import { legacyTaskAccessUrl, legacyTaskPlanUrl, makeTaskAccessGrant, taskAccessToken, taskAccessUrl } from "./taskAccess"
 import { planTaskPath, resolvePlanEntry } from "./planEntry"
-import { buildReminderFacts, reminderPeople } from "./facts"
+import { buildReminderFacts, reminderPeople, reminderSenderName } from "./facts"
 import { buildReminderMail } from "./mail"
 import { validatedReminderMessage } from "./message"
 import PlanTaskPanel from "./PlanTaskPanel"
@@ -34,7 +34,7 @@ describe("Plan entry boundaries", () => {
     expect(url).toContain("/#/events?event=plan-speaker&node=plan-room&access=")
     const recipient = reminderPeople(state).find(p => p.id === grant.recipientId)!
     for (const taskUrl of [url, legacyTaskAccessUrl("https://demo.example.org", grant)]) {
-      const mail = buildReminderMail({ today: state.today, facts, recipient, taskUrl })
+      const mail = buildReminderMail({ today: state.today, facts, recipient, taskUrl, senderName: reminderSenderName(state) })
       expect(mail.checked).toBe(true)
       expect(mail.body.match(/https?:\/\/\S+/g)).toEqual([taskUrl])
       expect(validatedReminderMessage(state, { ...mail, channel: "email", preparedOn: state.today, accessId: grant.id }, PLAN_ROOM)).toBeTruthy()
@@ -89,7 +89,7 @@ describe("Plan task panel", () => {
     const { state, token } = await issued()
     await show(state, planTaskPath(PLAN_EVENT, PLAN_ROOM, token))
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room draft kept while reading requirements" } })
-    await waitFor(() => expect(screen.getByTestId("task-autosave-status").textContent).toContain("Draft saved automatically"))
+    await waitFor(() => expect(screen.getByTestId("task-autosave-status").textContent).toContain("Draft saved"))
     fireEvent.change(screen.getByLabelText("View task in this event"), { target: { value: PLAN_OTHER } })
     await screen.findByText("40 attendees. Accessible room. Projector required.")
     expect(screen.queryByText("PRIVATE unsubmitted notes")).toBeNull()
@@ -122,7 +122,7 @@ describe("the reported Club task without an event", () => {
     const taskUrl = taskAccessUrl("https://demo.example.org", grant, facts.eventId)
     expect(taskUrl).toContain("/#/events?node=t-agenda&access=")
     for (const url of [taskUrl, legacyTaskAccessUrl("https://demo.example.org", grant), legacyTaskPlanUrl("https://demo.example.org", grant)]) {
-      const mail = buildReminderMail({ today: state.today, facts, recipient: reminderPeople(state).find(p => p.id === "priya")!, taskUrl: url })
+      const mail = buildReminderMail({ today: state.today, facts, recipient: reminderPeople(state).find(p => p.id === "priya")!, taskUrl: url, senderName: reminderSenderName(state) })
       expect(mail.checked).toBe(true)
       expect(validatedReminderMessage(state, { ...mail, channel: "email", preparedOn: state.today, accessId: grant.id }, "t-agenda")).toBeTruthy()
     }
@@ -136,7 +136,7 @@ describe("the reported Club task without an event", () => {
     render(<MemoryRouter initialEntries={[planTaskPath(null, "t-agenda", taskAccessToken(grant))]}><StoreProvider initial={state}><RailProvider><PanelHost /></RailProvider></StoreProvider></MemoryRouter>)
     await screen.findByRole("heading", { name: "Draft the meeting agenda" })
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Agenda draft stays saved" } })
-    await waitFor(() => expect(screen.getByTestId("task-autosave-status").textContent).toContain("Draft saved automatically"))
+    await waitFor(() => expect(screen.getByTestId("task-autosave-status").textContent).toContain("Draft saved"))
     fireEvent.change(screen.getByLabelText("View task"), { target: { value: PLAN_OTHER } })
     await screen.findByText("40 attendees. Accessible room. Projector required.")
     expect(screen.queryByText("PRIVATE unsubmitted notes")).toBeNull()

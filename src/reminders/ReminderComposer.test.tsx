@@ -8,7 +8,7 @@ import { applySchedule } from "../engine/schedule"
 import type { DemoState, ReminderMode } from "../data/types"
 import ReminderComposer from "./ReminderComposer"
 import { makeTaskAccessGrant, taskAccessUrl } from "./taskAccess"
-import { buildReminderFacts, reminderPeople } from "./facts"
+import { buildReminderFacts, reminderPeople, reminderSenderName } from "./facts"
 import { buildReminderMail } from "./mail"
 
 const NODE = "mail-room"
@@ -43,7 +43,7 @@ describe("real reminder composer state integration", () => {
     vi.stubGlobal("fetch", fetch)
     show({ ...fixture(), aiEnabled: true })
     await waitFor(() => expect(preview().getByRole("link", { name: "Open task" })).toBeTruthy())
-    expect(preview().getByRole("heading", { name: "Speaker Night · Reserve a room" })).toBeTruthy()
+    expect(preview().getByRole("heading", { name: /^Speaker Night: Reserve a room, due [A-Z][a-z]{2} \d{1,2}$/ })).toBeTruthy()
     expect(preview().getAllByRole("link")).toHaveLength(1)
     expect(preview().getByRole("link").getAttribute("href")).toContain("/#/events?event=")
     expect(screen.getByTestId("nudge-body").textContent).toContain("40 attendees")
@@ -51,7 +51,7 @@ describe("real reminder composer state integration", () => {
     expect(screen.queryByRole("button", { name: /Skip AI|Done|Working on it/ })).toBeNull()
     expect(screen.queryByRole("group", { name: "Recipient status choices" })).toBeNull()
     expect(fetch).not.toHaveBeenCalled()
-    expect(screen.getByTestId("reminder-mode-note").textContent).toBe("Your club chose: I review, then I send (demo: nothing is sent).")
+    expect(screen.queryByTestId("reminder-mode-note")).toBeNull()
     expect(latest.nudges).toEqual([])
   })
 
@@ -79,12 +79,12 @@ describe("real reminder composer state integration", () => {
 
   it("platform approval uses email and succeeds only once the new runtime records the message", async () => {
     show(fixture("review_then_auto", true))
-    const approve = await screen.findByRole("button", { name: "Approve · Platypus sends (demo)" })
+    const approve = await screen.findByRole("button", { name: "Send" })
     expect(screen.queryByLabelText("Preferred channel")).toBeNull()
-    expect(screen.getByTestId("reminder-mode-note").textContent).toBe("Your club chose: I review, Platypus sends (demo: nothing is sent).")
+    expect(screen.queryByTestId("reminder-mode-note")).toBeNull()
     expect(latest.reminderRuntime!.deliveries).toEqual([])
     fireEvent.click(approve)
-    await waitFor(() => expect(screen.getByRole("status").textContent).toContain("Approved. Platypus would send"))
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Sent."))
     expect(latest.reminderRuntime!.deliveries).toHaveLength(1)
     expect(latest.reminderRuntime!.deliveries[0]).toMatchObject({ via: "platypus", outcome: "simulated", message: { source: "rules", channel: "email", recipientId: "jordan" } })
     expect(latest.nudges).toEqual([])
@@ -96,7 +96,7 @@ describe("real reminder composer state integration", () => {
     show({ ...waiting, viewerId: "alex" })
     await screen.findByRole("link", { name: "Open Gmail draft" })
     expect(screen.getByRole("heading", { level: 2 }).textContent).toBe("Sam Okafor")
-    expect(screen.getByTestId("nudge-body").textContent).toContain("Jordan Patel is waiting for your input")
+    expect(screen.getByTestId("nudge-body").textContent).toContain("Jordan is waiting on your input.")
     expect(screen.getByTestId("nudge-body").textContent).not.toContain("Reserve a room for 40 attendees")
     expect(latest.taskAccessGrants!.at(-1)).toMatchObject({ scope: "waiting", ownerId: "jordan", recipientId: "sam" })
     fireEvent.click(emailDraft())
@@ -127,7 +127,7 @@ describe("real reminder composer state integration", () => {
     const waiting = reducer({ ...enabled, viewerId: "jordan" }, { type: "replyTask", nodeId: NODE, reply: "waiting", input: { waitingOn: "School approval" } })
     show({ ...waiting, viewerId: "alex" })
     expect(screen.getByRole("status").textContent).toContain("Choose who this task is waiting on")
-    expect(screen.queryByRole("button", { name: "Approve · Platypus sends (demo)" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Send" })).toBeNull()
     cleanup()
     show({ ...fixture(), viewerId: "sam" })
     expect(screen.getByRole("status").textContent).toContain("Only the president or vice president")
@@ -183,7 +183,7 @@ describe("real reminder composer state integration", () => {
     await screen.findByText("Review the saved reminder plan before preparing another message.")
     expect(screen.queryByRole("link", { name: "Open task" })).toBeNull()
     expect(screen.queryByRole("link", { name: /Open .* draft/ })).toBeNull()
-    expect(screen.queryByRole("button", { name: "Approve · Platypus sends (demo)" })).toBeNull()
+    expect(screen.queryByRole("button", { name: "Send" })).toBeNull()
     expect(latest.taskAccessGrants).toBeUndefined()
     expect(latest.nudges).toEqual([])
     expect(latest.reminderRuntime).toBe(invalid)
@@ -211,7 +211,7 @@ describe("real reminder composer state integration", () => {
     const grant = await makeTaskAccessGrant(s, NODE)
     const issued = reducer(s, { type: "issueTaskAccessGrant", grant })
     const recipient = reminderPeople(issued).find(p => p.id === "jordan")!
-    const mail = buildReminderMail({ today: issued.today, facts: buildReminderFacts(issued, NODE)!, recipient, taskUrl: taskAccessUrl(window.location.origin, grant) })
+    const mail = buildReminderMail({ today: issued.today, facts: buildReminderFacts(issued, NODE)!, recipient, taskUrl: taskAccessUrl(window.location.origin, grant), senderName: reminderSenderName(issued) })
     const snapshot = { ...mail, channel: "email" as const, preparedOn: issued.today, accessId: grant.id }
     const first = reducer(issued, { type: "confirmNudgeSent", nodeId: NODE, text: mail.text, channel: "email", via: "platypus", message: snapshot })
     expect(first.reminderRuntime!.deliveries).toHaveLength(1)
@@ -224,16 +224,19 @@ describe("real reminder composer state integration", () => {
       show(first)
       await screen.findByRole("button", {name: "Reminder unavailable"})
       expect(latest.reminderRuntime!.deliveries).toEqual(first.reminderRuntime!.deliveries)
-      expect(screen.queryByText("Approved. Platypus would send it now. Demo: nothing is sent.")).toBeNull()
-      expect(screen.queryByRole("button", { name: "Approve · Platypus sends (demo)" })).toBeNull()
+      expect(screen.queryByText("Sent.")).toBeNull()
+      expect(screen.queryByRole("button", { name: "Send" })).toBeNull()
     } finally { failed?.mockRestore() }
   })
 
-  it("requires an explicit upgrade for both absent and v1 plans", async () => {
+  it("prepares nothing for absent and v1 plans and says only that the plan is unavailable", async () => {
+    // S2: loads upgrade the plan themselves, so a legacy plan here can only be data held back for download; there is no setup link.
     const old = fixture("review_then_self", false)
     for (const state of [old, {...fixture(), reminderRuntime: {...fixture().reminderRuntime!, version: 1 as const}}]) {
       show(state)
-      await screen.findByRole("link", {name: "Set up reminders"})
+      await screen.findByText("Reminder plan unavailable.")
+      expect(screen.queryByRole("link", {name: "Set up reminders"})).toBeNull()
+      expect(screen.queryByText(/Enable updated reminders/)).toBeNull()
       expect(screen.queryByRole("link", {name: "Open task"})).toBeNull()
       expect(latest.taskAccessGrants).toBeUndefined()
       cleanup()

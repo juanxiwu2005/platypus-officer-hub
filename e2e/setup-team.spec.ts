@@ -1,21 +1,19 @@
 import { expect, test } from "@playwright/test"
-import { continueSetup, finishSetup, setupToTeam } from "./setupHelpers"
-import { passReminders } from "./ob-helpers"
-import { closeRail, openDemoMenu, resetDemo, viewAs } from "./helpers"
+import { finishSetup, openSetup, setupToTeam } from "./setupHelpers"
+import { onboardingCopy as c } from "../src/onboarding/copy"
+import { closeRail, resetDemo } from "./helpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
   await page.route("**/api/command", r => r.fulfill({ status: 503, json: { message: "Local demo" } }))
 })
 
-test("the shared setup creates the workspace only after confirmation", async ({ page }) => {
+test("the shared setup creates the workspace only with Start workspace", async ({ page }) => {
   await setupToTeam(page)
   const before = await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))
   await page.getByRole("textbox", { name: "Role 2", exact: true }).fill("VP of Finance")
-  await continueSetup(page)
-  await page.getByRole("button", { name: "Spring dinner", exact: true }).click()
-  await page.getByRole("button", { name: "Plan it", exact: true }).click()
-  await continueSetup(page); await passReminders(page)
+  await page.getByRole("button", { name: c.back, exact: true }).click()
+  await page.getByRole("button", { name: c.next, exact: true }).click()
   expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(before)
   await finishSetup(page)
   await page.goto("/#/team")
@@ -32,7 +30,7 @@ test("first-event API dates are ignored and private profile/files stay out of th
     requestBody = r.request().postDataJSON()
     return r.fulfill({ json: { source: "ai", ops: [{ op: "create_event", name: "Fictional API Dinner", type: "social", headcount: 30, venue: "campus", food: "offsite", funding: "usg", speaker: false, date: "2099-01-01", officialDeadline: "2098-01-01" }] } })
   })
-  await setupToTeam(page); await continueSetup(page)
+  await openSetup(page)
   await page.getByRole("button", { name: "Spring dinner", exact: true }).click()
   await page.getByRole("button", { name: "Plan it", exact: true }).click()
   await page.locator("summary").filter({ hasText: "Event details" }).click()
@@ -63,34 +61,32 @@ test("renaming a role saves itself, can be undone, and follows through team and 
   await expect(page.getByTestId("role-handbooks")).not.toContainText("Treasurer")
 })
 
-test("officer five-question setup saves preferences and busy weeks while private buffers stay personal", async ({ page }) => {
+test("Settings → Try officer setup opens the member walkthrough (ob-6), which saves the officer's choices and leaves private buffers alone", async ({ page }) => {
   const started = Date.now()
   await page.goto("/#/settings")
   await page.getByRole("button", { name: "Roles & teams", exact: true }).click()
   const settings = page.getByTestId("club-settings")
   await settings.getByText("Invite officers", { exact: true }).click()
   await settings.getByRole("link", { name: "Try officer setup", exact: true }).click()
+  await expect(page).toHaveURL(/#\/welcome\/member\/invitation\?invite=/)
   await expect(page.getByRole("navigation", { name: "Sections" })).toHaveCount(0)
-  await page.getByRole("combobox", { name: "Try setup as", exact: true }).selectOption("maya")
-  await page.getByRole("combobox", { name: "Preferred channel", exact: true }).selectOption("email")
-  await page.getByRole("combobox", { name: "Reminder preference", exact: true }).selectOption("morning")
-  await page.getByLabel("My extra working days", { exact: true }).fill("3")
-  await page.getByLabel("A date in your busy week", { exact: true }).fill("2026-10-22")
-  await page.getByRole("button", { name: "Add busy week", exact: true }).click()
-  await page.getByRole("textbox", { name: "Expectations for this role", exact: true }).fill("Practice financial planning with this fictional team.")
-  await page.getByRole("button", { name: "Save my setup", exact: true }).click()
-  await expect(page.getByRole("heading", { name: "You're ready", exact: true })).toBeVisible()
+  await expect(page.getByTestId("member-strip")).toContainText("Previewing as Maya Chen")
+  const was = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).people.find((p: { id: string }) => p.id === "maya"))
+  await page.getByRole("button", { name: c.next, exact: true }).click()
+  await page.getByRole("radio", { name: "Email" }).check()
+  await page.getByRole("radio", { name: "Morning" }).check()
+  await page.getByRole("button", { name: c.next, exact: true }).click()
+  await page.getByTestId("week-strip").getByRole("button").nth(3).click()
+  await page.getByRole("button", { name: c.next, exact: true }).click()
+  await expect(page.getByRole("heading", { name: c.member.done.title, exact: true })).toBeVisible()
   expect(Date.now() - started).toBeLessThan(120000)
-  await page.getByRole("link", { name: "View my tasks as Maya Chen", exact: true }).click()
-  await page.goto("/#/settings")
-  await expect(page.getByTestId("club-settings")).toHaveCount(0)
-  await expect(page.getByLabel("My extra working days", { exact: true })).toHaveValue("3")
-  await viewAs(page, "alex")
-  await page.getByRole("button", { name: "My preferences", exact: true }).click()
-  await expect(page.getByLabel("My extra working days", { exact: true })).toHaveValue("1")
-  await expect(page.getByTestId("my-settings")).not.toContainText("Week of 2026-10-19")
-  await page.goto("/#/team")
-  await expect(page.getByTestId("meeting-finder").getByRole("heading", { name: "Shared times", exact: true })).toBeVisible()
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).people.find((p: { id: string }) => p.id === "maya").setupCompletedOn)).not.toBeNull()
+  const maya = await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).people.find((p: { id: string }) => p.id === "maya"))
+  expect(maya).toMatchObject({ channels: ["email"], remindAt: "morning" })
+  expect(maya.busyWeeks.length).toBeGreaterThan(0)
+  expect({ days: maya.personalBufferDays, on: maya.personalBufferEnabled, slots: maya.freeSlots }).toEqual({ days: was.personalBufferDays, on: was.personalBufferEnabled, slots: was.freeSlots })
+  await page.getByRole("button", { name: c.member.done.cta, exact: true }).click()
+  await expect(page).toHaveURL(/#\/tasks$/)
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
 })
 
@@ -107,7 +103,7 @@ test("meeting finder uses shared slots and opens only an Arizona calendar draft"
   expect(params.get("ctz")).toBe("America/Phoenix"); expect(params.has("add")).toBe(false)
   for (const checkbox of await finder.getByRole("checkbox").all()) await checkbox.uncheck()
   await expect(finder).toContainText("No shared time in the next two weeks")
-  await expect(page.getByTestId("contribution-board")).toBeVisible()
+  await expect(page.getByTestId("your-cheers")).toBeVisible()   // Cheers R1: Your cheers replaces the Contributions board
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
 })
 
@@ -144,7 +140,7 @@ test("meeting finder: paint my week on the left, see the group on the right, pic
 test("invalid defaults and expired invitations cannot change the local demo", async ({ page }) => {
   await page.goto("/#/settings")
   const settings = page.getByTestId("club-settings")
-  await settings.getByText("Deadline and follow-up defaults", { exact: true }).click()
+  await settings.getByTestId("tasks-events-settings").locator("summary").click()   // Club → More
   await settings.getByLabel("Private check day", { exact: true }).fill("4")
   await expect(settings.getByRole("status")).toContainText("must increase")
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).org.settings.silenceProtocol.presidentDay)).toBe(7)
@@ -154,8 +150,9 @@ test("invalid defaults and expired invitations cannot change the local demo", as
   await resetDemo(page)
   const resetState = await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))
   await page.goto(href!)
-  await expect(page.getByRole("heading", { name: "Check your setup invitation", exact: true })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Save my setup", exact: true })).toHaveCount(0)
+  await expect(page.getByTestId("invalid-invite")).toBeVisible()
+  await expect(page.getByRole("heading", { name: c.invalidInvite, exact: true })).toBeVisible()
+  await expect(page.getByRole("button", { name: c.next, exact: true })).toHaveCount(0)
   expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(resetState)
 })
 
@@ -167,33 +164,13 @@ test("task dates remain visible while another officer's buffer explanation stays
   // FB-4: the one visible date is Due. FB-6 moved the dates; they are not asserted here. The universal Task Details
   // (docs/feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md) dropped "Why this date", so the panel shows no planning dates or buffers at all.
   await expect(panel.getByTestId("task-due").locator("strong")).toHaveText(/^\w{3} \d+/)
-  await expect(panel).not.toContainText(/Maya's personal buffer|Personal planning start|Start by/)
-  await closeRail(page)
-  await openDemoMenu(page)
-  await page.getByTestId("bts-toggle").check()
-  await page.keyboard.press("Escape")
-  await page.getByTestId("view-list").click()
-  const list = page.getByTestId("event-list")
-  const row = list.locator("tbody tr").filter({ has: page.getByRole("button", { name: /Purchase Request$/ }) })
-  const explanation = row.locator("xpath=following-sibling::tr[1]")
-  await expect(explanation).toContainText("private planning preferences")
-  await expect(explanation).not.toContainText("Maya's personal buffer")
-  await viewAs(page, "maya")
-  await expect(explanation).toContainText("Maya's personal buffer")
+  await expect(panel).not.toContainText(/Maya's personal buffer|Personal planning start|Start by|[Ee]xtra day/)   // "extra days" is the buffer's name since S7
+  // S3 removed the Events List view, whose per-step reminder note was the only place a personal buffer was named.
 })
 
-/** Audit §5.1: buttons inside a hover card can be clicked (fixed in S3: styles.css restores pointer-events). */
-test("the contribution board drills down from its hover card", async ({ page }, info) => {
-  await page.goto("/#/team")
-  const row = page.getByTestId("contribution-board").locator("tbody tr").filter({ has: page.locator(".hover") }).first()
-  const trigger = row.locator("[tabindex]")
-  if (info.project.name === "mobile") await trigger.tap() // a phone cannot hover: a tap opens the card
-  else await trigger.hover()
-  const card = row.locator(".hover-card")
-  await expect(card).toBeVisible()
-  await card.getByRole("button").first().click()
-  await expect(page.getByTestId("task-detail")).toBeVisible()
-})
+// Audit §5.1 ("the contribution board drills down from its hover card") was removed with Cheers R1 (2026-11-26): the board is not
+// rendered until it returns for the president. src/test/teamContributions.test.tsx now clicks a hover-card button on the board and
+// checks the side panel opens with that task; e2e/cheers.spec.ts checks a Team hover card stays open when the pointer moves into it.
 
 for (const width of [375, 390, 768]) {
   test(`Settings controls and organization chart remain operable at ${width}px`, async ({ page }, info) => {
@@ -201,7 +178,7 @@ for (const width of [375, 390, 768]) {
     await page.goto("/#/settings")
     const activate = async (target: import("@playwright/test").Locator) => info.project.name === "mobile" ? target.tap() : target.click()
     const nav = page.getByRole("navigation", { name: "Settings sections" })
-    for (const name of ["Roles & teams", "Workflow", "Tasks", "Links & files", "My preferences", "Admin", "Club", "Roles & teams"]) {
+    for (const name of ["Roles & teams", "Workflow", "My preferences", "Admin", "Club", "Roles & teams"]) {
       const button = nav.getByRole("button", { name, exact: true })
       await activate(button)
       await expect(button).toHaveAttribute("aria-current", "page")
@@ -227,7 +204,7 @@ for (const width of [375, 390, 768]) {
     await expect(settings.getByRole("link", { name: "Try officer setup", exact: true })).toBeVisible()
     await page.screenshot({ path: `output/playwright/wp04-settings-${width}-${info.project.name}.png`, fullPage: true })
     await activate(settings.getByRole("link", { name: "Try officer setup", exact: true }))
-    await expect(page.getByRole("combobox", { name: "Try setup as", exact: true })).toBeVisible()
+    await expect(page.getByTestId("role-card")).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1)
   })
 }
@@ -254,24 +231,27 @@ test("Settings and officer setup keep drafts and report browser storage failure 
   await page.getByRole("button", { name: "Roles & teams", exact: true }).click()
   await settings.getByText("Invite officers", { exact: true }).click()
   await settings.getByRole("link", { name: "Try officer setup", exact: true }).click()
-  await page.getByRole("textbox", { name: "Expectations for this role", exact: true }).fill("Fictional unsaved preference")
-  await page.getByRole("button", { name: "Save my setup", exact: true }).click()
-  await expect(page.getByRole("heading", { name: "You're ready", exact: true })).toHaveCount(0)
-  await expect(page.getByRole("alert").filter({ hasText: "Keep this tab open" })).toBeVisible()
-  await expect(page.getByRole("textbox", { name: "Expectations for this role", exact: true })).toHaveValue("Fictional unsaved preference")
+  // The member walkthrough keeps its choices in this tab and saves only on Done, which says when the browser refuses the save.
+  await page.getByRole("button", { name: c.next, exact: true }).click()
+  await page.getByRole("radio", { name: "Email" }).check()
+  await page.getByRole("button", { name: c.next, exact: true }).click()
+  await page.getByRole("button", { name: c.next, exact: true }).click()
+  await expect(page.getByTestId("save-refused")).toContainText(c.member.done.storageFailed)
   expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(before)
+  expect(await page.evaluate(() => sessionStorage.getItem("platypus.v1.onboarding.member"))).not.toBeNull()   // kept for Try again
   await page.evaluate(() => (window as Window & { restoreDemoStorage: () => void }).restoreDemoStorage())
-  await page.getByRole("button", { name: "Save my setup", exact: true }).click()
-  await expect(page.getByRole("heading", { name: "You're ready", exact: true })).toBeVisible()
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).people.find((p: { id: string }) => p.id === "maya").expectations)).toBe("Fictional unsaved preference")
+  await page.getByTestId("save-refused").getByRole("button", { name: c.member.done.retry }).click()
+  await expect(page.getByTestId("save-refused")).toHaveCount(0)
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).people.find((p: { id: string }) => p.id === "maya").channels)).toEqual(["email"])
 })
 
 test("a tampered invitation cannot reveal the setup form or change saved state", async ({ page }) => {
   await page.goto("/#/settings")
   const before = await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))
   await page.goto("/#/join?invite=tampered&person=maya")
-  await expect(page.getByRole("heading", { name: "Check your setup invitation", exact: true })).toBeVisible()
-  await expect(page.getByRole("button", { name: "Save my setup", exact: true })).toHaveCount(0)
+  await expect(page.getByTestId("invalid-invite")).toBeVisible()
+  await expect(page.getByRole("button", { name: c.next, exact: true })).toHaveCount(0)
+  await expect(page.getByLabel("Email")).toHaveCount(0)
   expect(await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))).toBe(before)
 })
 

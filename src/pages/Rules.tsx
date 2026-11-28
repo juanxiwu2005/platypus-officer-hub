@@ -61,7 +61,7 @@ export default function Rules() {
     <PageHead path="/rules" actions={<div className="seg" role="group" aria-label="Policy category">{CATEGORIES.map(category => <button key={category.id} type="button" aria-pressed={tab === category.id} onClick={() => { setTab(category.id); setPage(0) }}>{category.label}</button>)}</div>} />
     <section className="card">
       <div className="toolbar">
-        <label className="field-inline">Search sources<input type="search" value={query} onChange={e => { setQuery(e.target.value); setPage(0) }} /></label>
+        <label className="field-inline">Search rules<input type="search" value={query} onChange={e => { setQuery(e.target.value); setPage(0) }} /></label>
         {wide
           ? <span className="small muted" role="status">{matches.length === 1 ? "1 source" : `${matches.length} sources`}</span>
           : <nav className="action-row" aria-label="Source pages">
@@ -78,7 +78,7 @@ export default function Rules() {
             {source.sourceUrl
               ? <a className="btn small icon-btn" href={source.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Open source: ${source.officialName}`} title={source.officialName}><ExternalIcon /></a>
               : <span className="btn small icon-btn muted" role="img" aria-label={`No single official URL for ${source.officialName}`} title={source.sourceUrlNote ?? "No single official URL"}><ExternalIcon /></span>}
-            <button type="button" className="btn small icon-btn" aria-label={`Ask Platypus about ${source.officialName} · ${source.recordId}`} title="Ask Platypus" onClick={() => rail.ask(`What does ${source.officialName} cover, and how could it apply to our event?`, true)}><ChatIcon /></button>
+            <button type="button" className="btn small icon-btn" aria-label={`Ask Platypus about ${source.officialName}`} title="Ask Platypus" onClick={() => rail.ask(`What does ${source.officialName} cover, and how could it apply to our event?`, true)}><ChatIcon /></button>
           </span>
         </li>)}
       </ul> : <Empty>No matching source.{(query.trim() !== "" || tab !== "all") && <> <button type="button" className="link" onClick={() => { setQuery(""); setTab("all"); setPage(0) }}>Clear filters</button></>}</Empty>}

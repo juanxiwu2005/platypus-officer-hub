@@ -1,8 +1,8 @@
 import { FLOW_VERSION } from "../src/onboarding/record"
-import { fillMission, passReminders } from "./ob-helpers"
 import { expect, test, type Page } from "@playwright/test"
 import { readFileSync } from "node:fs"
 import { onboardingCopy as c } from "../src/onboarding/copy"
+import { REMINDER_MODE_COPY } from "../src/data/reminderMode"
 import { ask, closeRail } from "./helpers"
 
 // Phase 3 research log (docs/PHASE3_DATA_DICTIONARY.md): a short participant session, then Export my data.
@@ -31,29 +31,30 @@ async function session(page: Page) {
   await page.goto("/#/start")
   await expect(page.getByRole("heading", { level: 1, name: "Name your club" })).toBeVisible()
   await page.getByLabel(c.founder.name.field).fill("Fictional Lantern Society")
-  await next(page)
-  // The shared eight-step founder flow (docs/feedback-fix/SETUP_ENTRY_UNIFICATION_HANDOFF.md): Constitution, then Goals with its mission.
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await fillMission(page)
-  await page.getByRole("button", { name: c.skip }).click()            // goals
-  await page.getByRole("button", { name: c.skip }).click()            // team
+  // The three-screen founder flow (ob-6): the first event on screen 1, then Team, whose Start workspace finishes setup, then Invite.
   await page.getByRole("button", { name: "Welcome mixer" }).click()
   await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
   await next(page)
-  // P3-H: the Reminders question. FB-8: "I review, then I send", the mode where a person opens the draft, so the draft link is still logged
-  // below ("I review, Platypus sends" now approves in one click with no draft link: e2e/fb-08-reminder-centre.spec.ts).
-  await passReminders(page, "review_then_self")
-  await page.getByRole("button", { name: c.founder.confirm.start }).click()
+  await page.getByRole("button", { name: c.founder.team.start }).click()
   await expect(page.getByRole("heading", { level: 1, name: c.founder.invite.title })).toBeVisible()
   await page.getByRole("button", { name: c.founder.invite.today }).click()
   await expect(page.locator("main h1")).toHaveText("Reminders")      // FB-8: the home page is the reminder centre
+  // ob-5 (S2): the walkthrough no longer asks how reminders go out, so the president picks "I review, then I send" in Settings: the mode where
+  // a person opens the draft, so the draft link is still logged below ("I review, Platypus sends" approves in one click with no draft link:
+  // e2e/fb-08-reminder-centre.spec.ts).
+  await closeRail(page)
+  await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: "Settings" }).click()
+  await expect(page.locator("main h1")).toHaveText("Settings")
+  const choice = page.getByRole("group", { name: REMINDER_MODE_COPY.title })
+  await choice.getByRole("radio", { name: REMINDER_MODE_COPY.options.review_then_self.title }).check()
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo") ?? "{}").org?.settings?.reminderMode)).toBe("review_then_self")
   // 2. Prepare one reminder in the reminder composer (choose a channel, open the draft: the outside page is stopped). The home page now
   // combines each person's tasks into one email in its own panel; a single-task reminder (ui.reminder, data dictionary §5.1) opens from Ask.
   await ask(page, "Remind Jordan about the workshop checklist")
   await page.getByRole("button", { name: "Open the draft" }).last().click()
   const panel = page.getByTestId("nudge-panel")
   await expect(panel).toBeVisible()
-  await expect(panel.getByTestId("reminder-mode-note")).toHaveText("Your club chose: I review, then I send (demo: nothing is sent).")
+  await expect(panel.getByTestId("reminder-mode-note")).toHaveCount(0)      // S2: the mode note left the composer
   await panel.getByLabel("Preferred channel").selectOption("email")
   const draft = panel.getByRole("link", { name: "Open Gmail draft" })
   await expect(draft).toBeVisible()
@@ -62,7 +63,7 @@ async function session(page: Page) {
   await panel.getByRole("button", { name: "Close reminder" }).click()
   // 3. Click a few things: a page link, a drop-down, the demo clock (a data change with its earlier value)
   await closeRail(page)
-  // FB-8: Tasks is under Plan: the Plan link opens Events, the "Events | Tasks" switch opens Tasks.
+  // FB-8: Tasks is under Plan. Since batch 1 the Plan link opens Tasks first; the "Events | Tasks" switch still records its click.
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: /^Plan/ }).click()
   await page.getByRole("navigation", { name: "Plan" }).getByRole("link", { name: "Tasks" }).click()
   await expect(page.locator("main h1")).toHaveText("Tasks")
@@ -73,8 +74,9 @@ async function session(page: Page) {
   // 4. A rule question, then its cited source (stopped too)
   await ask(page, "What do outside caterers need?")
   const answer = page.getByTestId("rule-answer").last()
-  await expect(answer).toContainText("R06")
-  const [popup] = await Promise.all([page.waitForEvent("popup"), answer.getByRole("link", { name: /R06 source/ }).click()])
+  await expect(answer).toContainText("Student Organization Handbook 2025–26")
+  await expect(answer).not.toContainText(/\bR\d{2}\b|ASU-R-/)
+  const [popup] = await Promise.all([page.waitForEvent("popup"), answer.locator('a[data-source-id="R06"]').click()])
   await popup.close()
   // 5. Export
   await closeRail(page)
@@ -95,7 +97,7 @@ test("a short session is exported whole: walkthrough, a reminder, clicks, a rule
   // shape, numbering and time
   expect(file).toMatchObject({ format: "platypus-export", formatVersion: 3, onboardingFlowVersion: FLOW_VERSION, demoToday: file.state.today })
   // the study session: begun by the study link. The browsing minutes before it is the same sitting: kept, with no session; nothing was cleared.
-  expect(file.session).toMatchObject({ setupChoice: "start-workspace", firstEventChoice: "planned", reminderModeChoice: "review_then_self", outcome: "completed", previousEntriesCleared: 0, olderEntriesLeftOut: 0 })
+  expect(file.session).toMatchObject({ setupChoice: "start-workspace", firstEventChoice: "planned", reminderModeChoice: null, outcome: "completed", previousEntriesCleared: 0, olderEntriesLeftOut: 0 })
   expect(file.sessions).toHaveLength(1)
   const start = log.findIndex(e => e.type === "ui.navigate" && e.payload.to === "/welcome/founder/name")
   expect(start).toBeGreaterThan(0)
@@ -125,11 +127,12 @@ test("a short session is exported whole: walkthrough, a reminder, clicks, a rule
   let i = find(0, e => e.type === "ui.navigate" && p(e).to === "/welcome/founder/name", "the walkthrough opened")
   // 2026-11-07: typing in a field is recorded as "started / stopped typing", with the field's label and never its text
   i = find(i, e => e.type === "ui.edit" && p(e).event === "start" && String(p(e).field).includes(c.founder.name.field) && p(e).kind === "text", "typing began in the club name")
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.next && p(e).route === "/welcome/founder/name" && p(e).to === "/welcome/founder/constitution", "Continue on the Name screen")
-  i = find(i, e => e.type === "ui.change" && p(e).route === "/welcome/founder/reminders" && p(e).role === "radio" && p(e).name === "I review, then I send" && p(e).checked === true && p(e).testid === "reminder-mode-review_then_self", "the Reminders answer")
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.confirm.start, "Start workspace")
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.next && p(e).route === "/welcome/founder/name" && p(e).to === "/welcome/founder/team", "Continue on screen 1")
+  expect(log.some(e => e.type === "ui.change" && p(e).route === "/welcome/founder/reminders"), "ob-5: no Reminders screen in the walkthrough").toBe(false)
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.team.start && p(e).route === "/welcome/founder/team", "Start workspace, on Team")
   i = find(i, e => e.type === "completeSetup" && e.applied, "the club was created")
-  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.invite.today && p(e).to === "/", "Go to Today")
+  i = find(i, e => e.type === "ui.click" && p(e).name === c.founder.invite.today && p(e).to === "/", "Go to Reminders")
+  i = find(i, e => e.type === "ui.change" && p(e).route === "/settings" && p(e).role === "radio" && p(e).name === "I review, then I send" && p(e).checked === true, "the reminder choice, in Settings")
   i = find(i, e => e.type === "ui.ask" && p(e).question === "Remind Jordan about the workshop checklist", "the reminder request")
   i = find(i, e => e.type === "ui.click" && p(e).name === "Open the draft" && p(e).area === "answer", "Open the draft")
   i = find(i, e => e.type === "ui.details" && p(e).action === "open" && p(e).kind === "nudge", "the reminder opened in Details")
@@ -137,13 +140,13 @@ test("a short session is exported whole: walkthrough, a reminder, clicks, a rule
   i = find(i, e => e.type === "ui.change" && p(e).name === "Preferred channel" && p(e).value === "Gmail" && p(e).area === "reminder", "the channel chosen")
   i = find(i, e => e.type === "ui.click" && p(e).name === "Open Gmail draft" && p(e).external === true && p(e).href === "mail.google.com/mail/", "the draft link")
   i = find(i, e => e.type === "ui.click" && p(e).name === "Close reminder", "the composer closed")
-  i = find(i, e => e.type === "ui.click" && p(e).role === "link" && /^Plan/.test(String(p(e).name)) && p(e).to === "/events" && p(e).area === "nav", "the Plan link")
+  i = find(i, e => e.type === "ui.click" && p(e).role === "link" && /^Plan/.test(String(p(e).name)) && p(e).to === "/tasks" && p(e).area === "nav", "the Plan link")
   i = find(i, e => e.type === "ui.click" && p(e).role === "link" && p(e).name === "Tasks" && p(e).to === "/tasks", "the Tasks switch")
   i = find(i, e => e.type === "ui.change" && p(e).name === "Task scope" && p(e).value === "Team tasks", "the task scope chosen")
   i = find(i, e => e.type === "advanceClock" && e.applied && (e.before as { today?: string })?.today !== undefined, "the demo clock, with its earlier value")
   i = find(i, e => e.type === "ui.ask" && p(e).question === "What do outside caterers need?", "the rule question")
   i = find(i, e => e.type === "ui.answer" && p(e).answer === "rule-answer" && (p(e).citations as string[]).includes("R06"), "the kind of answer and its citation")
-  i = find(i, e => e.type === "ui.click" && p(e).external === true && /R06 source/.test(String(p(e).name)) && p(e).area === "answer", "the cited source was opened")
+  i = find(i, e => e.type === "ui.click" && p(e).external === true && /Student Organization Handbook 2025–26/.test(String(p(e).name)) && p(e).area === "answer", "the cited source was opened")
   i = find(i, e => e.type === "ui.click" && p(e).testid === "export-data", "the Export button")
   expect(log[log.length - 1]).toMatchObject({ type: "ui.export" })
   expect(i).toBe(log.length - 2)

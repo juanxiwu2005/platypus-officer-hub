@@ -4,7 +4,7 @@ import type { DemoState, WorkflowTemplate, WorkflowTemplateContent } from "../sr
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { addDays } from "../src/lib/dates"
 import { noOverflow } from "./helpers"
-import { openMenu } from "./workflowLegacyHelpers"
+import { openMenu, waitForDraftSave } from "./workflowLegacyHelpers"
 import { dragToSlot } from "./workflowDrag"
 
 type Content = WorkflowTemplateContent
@@ -59,7 +59,7 @@ async function newTemplate(page: Page, name: string) {
   const builder = await open(page)
   await openMenu(page, "New workflow", "Blank workflow")
   await page.getByLabel("Workflow name", { exact: true }).fill(name)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   const template = getWorkflowTemplates(await read(page)).find(item => item.draft?.name === name)!
   return { builder, id: template.id }
 }
@@ -72,7 +72,7 @@ async function addTasks(page: Page, titles: string[], teamId: string) {
   const state = await read(page)
   await builder.getByRole("combobox", { name: "Assign role", exact: true }).selectOption(state.roles.find(role => role.holderId === state.viewerId)!.id)
   await builder.getByRole("button", { name: "Add tasks", exact: true }).click()
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
 }
 
 async function publish(page: Page, id: string, version: number) {
@@ -86,13 +86,16 @@ async function createEvent(page: Page, name: string, templateId: string, version
   const definition = (await savedTemplate(page, templateId)).versions.find(item => item.version === version)!
   await closeRail(page)
   await page.getByRole("navigation", { name: "Sections", exact: true }).getByRole("link", { name: /^Plan/ }).click()
+  // Plan opens Tasks first (batch 1); new events are made from the Events view.
+  await page.getByRole("navigation", { name: "Plan" }).getByRole("link", { name: "Events" }).click()
   await page.getByTestId("new-event").click()
   const form = page.getByTestId("plan-form").last()
   await form.getByLabel("Event name", { exact: true }).fill(name)
   await form.getByLabel("Date", { exact: true }).fill(addDays((await read(page)).today, 150))
   await form.getByRole("combobox", { name: "Workflow template", exact: true }).selectOption({ label: `${definition.name} · v${version}` })
-  await form.getByRole("button", { name: "Continue", exact: true }).click()
-  await page.getByTestId("change-item").last().getByRole("button", { name: "Apply this change", exact: true }).click()
+  await form.getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect.poll(async () => (await read(page)).events.some(event => event.name === name)).toBe(true)
   await closeRail(page)
   return (await read(page)).events.find(event => event.name === name)!
@@ -110,11 +113,11 @@ test("the default 46 tasks use four compact team containers without rewriting de
   const builder = await open(page)
   const dots = builder.locator('[data-testid^="workflow-task-"]')
   await expect(dots).toHaveCount(46)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   await expect(builder.locator('[data-testid^="workflow-segment-"]')).toHaveCount((await draft(page, "standard-event")).milestoneGraph!.teamBranches.length)
   await expect(builder.locator(".wfb-task")).toHaveCount(0)
   for (const task of oldVersion.steps) await expect(builder.getByRole("button", { name: `Edit ${task.title}`, exact: true })).toHaveCount(1)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   await expect.poll(async () => (await draft(page, "standard-event")).teamExecution).toBe("dependencies")
   const authored = await draft(page, "standard-event")
   expect(authored.steps).toEqual(oldVersion.steps)
@@ -229,12 +232,12 @@ test("reordering through a cross-team dependency loop is refused without changin
   await builder.getByRole("button", { name: `Edit ${c.title}`, exact: true }).click()
   await page.getByRole("combobox", { name: "Add prerequisite", exact: true }).selectOption(b.key)
   await closeRail(page)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   current = await draft(page, id)
   expect(ancestors(current.steps, c.key).has(b.key)).toBe(true)
   await dragBefore(page, c.key, a.key, isMobile)
   await expect(builder.getByRole("alert")).toContainText(/loop|cycle|cannot|keep/i)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   expect((await draft(page, id)).steps).toEqual(current.steps)
 })
 
@@ -249,7 +252,7 @@ test("editing work effort keeps compact dot positions while preserving the engin
   await builder.getByRole("button", { name: `Edit ${last.title}`, exact: true }).click()
   await page.getByRole("spinbutton", { name: "Days of work", exact: true }).fill("12")
   await closeRail(page)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   const changed = await draft(page, id)
   expect(changed.steps.find(step => step.key === last.key)?.estDays).toBe(12)
   expect(changed.steps.find(step => step.key === last.key)?.anchor).toEqual(last.anchor)

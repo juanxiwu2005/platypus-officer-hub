@@ -7,8 +7,14 @@ import type { ReminderCandidate, ReminderPerson, ReminderTaskFacts, WaitingReque
 const words = (value: string) => value.trim().split(/\s+/).filter(Boolean)
 const banned = [/is\s+it\s+done\s+yet/i, /\basap\b/i, /this\s+should\s+only\s+take\s+(?:an?|one|1)\s+hour/i, /just\s+use\s+ai/i, /\burgent\b/i, /@everyone|@here/i]
 const urls = (value: string) => value.match(/https?:\/\/[^\s<>]+/g) ?? []
-const clean = (value: string) => value.replace(/\[([^\]]+)\]\(https?:\/\/[^)]+\)/g, "$1")
-  .replace(/https?:\/\/[^\s<>]+/g, "").replace(/<\/?[a-z][^>]*>/gi, "").replace(/\s+/g, " ").trim()
+/**
+ * Any web address in saved prose ("https://…", "ftp://…", "www.…"): the same shapes the edited-email check refuses
+ * (WEB_ADDRESS in draftLinks.ts), so a title like "Book www.venue.org" never puts a refused address in the rule-written
+ * email and blocks every edit of it. Run again after tags go, in case removing a tag joined an address back together.
+ */
+const ADDRESS = /(?:\b[a-z][a-z\d+.-]*:\/\/|\bwww\.)[^\s<>]*/gi
+const clean = (value: string) => value.replace(/\[([^\]]+)\]\((?:https?:\/\/|www\.)[^)]+\)/gi, "$1")
+  .replace(ADDRESS, "").replace(/<\/?[a-z][^>]*>/gi, "").replace(ADDRESS, "").replace(/\s+/g, " ").trim()
 const safe = (value: string, fallback: string) => banned.some(pattern => pattern.test(value)) ? fallback : value
 const sentence = (value: string) => /[.!?…]$/.test(value) ? value : `${value}.`
 const excerpt = (value: string, limit: number) => {
@@ -40,24 +46,40 @@ export function checkReminderMail(mail: ReminderMail): boolean {
     && (mail.intendedEmail === null || email(mail.intendedEmail))
 }
 
+/** A person's first name from saved prose, or the fallback when it is missing or unusable. */
+const firstName = (value: string | null | undefined, fallback: string) => safe(clean(value ?? "").split(" ")[0] ?? "", fallback) || fallback
+/** The sign-off: the first name of the president or VP who prepares the email; none when nobody does (automatic sending). */
+const signOff = (sender: string | null | undefined) => {
+  const value = firstName(sender, "")
+  return value ? `\n${value}` : ""
+}
+/** "Speaker Night: Reserve a room, due Mar 31"; the event and the due date are left out when there is none. */
+const subjectFor = (eventName: string | null, title: string, due: string | null) =>
+  `${eventName ? `${eventName}: ` : ""}${title}${due ? `, due ${due}` : ""}`
+
+/**
+ * Why this email is going out, in plain words a club officer would write (C2, 2026-11-27). Dates come only from the saved
+ * facts and the engine; the wording never treats a missing update as proof that no work happened.
+ */
 function trigger(input: ReminderMailInput, waiting: boolean): string {
   const { facts, today } = input
+  const requester = firstName(input.requesterName, "A teammate")
   if (waiting && input.candidate?.reason === "waiting_followup") return input.request?.response === "acknowledged"
-    ? `Input was expected by ${fmtShort(expectedInputOn(input.request))}; it is not recorded as provided.`
-    : `${clean(input.requesterName ?? "A teammate")} is still waiting; no reply to the help request is recorded.`
-  if (waiting) return `${clean(input.requesterName ?? "A teammate")} is waiting for your input on this task.`
-  if (input.candidate?.reason === "no_reply") return "No reply to the previous reminder is recorded. Could you share an update?"
+    ? `${requester} is still waiting on your input, expected by ${fmtShort(expectedInputOn(input.request))}.`
+    : `${requester} asked for help and hasn't heard back yet.`
+  if (waiting) return `${requester} is waiting on your input.`
+  if (input.candidate?.reason === "no_reply") return "Checking in again on this one. Could you share a quick update?"
   if (facts.status === "done") return "A completion update is recorded for this task."
   if (facts.status === "waiting") return "This task is marked as waiting. Let us know what would help."
   if (facts.status === "blocked") return "This task is marked as stuck. Let's work out the next step together."
   if (validDay(facts.due)) {
     const late = daysBetween(facts.due!, today)
-    if (late > 0) return `${late} day${late === 1 ? "" : "s"} past due; no completion update is recorded.`
-    if (late === 0) return "This task is due today; no completion update is recorded."
+    if (late > 0) return `It's ${late} day${late === 1 ? "" : "s"} past the due date. How's it going?`
+    if (late === 0) return "This is due today. How's it going?"
   }
-  if (facts.status === "in_progress") return "Work is marked as in progress. Thank you for keeping us updated."
-  if (validDay(facts.startOn) && facts.startOn === today) return "Today is our planned start date; no start update is recorded."
-  if (validDay(facts.startOn) && facts.startOn! < today) return "The planned start has passed; no start update is recorded."
+  if (facts.status === "in_progress") return "Good to see this is underway."
+  if (validDay(facts.startOn) && facts.startOn === today) return "This is planned to start today. Need anything?"
+  if (validDay(facts.startOn) && facts.startOn! < today) return `This was planned to start ${fmtShort(facts.startOn!)}. Need anything?`
   return "A quick note as we prepare for this task."
 }
 
@@ -65,11 +87,12 @@ function trigger(input: ReminderMailInput, waiting: boolean): string {
 export function buildReminderMail(input: ReminderMailInput): ReminderMail {
   const { facts, recipient, request } = input
   const waiting = input.candidate?.reason === "waiting_on" || !!request
-  const activity = safe(clean(facts.eventName ?? "Club work"), "Club work") || "Club work"
+  const activity = facts.eventName ? safe(clean(facts.eventName), "") || null : null
   const title = safe(clean(facts.title), "Task update") || "Task update"
-  const name = safe(clean(recipient.name).split(" ")[0], "there") || "there"
-  const subject = `${activity} · ${title}`
-  const due = validDay(facts.due) ? fmtShort(facts.due!) : "Not set"
+  const name = firstName(recipient.name, "there")
+  const dueDay = validDay(facts.due) ? fmtShort(facts.due!) : null
+  const subject = subjectFor(activity, title, dueDay)
+  const due = dueDay ?? "Not set"
   const rawRequest = clean(request?.waitingOn ?? "")
   const requestIsName = rawRequest.toLocaleLowerCase() === clean(recipient.name).toLocaleLowerCase()
     || rawRequest.toLocaleLowerCase() === name.toLocaleLowerCase()
@@ -77,11 +100,11 @@ export function buildReminderMail(input: ReminderMailInput): ReminderMail {
     ? safe(rawRequest && !requestIsName ? rawRequest : "Could you share an update with the task's owner?", "Could you share an update with the task's owner?")
     : safe(clean(facts.requirement), "Please review the task details and share an update.") || "Please review the task details and share an update."
   const importance = waiting
-    ? `Your input can help ${clean(input.requesterName ?? "the owner")} plan the next step.`
+    ? `Your input will help ${firstName(input.requesterName, "the owner")} plan the next step.`
     : safe(clean(facts.importance), "This supports our club's shared plan.") || "This supports our club's shared plan."
   const intro = safe(trigger(input, waiting), "A quick check-in on this task.")
   const opening = `Hi ${name},\n\nTask due: ${due}\n\n${intro}`
-  const closing = `If anything is in the way, share an update so we can help.\nThank you for your work on this.\n\nOpen task: ${input.taskUrl}`
+  const closing = `If anything is in the way, share an update so we can help.\nThank you for your work on this.${signOff(input.senderName)}\n\nOpen task: ${input.taskUrl}`
   const available = Math.max(2, 100 - words(`${opening}\n${closing}`).length)
   const requirementBudget = Math.max(1, Math.min(words(requirement).length, Math.max(1, available - Math.min(18, words(importance).length))))
   const requirementLine = excerpt(requirement, requirementBudget)
@@ -117,7 +140,11 @@ export interface ReminderDigestMailItem {
   /** This task's own entry URL (taskAccessUrl for this task's grant). */
   taskUrl: string
 }
-export interface ReminderDigestMailInput { today: string; recipient: ReminderPerson; items: ReminderDigestMailItem[] }
+export interface ReminderDigestMailInput {
+  today: string; recipient: ReminderPerson; items: ReminderDigestMailItem[]
+  /** Who signs the email: the president or VP preparing it (reminderSenderName); none for automatic sending. */
+  senderName?: string | null
+}
 export interface ReminderDigestMail {
   subject: string
   /** Plain text with exactly one task entry URL per item, in item order. */
@@ -166,21 +193,24 @@ export function checkReminderDigestMail(mail: ReminderDigestMail): boolean {
 /** Every fact and date comes from the supplied saved state, in the supplied (engine priority) order. */
 export function buildReminderDigestMail(input: ReminderDigestMailInput): ReminderDigestMail {
   const { recipient, items, today } = input
-  const name = safe(clean(recipient.name).split(" ")[0], "there") || "there"
+  const name = firstName(recipient.name, "there")
   const one = items.length === 1
   const label = (facts: ReminderTaskFacts) => cut(safe(clean(facts.title), "Task update") || "Task update", 12)
-  const activity = (facts: ReminderTaskFacts) => cut(safe(clean(facts.eventName ?? "Club work"), "Club work") || "Club work", 8)
-  const subject = one ? `${activity(items[0].facts)} · ${label(items[0].facts)}` : `${items.length} Platypus tasks need you`
+  const event = (facts: ReminderTaskFacts) => facts.eventName ? cut(safe(clean(facts.eventName), ""), 8) || null : null
+  const dueOf = (facts: ReminderTaskFacts) => validDay(facts.due) ? fmtShort(facts.due!) : null
+  // Every task in the email is ready today (the engine's ready list), so a combined email names today.
+  const subject = one ? subjectFor(event(items[0].facts), label(items[0].facts), dueOf(items[0].facts)) : `${items.length} club tasks for today`
   const lines = items.map((item, index) => {
     const waiting = item.candidate.reason === "waiting_on" || !!item.request
-    const single: ReminderMailInput = { today, facts: item.facts, recipient, taskUrl: item.taskUrl, candidate: item.candidate, request: item.request, requesterName: item.requesterName }
+    const single: ReminderMailInput = { today, facts: item.facts, recipient, taskUrl: item.taskUrl, candidate: item.candidate, request: item.request, requesterName: item.requesterName, senderName: input.senderName }
     const reason = cut(safe(trigger(single, waiting), "A quick check-in on this task."), 18)
-    const due = validDay(item.facts.due) ? fmtShort(item.facts.due!) : "Not set"
-    const title = item.facts.eventName ? `${label(item.facts)} · ${activity(item.facts)}` : label(item.facts)
+    const due = dueOf(item.facts) ?? "Not set"
+    const eventName = event(item.facts)
+    const title = eventName ? `${label(item.facts)} · ${eventName}` : label(item.facts)
     return `${index + 1}. ${title}\nTask due: ${due}\n${reason}\nOpen task: ${item.taskUrl}`
   })
   const intro = one ? "One task could use an update today." : `${items.length} tasks could use an update today.`
-  const body = `Hi ${name},\n\n${intro}\n\n${lines.join("\n\n")}\n\nIf anything is in the way, share an update so we can help.\nThank you for your work on ${one ? "this" : "these"}.`
+  const body = `Hi ${name},\n\n${intro}\n\n${lines.join("\n\n")}\n\nIf anything is in the way, share an update so we can help.\nThank you for your work on ${one ? "this" : "these"}.${signOff(input.senderName)}`
   const mail: ReminderDigestMail = {
     subject, body, text: `${subject}\n\n${body}`, taskUrls: items.map(item => item.taskUrl), nodeIds: items.map(item => item.facts.nodeId),
     recipientId: recipient.id, intendedEmail: email(recipient.email) ? recipient.email : null,

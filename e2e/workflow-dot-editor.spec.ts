@@ -4,7 +4,7 @@ import type { DemoState, WorkflowTemplate } from "../src/data/types"
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { addDays } from "../src/lib/dates"
 import { noOverflow } from "./helpers"
-import { branchPill, branchTeamValue, menuTrigger, openMenu, setBranchTeam } from "./workflowLegacyHelpers"
+import { branchPill, branchTeamValue, menuTrigger, openMenu, setBranchTeam, waitForDraftSave } from "./workflowLegacyHelpers"
 import { dragToSlot } from "./workflowDrag"
 
 const read = (page: Page): Promise<DemoState> => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!))
@@ -32,7 +32,7 @@ async function current(page: Page): Promise<WorkflowTemplate> {
 }
 async function save(page: Page) {
   await closeRail(page)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   return (await current(page)).draft!
 }
 async function empty(page: Page, name: string) {
@@ -63,8 +63,9 @@ async function eventFromTemplate(page: Page, template: WorkflowTemplate, name: s
   await form.getByLabel("Event name", { exact: true }).fill(name)
   await form.getByLabel("Date", { exact: true }).fill(addDays((await read(page)).today, 90))
   await form.getByRole("combobox", { name: "Workflow template", exact: true }).selectOption({ label: `${template.versions[0].name} · v1` })
-  await form.getByRole("button", { name: "Continue", exact: true }).click()
-  await page.getByTestId("change-item").last().getByRole("button", { name: "Apply this change", exact: true }).click()
+  await form.getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect.poll(async () => (await read(page)).events.some(event => event.name === name)).toBe(true)
   await closeRail(page)
   return (await read(page)).events.find(event => event.name === name)!

@@ -1,8 +1,8 @@
 import type { DemoState, Event, Node } from "../data/types"
-import { isOfficer } from "../data/permissions"
+import { canLead, isOfficer } from "../data/permissions"
 import { fmtShort, fromISO, toISO } from "../lib/dates"
 import { taskActionLink } from "./actionLinks"
-import type { ReminderInput, ReminderPerson, ReminderRuntime, ReminderTaskFacts } from "./contracts"
+import type { ReminderDelivery, ReminderInput, ReminderPerson, ReminderRuntime, ReminderTaskFacts } from "./contracts"
 
 const text = (value: string) => value.trim().replace(/\s+/g, " ")
 const sentence = (value: string) => /[.!?]$/.test(value) ? value : `${value}.`
@@ -11,6 +11,18 @@ const sentence = (value: string) => /[.!?]$/.test(value) ? value : `${value}.`
 function eventDay(value: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
   return toISO(fromISO(value)) === value ? fmtShort(value) : null
+}
+
+const STEP_REQUIREMENTS = new Set(["venue", "registry", "quotes", "quote", "budget", "budgetRequest", "usg", "purchaseRequest", "ritm", "sap", "speakerPacket", "usgspeaker", "headcount", "feedback"])
+/**
+ * What Task Details shows as the task's description. Typed instructions, or the specific line for a known ASU step;
+ * otherwise the task's own "why" (for a template step it says what to make), so the page does not just repeat the title.
+ * Reminder emails keep requirement() as it is.
+ */
+export function taskDescription(state: DemoState, node: Node): string {
+  const event = node.eventId ? state.events.find(e => e.id === node.eventId) : undefined
+  if (node.instructions?.trim() || (node.stepKey && STEP_REQUIREMENTS.has(node.stepKey)) || !text(node.why ?? "")) return requirement(node, event)
+  return sentence(text(node.why))
 }
 
 function requirement(node: Node, event: Event | undefined): string {
@@ -90,6 +102,15 @@ export function reminderPeople(state: DemoState): ReminderPerson[] {
       channel: person.channels[0] ?? "email",
     }
   })
+}
+
+/**
+ * Who signs a reminder email (C2, 2026-11-27): the president or VP who is preparing it, by their saved name. An automatic
+ * email is prepared by nobody, so it has no sign-off; the app never signs one with a name it guessed.
+ */
+export function reminderSenderName(state: DemoState, via?: ReminderDelivery["via"]): string | null {
+  if (via === "automatic" || !canLead(state)) return null
+  return state.people.find(p => p.id === state.viewerId)?.name ?? null
 }
 
 /** Adapt facts without effects or runtime changes. */

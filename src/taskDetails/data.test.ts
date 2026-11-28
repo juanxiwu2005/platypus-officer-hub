@@ -3,7 +3,7 @@ import { webcrypto } from "node:crypto"
 import { seedDemo } from "../data/seed"
 import { buildExport, reducer } from "../data/store"
 import type { DemoState } from "../data/types"
-import { taskDefinitionKey, taskWork } from "./data"
+import { saveFailedText, taskDefinitionKey, taskWork } from "./data"
 import type { TaskWorkInput } from "./contracts"
 import { makeTaskAccessGrant, taskAccessToken } from "../reminders/taskAccess"
 
@@ -55,9 +55,19 @@ describe("universal work on actual task nodes", () => {
       expect(save(bad, input(s))).toBe(bad)
     }
   })
-  it("rejects empty completion, mismatched file contents, executable files and excessive attachments", () => {
+  it("needs Details to submit or mark done, even with files attached (Juanxi 2026-11-27), but saves an empty draft", () => {
     const s = fixture()
-    for (const change of [{ details: " ", attachments: [], submit: true }, { attachments: [{ ...file, size: 99 }] }, { attachments: [{ ...file, name: "run.html" }] }, { attachments: Array.from({ length: 6 }, (_, i) => ({ ...file, id: `file-${i}` })) }]) expect(save(s, { ...input(s), ...change })).toBe(s)
+    expect(save(s, { ...input(s), details: " ", attachments: [], submit: true })).toBe(s)
+    expect(save(s, { ...input(s), details: " ", attachments: [file], submit: true })).toBe(s)
+    expect(taskWork(save(s, { ...input(s), details: " ", attachments: [], submit: false }).nodes[0])?.drafts).toHaveLength(1)
+    const done = save(s, { ...input(s), details: "Room 204 booked", attachments: [], submit: true })
+    expect(done.nodes[0].status).toBe("done")
+    const budget = { ...s, nodes: [{ ...s.nodes[0], stepKey: "budgetRequest" }] }
+    expect(save(budget, { ...input(budget), details: " ", attachments: [], submit: true })).toBe(budget)
+  })
+  it("rejects mismatched file contents, executable files and excessive attachments", () => {
+    const s = fixture()
+    for (const change of [{ attachments: [{ ...file, size: 99 }] }, { attachments: [{ ...file, name: "run.html" }] }, { attachments: Array.from({ length: 6 }, (_, i) => ({ ...file, id: `file-${i}` })) }]) expect(save(s, { ...input(s), ...change })).toBe(s)
   })
   it("accepts three files totalling 5 MB, rejects either size limit, and keeps earlier submission files", () => {
     const s = fixture(), mb = 1024 * 1024
@@ -105,5 +115,13 @@ describe("universal work on actual task nodes", () => {
     expect(good.org.eventWorkflow).toBe(s.org.eventWorkflow)
     expect(reducer(good, { type: "updateNode", id, expectedTask, patch: { title: "Stale" } })).toBe(good)
     expect(reducer(s, { type: "updateNode", id, patch: { externalLinks: [{ label: "Unsafe", url: "javascript:alert(1)" }] } })).toBe(s)
+  })
+})
+
+describe("refused saves say their cause when the store knows it", () => {
+  it("names another tab or this browser, and otherwise keeps the screen's own line", () => {
+    expect(saveFailedText("other-tab", "Date not saved. Try again.")).toBe("Changed in another tab. Reload.")
+    expect(saveFailedText("storage", "Date not saved. Try again.")).toBe("Can't save in this browser.")
+    expect(saveFailedText(null, "Date not saved. Try again.")).toBe("Date not saved. Try again.")
   })
 })

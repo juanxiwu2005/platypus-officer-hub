@@ -26,7 +26,7 @@ test("a club member takes the role over: the old role is flagged open, the perso
   const role = await readyToFinish(page)
   await role.getByLabel("Who takes over?").selectOption({ label: "Sam Okafor · Marketing lead" })
   await expect(role).toContainText("Marketing lead will be open until someone takes it.")
-  await expect(role.getByLabel("Incoming fictional officer name")).toHaveCount(0)
+  await expect(role.getByLabel("Incoming officer name")).toHaveCount(0)
   await role.getByRole("button", { name: "Finish role handoff" }).click()
   await expect(role).toContainText("Handed to Sam Okafor.")
 
@@ -49,7 +49,7 @@ test("a role can be left open, and then handed to someone later", async ({ page 
   await expect(role).toContainText("Left open: Treasurer has no officer yet.")
   await role.getByRole("button", { name: "Hand over to someone" }).click()
   // The president answers for the open role; the work already done is kept.
-  await expect(role.getByLabel("Outgoing interview · fictional example only")).toBeEnabled()
+  await expect(role.getByLabel("Outgoing interview")).toBeEnabled()
   await expect(role.getByTestId("handbook-draft")).toBeVisible()
   await expect(role.getByLabel("Who takes over?")).toBeVisible()
   await expect(role.getByRole("option", { name: "Nobody yet (leave it open)" })).toHaveCount(0)

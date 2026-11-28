@@ -4,8 +4,10 @@ import { RailProvider, useRail } from "./rail/RailContext"
 import { BtsProvider } from "./Bts"
 import { Rail } from "./rail/Rail"
 import { TopBar } from "./chrome/TopBar"
+import { ViewingAsBanner } from "./chrome/ViewingAsBanner"
 import { SideNav } from "./chrome/SideNav"
 import { useToast } from "./chrome/Toast"
+import { CardsHost } from "./cheers/CardsHost"
 
 export function Layout() {
   return <BtsProvider><RailProvider><Frame /></RailProvider></BtsProvider>
@@ -47,6 +49,15 @@ function Frame() {
   const location = useLocation()
   const [toastNode, setToast] = useToast()
   const railPresence = useRailPresence(rail.open)
+  // Cheers (R1): a status line from a panel that may already be gone ("Cheer sent."), and Give points opened from Task
+  // Details, which also renders outside the rail (docs/feedback-fix/CHEERS_R1_CONTRACT.md §5).
+  useEffect(() => {
+    const onToast = (e: Event) => { const text = (e as CustomEvent<unknown>).detail; if (typeof text === "string" && text) setToast(text) }
+    const onGive = (e: Event) => { const d = (e as CustomEvent<{ toIds?: string[]; nodeId?: string }>).detail ?? {}; rail.show({ kind: "cheer", toIds: d.toIds, nodeId: d.nodeId }) }
+    window.addEventListener("platypus:toast", onToast)
+    window.addEventListener("platypus:give-cheer", onGive)
+    return () => { window.removeEventListener("platypus:toast", onToast); window.removeEventListener("platypus:give-cheer", onGive) }
+  }, [setToast, rail.show])
   // A new page fades in (opacity only, no slide, nothing leaves) so moving between pages is soft but never slower (DX-19).
   // The class goes on before the new page is painted and comes off again once the fade is over, so things that appear
   // inside a page later on (a card that opens, a list that loads) do not fade.
@@ -76,6 +87,7 @@ function Frame() {
   return (
     <>
       <TopBar onReset={() => setToast("Demo data reset")} />
+      <ViewingAsBanner />
 
       <div className={`shell${railPresence.mounted ? " with-rail" : ""}`}>
         <SideNav />
@@ -88,6 +100,7 @@ function Frame() {
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 016.5 3h7A2.5 2.5 0 0116 5.5v5a2.5 2.5 0 01-2.5 2.5H9l-3.5 3v-3A2.5 2.5 0 014 10.5z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
       </button>}
       {toastNode}
+      <CardsHost />
     </>
   )
 }

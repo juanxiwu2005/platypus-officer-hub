@@ -4,7 +4,10 @@ import { applySchedule } from "../engine/schedule"
 import { DUTY_TEMPLATES } from "./structure"
 import { syncBudgetFlow } from "../engine/eventBudget"
 import { sampleHandoff } from "./sampleScenario"
+import { samplePlaybook } from "./playbookSeed"
+import { sampleCheers } from "./cheerSeed"
 import { normalizeTerms } from "./roleTerms"
+import { DEFAULT_REMINDER_MODE } from "./reminderMode"
 
 // v20 also completes the demo plan when saved data skipped the v18-to-v19 update.
 export const SCHEMA_VERSION = 23
@@ -150,6 +153,7 @@ export function seedDemo(today: string | undefined = undefined, workflow: "legac
         maxRemindersPerTask: 3,
         sendMode: "review",
         quietHours: { from: "22:00", to: "08:00" },
+        reminderMode: DEFAULT_REMINDER_MODE,
       },
       workspace: { calendarUrl: "https://calendar.google.com/", messaging: "whatsapp", driveLink: "", planningNotes: "Programs plans the event; marketing prepares the flyer; finance submits funding requests. The president reviews decisions.", files: [] },
       setupCompletedOn: null,
@@ -198,6 +202,9 @@ export function seedDemo(today: string | undefined = undefined, workflow: "legac
     // v2: officers write role handbooks before winter break (the season a president sets on Handoff). Some have given their outgoing
     // interview; the rest have not started. The legacy fixture has no season.
     ...(workflow === "v2" ? sampleHandoff(roles, { from: "2026-10-26", to: "2026-11-25" }) : { handoff: null, handoffRoles: [] }),
+    // v2: a fictional Playbook so the question-first library has content to read (Playbook phase 1).
+    ...(workflow === "v2" ? { playbook: samplePlaybook() } : {}),
+    ...(workflow === "v2" ? { cheers: sampleCheers() } : {}), // v2: a few fictional cheers (src/data/cheerSeed.ts)
     roleTerms: [],
     archivedRoles: [],
     feedback: [],

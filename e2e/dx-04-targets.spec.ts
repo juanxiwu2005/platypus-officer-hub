@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test"
 // invisible area around a small dot). Run only on the phone project. The desktop is covered by dx-shots (unchanged).
 test.skip(({ isMobile }) => !isMobile, "touch sizes only matter on a phone")
 
-const PAGES = ["/", "/events", "/tasks", "/team", "/rules", "/handoff"]
+const PAGES = ["/", "/events", "/tasks", "/team", "/rules", "/handoff", "/playbook"]
 
 test("a phone uses the coarse-pointer sizes", async ({ page }) => {
   await page.goto("/#/")

@@ -53,10 +53,6 @@ export function TeamOrgChart({ roles, people, teams, roleTeams, stepCounts, sele
         })}
       </div>
     </div>
-    <ul className="rt-legend">
-      <li><strong>Lines</strong> = who reports to whom</li>
-      <li><strong>Coloured area</strong> = workflow team (same colour as Settings → Workflow)</li>
-    </ul>
     <ul className="sr-only">{chart.nodes.map(n => { const role = byId.get(n.id)!; return <li key={n.id}>{n.title}, {role.reportsToId && byId.has(role.reportsToId) ? `reports to ${bossTitle(roles, role)}` : n.advisor ? "advisor" : "top of the chart"}, {teamName(n.teamId) ?? "not in a team"}</li> })}</ul>
   </section>
 }

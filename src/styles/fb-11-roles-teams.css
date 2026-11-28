@@ -7,7 +7,10 @@
 .rt-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--s6); align-items: start; min-width: 0; }
 .rt-layout.is-list { grid-template-columns: minmax(0, 1fr); }
 .rt-main { min-width: 0; }
-.rt-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--s5); }
+/* The view switch and the add buttons sit right after the title, not at the card's right edge: the card is wider in
+   Contact list (no inspector column beside it), and right-aligned buttons jumped about 300px at each switch (DESIGN_TOKENS §15).
+   `.rt-main >` outranks the generic `.card > header` rule, which spreads a card head to both edges. */
+.rt-main > .rt-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: flex-start; gap: var(--s5) var(--s7); }
 .rt-head h2 { margin: 0; }
 .rt-head p { margin: var(--s2) 0 0; }
 .rt-inspector { position: sticky; top: calc(var(--topbar-h) + var(--s6)); max-height: calc(100vh - var(--topbar-h) - 2 * var(--s7)); overflow-y: auto; }
@@ -57,8 +60,6 @@ button.rt-pill:hover { background: color-mix(in srgb, var(--wfx-team) 28%, var(-
 .rt-card[aria-pressed="true"] { box-shadow: 0 0 0 var(--s2) color-mix(in srgb, var(--wfx-team) 28%, var(--surface)); }
 .rt-card:focus-visible { outline: 2px solid var(--accent); outline-offset: var(--s2); }
 
-.rt-legend { display: flex; flex-wrap: wrap; gap: var(--s3) var(--s7); margin: 0; padding: 0; list-style: none; color: var(--muted); font-size: var(--fs-md); }
-.rt-legend strong { color: var(--ink); font-weight: 600; }
 
 /* ---- Contact list: the read-only Team tag. ---- */
 .rt-tag { display: inline-block; max-width: 18ch; padding: var(--s1) var(--s4); border-radius: var(--r-pill); background: color-mix(in srgb, var(--wfx-team) 16%, var(--surface)); color: color-mix(in srgb, var(--wfx-team) 72%, var(--ink)); font-size: var(--fs-sm); font-weight: 600; line-height: 1.4; vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

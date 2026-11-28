@@ -1,9 +1,8 @@
 /* OB-09: this file belongs to one work package only (docs/onboarding-redesign/WORK_PACKAGES.md). Tokens only.
    Confirm and Invite (founder screens 6 and 7). Nothing here moves: buttons do not shift, and a status that changes from Invited to Joined only fades in. */
 .ob-c9-warn { margin: 0; padding: var(--s5); border-radius: var(--r-md); background: var(--warn-soft); color: var(--warn); font-size: var(--fs-md); }
-.ob-c9-error { margin: 0; color: var(--late); font-size: var(--fs-md); }
 
-.ob-i9-link { width: 100%; box-sizing: border-box; font: inherit; font-family: var(--mono); font-size: var(--fs-sm); padding: var(--s4) var(--s5); border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); color: var(--ink); text-overflow: ellipsis; }
+.ob-i9-link { width: 100%; box-sizing: border-box; font: inherit; font-family: var(--mono); font-size: var(--fs-sm); padding: var(--s4) var(--s5); border: 1px solid var(--control-line); border-radius: var(--r-md); background: var(--surface-2); color: var(--ink); text-overflow: ellipsis; }
 .ob-i9-note { margin: 0; min-height: 0; }
 .ob-i9-note:empty { position: absolute; }
 .ob-i9-list { list-style: none; margin: 0; padding: 0; display: grid; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }

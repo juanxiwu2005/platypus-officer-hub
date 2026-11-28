@@ -4,7 +4,7 @@ import { ask, closeRail, viewAs } from "./helpers"
 
 // WCAG 2.0, 2.1 and 2.2 A/AA scan of every page and the main panels, on desktop and phone (S6).
 // wcag22aa is what switches on axe's target-size rule (WCAG 2.5.8, touch targets of at least 24x24).
-const PAGES = ["/", "/events", "/events?view=budget", "/tasks", "/team", "/funding", "/handoff", "/rules", "/settings", "/help"]
+const PAGES = ["/", "/events", "/events?view=budget", "/tasks", "/team", "/funding", "/handoff", "/playbook", "/rules", "/settings"]
 const scan = async (page: import("@playwright/test").Page) => (await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()).violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).slice(0, 3).join(" ; ")}`)
 
 for (const path of PAGES) test(`no accessibility violations on ${path}`, async ({ page }) => {
@@ -16,14 +16,18 @@ test("no accessibility violations in the Ask panel, a task's details and the boa
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
   await page.goto("/#/")
   await ask(page, "Plan Founder Dinner on Nov 19, 30 people")
+  // The New event form loads on demand (Option A, 2026-11-28): wait for it so its chips are part of the scan.
+  await expect(page.getByTestId("plan-form")).toBeVisible()
   await ask(page, "What are my top 5 tasks?")
+  expect(await scan(page)).toEqual([])
+  await page.getByTestId("other-checklists").locator("summary").click()
+  await expect(page.getByTestId("other-checklists").getByLabel("Alcohol", { exact: true })).toBeVisible()
   expect(await scan(page)).toEqual([])
   await closeRail(page) // on a phone the panel covers the page
   await page.goto("/#/tasks?node=e-night:purchaseRequest")
   await expect(page.getByTestId("task-detail")).toBeVisible()
   expect(await scan(page)).toEqual([])
   await closeRail(page)
-  await page.getByRole("button", { name: "Board", exact: true }).click()
   expect(await scan(page)).toEqual([])
 })
 test("no accessibility violations on any setup step, with a constitution read", async ({ page }) => {
@@ -32,21 +36,20 @@ test("no accessibility violations on any setup step, with a constitution read", 
   await page.goto("/#/setup")
   await page.getByLabel("Club name").fill("Fictional accessible club")
   expect(await scan(page)).toEqual([])
+  // ob-6: screen 1 holds the name and the first event; plan one, then Team with the constitution read inline, then Invite.
+  await page.getByRole("button", { name: "Spring dinner", exact: true }).click()
+  await page.getByRole("button", { name: "Plan it", exact: true }).click()
+  expect(await scan(page)).toEqual([])
   await page.getByRole("button", { name: "Continue", exact: true }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Who's on your team?" })).toBeVisible()
+  expect(await scan(page)).toEqual([])
+  await page.getByRole("button", { name: "Import roles from your constitution", exact: true }).click()
   await page.getByRole("button", { name: /Use sample/ }).click()
+  await expect(page.getByTestId("reading-note")).toBeVisible()
   expect(await scan(page)).toEqual([])
-  await page.getByRole("button", { name: "Continue", exact: true }).click()
-  await page.getByRole("textbox", { name: "Mission", exact: true }).fill("Build together.")
+  await page.getByRole("button", { name: "Start workspace", exact: true }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "Your club is ready." })).toBeVisible()
   expect(await scan(page)).toEqual([])
-  for (let i = 0; i < 2; i++) {
-    await page.getByRole("button", { name: "Continue", exact: true }).click()
-    expect(await scan(page)).toEqual([])
-  }
-  for (let i = 0; i < 2; i++) {
-    await page.getByRole("button", { name: "Skip for now", exact: true }).click()
-    expect(await scan(page)).toEqual([])
-  }
-
 })
 test("Owners: Escape dismisses suggestions without closing the task form", async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false } }))
@@ -149,7 +152,7 @@ test("keyboard: Tab follows reading order, top bar then side navigation then the
 type Pg = import("@playwright/test").Page
 const DETAIL_TRIGGERS: [string, string, (p: Pg) => import("@playwright/test").Locator][] = [
   ["flow step", "/events", p => p.getByTestId("flow-node-purchaseRequest")],
-  ["task", "/tasks", p => p.locator("main .board-title").first()],
+  ["task", "/tasks", p => p.locator("main button.task-title").first()],
   ["funding", "/events?event=e-night&view=budget", p => p.getByRole("button", { name: "Funding application", exact: true })],
   ["handoff", "/handoff", p => p.locator("main button.relay").first()],
   // The Settings workflow editor draws its own canvas: the Event Plan step is `workflow-task-plan` there (WORKFLOW_SETTINGS_REDESIGN).
@@ -172,16 +175,22 @@ for (const [name, path, trigger] of DETAIL_TRIGGERS) {
   })
 }
 
-test("keyboard: board customization opens from Settings and keeps its controls accessible", async ({ page }) => {
-  await page.goto("/#/settings")
-  const opener = page.getByRole("navigation", { name: "Settings sections" }).getByRole("button", { name: "Tasks", exact: true })
+// S3 (2026-11-23): the six statuses are fixed, so Settings has no Tasks section. An old #/settings?tab=tasks link opens the first section.
+// S6: Links & files left too; an old #/settings?tab=links link opens Club, where Planning notes moved.
+test("keyboard: Settings sections open from the keyboard, and old Tasks and Links links open Club", async ({ page }) => {
+  await page.goto("/#/settings?tab=tasks")
+  const nav = page.getByRole("navigation", { name: "Settings sections" })
+  await expect(nav.getByRole("button")).toHaveText(["Club", "Roles & teams", "Workflow", "Onboarding", "My preferences", "Admin"])
+  await expect(nav.getByRole("button", { name: "Club", exact: true })).toHaveAttribute("aria-current", "page")
+  await expect(page.getByTestId("board-settings")).toHaveCount(0)
+  await page.goto("/#/settings?tab=links")
+  await expect(nav.getByRole("button", { name: "Club", exact: true })).toHaveAttribute("aria-current", "page")
+  await expect(page.getByRole("textbox", { name: "Planning notes", exact: true })).toBeVisible()
+  const opener = nav.getByRole("button", { name: "My preferences", exact: true })
   await opener.focus()
   await page.keyboard.press("Enter")
-  const settings = page.getByTestId("board-settings")
-  await expect(settings).toBeVisible()
+  await expect(opener).toHaveAttribute("aria-current", "page")
   await expect(opener).toBeFocused()
-  for (let i = 0; i < 12 && !(await settings.evaluate(el => el.contains(document.activeElement))); i++) await page.keyboard.press("Tab")
-  expect(await settings.evaluate(el => el.contains(document.activeElement))).toBe(true)
   expect(await scan(page)).toEqual([])
 })
 
@@ -265,10 +274,10 @@ test("right rail on a tablet width: a click on the page closes the panel", async
   await expect(page.getByTestId("rail")).toHaveCount(0)
 })
 
-test("keyboard: a board card changes status through Details without dragging", async ({ page }) => {
+test("keyboard: a table row changes status through Details", async ({ page }) => {
   await page.goto("/#/tasks")
-  await page.getByRole("button", { name: "Board", exact: true }).click()
-  const card = page.getByRole("region", { name: "To do", exact: true }).locator(".board-title").first()
+  await closeRail(page)
+  const card = page.getByTestId("my-tasks").getByTestId("task-card").filter({ has: page.locator(".pill[data-status=accepted]") }).first().locator("button.task-title")
   const title = await card.locator("span").last().innerText()
   await card.focus()
   await page.keyboard.press("Enter")
@@ -285,7 +294,9 @@ test("keyboard: a board card changes status through Details without dragging", a
   await page.keyboard.press("Enter")
   await expect(details.getByRole("combobox", { name: "Task status", exact: true })).toHaveValue("done")
   await page.keyboard.press("Escape")
-  await expect(page.getByRole("region", { name: "Done", exact: true }).locator(".board-title").filter({ hasText: title })).toBeVisible()
+  // The table lists open work, so the finished task leaves it.
+  await expect(page.getByTestId("my-tasks")).toBeVisible()
+  await expect(page.getByTestId("my-tasks").locator("button.task-title").filter({ hasText: title })).toHaveCount(0)
 })
 
 test("flow actions dialog: focus enters, Tab stays inside, Escape restores its step", async ({ page }) => {

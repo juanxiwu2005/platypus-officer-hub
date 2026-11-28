@@ -22,17 +22,19 @@ export interface WorkflowBuilderProps {
   graph?: WorkflowMilestoneGraph
   teams: BuilderTeam[]
   policy: BuilderPolicy
+  /** The date the canvas previews milestone dates from; Settings uses a date 90 days out, an event its own date. */
+  eventDate?: string
   onChange: (steps: StepTemplate[], branches: WorkflowBranch[] | undefined, stepTeams: Record<string, string>, graph?: WorkflowMilestoneGraph) => void
 }
 
 /** Definitions are edited here; the preview never creates executable activity tasks. */
-export function WorkflowBuilder({ state, steps, branches, stepTeams, graph: inputGraph, teams, policy, onChange }: WorkflowBuilderProps) {
+export function WorkflowBuilder({ state, steps, branches, stepTeams, graph: inputGraph, teams, policy, eventDate: initialEventDate, onChange }: WorkflowBuilderProps) {
   const [view, setView] = useState<"flow" | "quick">("flow")
   const [selected, setSelected] = useState<string | null>(null)
   const [history, setHistory] = useState<BuilderSnapshot[]>([])
   const [error, setError] = useState<string | null>(null)
   const [connectFrom, setConnectFrom] = useState<string | null>(null)
-  const [eventDate, setEventDate] = useState(() => addDays(state.today, 90))
+  const [eventDate, setEventDate] = useState(() => initialEventDate ?? addDays(state.today, 90))
   // Bulk assignment: while selectMode is on, canvas task clicks toggle `checked` instead of opening Details.
   const [selectMode, setSelectMode] = useState(false)
   const [checked, setChecked] = useState<Set<string>>(() => new Set())

@@ -7,6 +7,7 @@ import { RULES } from "../../src/data/rules.ts"
 import { SHARED_POOL } from "../../src/data/sharedPool.ts"
 import { formSnapshot, knownDates } from "../../src/lib/aiContext.ts"
 import { cleanData, contextFrom } from "../lib/clean.mts"
+import { cleanPlaybookAsk } from "../../src/lib/playbookAskWire.ts"
 
 /**
  * /api/chat — the single entry point behind the Ask panel (v1.1).
@@ -32,9 +33,13 @@ export default async (req: Request) => {
     const data = formOnly ? formSnapshot(cleanData(body.data)) : cleanData(body.data)
     const allowedDates = knownDates(data)
     const history = (Array.isArray(body.history) ? body.history : []).slice(-6).map(h => ({ role: h?.role === "assistant" ? "assistant" : "user", text: str(h?.text, 400) })).filter(h => h.text)
+    // Ask AI on a Playbook question: its context (src/lib/playbookAsk.ts), checked and capped, passed to the model as data only.
+    // No new behaviour reads it here; a future AI harness consumes it at this point (docs/feedback-fix/PLAYBOOK_ASK_INTERFACE.md).
+    // Its dates are not added to allowedDates: the assistant may not write them as new facts.
+    const playbookQuestion = formOnly ? null : cleanPlaybookAsk(body.playbookQuestion)
     const user = formOnly
       ? { message, page: str(body.page, 40), focus, history, clubData: data }
-      : { message, page: str(body.page, 40), focus, history, clubData: data, sharedPool: SHARED_POOL, rules: RULES.map(({ id, short, text }) => ({ id, short, text })) }
+      : { message, page: str(body.page, 40), focus, history, clubData: data, sharedPool: SHARED_POOL, rules: RULES.map(({ id, short, text }) => ({ id, short, text })), ...(playbookQuestion ? { playbookQuestion } : {}) }
     const { data: reply, model, provider } = await chatJSON({ task: "chat",
       system: CHAT_SYSTEM,
       user: JSON.stringify(user),

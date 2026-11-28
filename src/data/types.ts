@@ -44,9 +44,8 @@ export interface OrgSettings {
   eventCreators?: "leads" | "everyone" | "chosen"
   eventCreatorIds?: string[]
   /**
-   * Phase 3 (P3-H, Juanxi 2026-11-08): how the president said reminders should reach officers, asked on the walkthrough's Reminders screen.
-   * Recorded for the study only: it changes no behaviour, and nothing in the app ever sends email (sendMode stays "review").
-   * Absent when the screen was skipped (or setup ran on the classic page). Old saved data without it stays valid.
+   * How reminders reach officers (P3-H, Juanxi 2026-11-08; chosen in Settings). Nothing in the app ever sends email (sendMode stays "review").
+   * New clubs start with "review_then_auto" (S2, 2026-11-22). Old saved data without it stays valid and is never given a choice.
    */
   reminderMode?: ReminderMode
 }
@@ -171,7 +170,7 @@ export interface WorkflowRun {
   templateId: string
   templateVersion: number
   templateName: string
-  /** Frozen definition and team names; actual work lives only on the generated Nodes. */
+  /** This event's own copy of the workflow and its team names: it starts as the template version and changes only through Plan's Edit flow (runFlow.ts), never the template. Actual work lives only on the generated Nodes. */
   snapshot: WorkflowTemplateVersion & { teams: WorkflowTeam[] }
 }
 
@@ -197,8 +196,43 @@ export interface Org {
   workflowRoleTeams?: Record<string, string>
   /** Stable defaults bind semantic work groups to editable organization team names. */
   workflowPresetTeamIds?: Partial<Record<WorkflowPresetTeam, string>>
-  /** Task board look (v1.1): renamed statuses, colours, custom tags and which fields cards show. Meanings never change. */
+  /** Task board look (v1.1): renamed statuses, colours, custom tags and card fields. Kept in old saves but no longer applied or editable: the six statuses are fixed (S3, 2026-11-23); tags still show on tasks. */
   board?: BoardSettings
+  /** The new-officer onboarding template (Settings → Onboarding, option C matrix). Absent: not set up yet; no schema change. */
+  onboardingChecklist?: OnboardingChecklist
+}
+
+/** When an onboarding item is due, as a label relative to the start of the term. Never a date: the rule engine converts these later. */
+export type ChecklistWhen = "day1" | "day3" | "week1" | "week2" | "month1" | "none"
+/** One row of the onboarding matrix. Which roles get it is either "everyone minus hiddenFor" or "only roleIds". */
+export interface ChecklistItem {
+  id: string
+  /** Trimmed, 1-120 characters. */
+  title: string
+  /** Absent: follow the module. */
+  when?: ChecklistWhen
+  /** True: every current role gets it, minus hiddenFor; roles added later get it too. */
+  everyone: boolean
+  /** Used when everyone is false: the roles that get it. */
+  roleIds: string[]
+  /** Used when everyone is true: the roles that skip it. */
+  hiddenFor: string[]
+  /** Read-only policy label "ASU-R-NNN"; only the Platypus starter sets it. */
+  source?: string
+}
+/** A user-defined group of items whose "when" is the items' default. ("Who does it" was removed in template v2.) */
+export interface ChecklistModule {
+  id: string
+  /** Trimmed, 1-60 characters. */
+  title: string
+  when: ChecklistWhen
+  items: ChecklistItem[]
+}
+/** The whole-club onboarding checklist template. `updatedOn` is the demo day it was last saved. */
+export interface OnboardingChecklist {
+  version: 1
+  modules: ChecklistModule[]
+  updatedOn: string
 }
 
 export interface BoardTag { id: string; label: string; color: string }
@@ -297,6 +331,8 @@ export type EventType = "speaker" | "social" | "workshop" | "meeting" | "fundrai
 
 export interface Event {
   workflowRun?: WorkflowRun
+  /** Team lead for this event, by organization team id (Juanxi 2026-11-28, option A). The lead gets the team's tasks and hands them out inside the team. */
+  teamLeads?: Record<string, string>
   /** Snapshot for this event; later template edits must never change its graph. */
   workflowBranches?: WorkflowBranch[]
   id: string
@@ -410,7 +446,16 @@ export interface Node {
   tags?: string[]
   /** Calibrated timing copied from the workflow step (FB-6). Absent on hand-made tasks and on steps built before FB-6. */
   timing?: StepTiming
+  /**
+   * A club task (made on the Tasks page) that its maker linked to an event (Juanxi, 2026-11-28). It keeps its own due date and
+   * stays in Club tasks, and also sits at the end of its owner's branch in that event's flow. Absent on event workflow steps
+   * and on unlinked club tasks (eventId null); see src/data/clubTasks.ts.
+   */
+  clubTask?: boolean
 }
+
+/** A "new task" email the maker chose to send when they gave someone a task (Juanxi, 2026-11-28). Demo: nothing leaves the app. Not a reminder. */
+export interface TaskEmail { id: string; nodeId: string; toId: string; fromId: string; sentOn: string }
 
 export interface Nudge {
   message?: import("../reminders/accessContracts").ReminderMailSnapshot
@@ -452,10 +497,12 @@ export interface Notice {
   id: string
   recipientId: string
   nodeId: string
-  kind: "ready" | "delay" | "approval" | "info" | "help" | "protocol" | "claim"
+  kind: "ready" | "delay" | "approval" | "info" | "help" | "protocol" | "claim" | "cheer"
   text: string
   createdOn: string
   read: boolean
+  /** Cheers (R1): the cheer this notice announces. Its `nodeId` is the cheer's task, or "" when the cheer names no task. */
+  cheerId?: string
 }
 export interface SilenceCase {
   id: string
@@ -615,6 +662,8 @@ export interface HandoffSeason {
 export interface ChangeSet {
   /** Human-selected templates survive the trip from New event to its approval card. */
   workflowChoices?: Record<number, { templateId: string; templateVersion: number }>
+  /** New event form (review option B, Juanxi 2026-11-28): the date and team leads the person typed, kept until they press Create event. */
+  formInputs?: Record<number, { date: string; teamLeads?: Record<string, string> }>
   id: string
   sentence: string
   ops: { op: string; [key: string]: unknown }[]
@@ -658,6 +707,8 @@ export interface DemoState {
   handoffRoles: RoleHandoff[]
   /** Earlier rounds of role handoffs, kept when a role is handed over again or a new season starts (never erased). Optional: absent in older saves. */
   handoffHistory?: (RoleHandoff & { season: string | null })[]
+  /** The club's Playbook: question-first experience library (Playbook phase 1, 2026-11-25). Optional: absent in older saves, read as empty. */
+  playbook?: Playbook
   /** Who held which role, and when (Handoff stage 3). Maintained by normalizeTerms. */
   roleTerms: RoleTerm[]
   /** Roles the club closed (Handoff stage 6). */
@@ -666,11 +717,84 @@ export interface DemoState {
   changeSets: ChangeSet[]
   extensionRequests: ExtensionRequest[]
   notifications: Notice[]
+  /** New-task emails (optional: older saves have none). Kept apart from reminders so they never count toward reminder limits. */
+  taskEmails?: TaskEmail[]
   silenceCases: SilenceCase[]
   protocolLog: ProtocolEntry[]
   officerGrants: OfficerGrant[]
   /** Random per-browser demo signing key, generated at runtime; never an API/provider key. */
   demoLinkKey: string
+  /**
+   * Activity record (R0, 2026-11-26; docs/feedback-fix/CHEERS_R0_CONTRACT.md): one event per meaningful action, IDs and small facts only,
+   * kept for a future growth record or handoff view. Nothing reads it in the interface, and it is never sent to AI.
+   * Optional: absent in older saves, which are backfilled once from existing records (src/data/activityBackfill.ts).
+   */
+  activity?: ActivityEvent[]
+  /** Cheers (R1, 2026-11-26; docs/feedback-fix/CHEERS_R1_CONTRACT.md): voluntary peer recognition. Optional: absent in older saves, read as empty. */
+  cheers?: CheerBook
+}
+
+/**
+ * Cheers (R1; R1.1 amendments of 2026-11-26, docs/feedback-fix/CHEERS_R1_CONTRACT.md §8). A cheer is visible to its sender, its
+ * recipients and the officers they chose to let know (`ccIds`) only; its note never enters AI context or the research log.
+ */
+/** Whole points per recipient. New cheers give at least 100 (src/data/cheerRules.ts); older saves keep 10, 25, 50 or 100. */
+export type CheerPoints = number
+/** The trophy on the card. `thanks`, `star` and `teamwork` are the R1 card values and stay valid in older saves. */
+export type CheerCard = "trophy" | "star" | "thanks" | "teamwork" | "rocket" | "idea" | "party" | "heart"
+export interface Cheer {
+  /** `ch-<n>`, assigned by the reducer. */
+  id: string
+  fromId: string
+  /** 1–5 recipients; each costs the sender `points` from their weekly allowance. */
+  toIds: string[]
+  /** "Let others know too": up to 5 current officers, not the sender or a recipient, who get a notice with the note. Never charged or credited. */
+  ccIds?: string[]
+  points: CheerPoints
+  /** Required, 10–280 characters after trimming: why the work was good. */
+  note: string
+  /** The task the cheer is for, if any (set from the thank prompt on a finished task). */
+  nodeId?: string
+  card: CheerCard
+  /** The demo date it was sent. */
+  on: string
+  /** The recipients were told by email (every cheer since R1.1; the demo records it and sends nothing). R1 saves: the sender opened a draft. */
+  email?: boolean
+  /** Recipients who have seen the received card (shown once). */
+  seenBy: string[]
+  /** Set when an R1 sender withdrew it; a withdrawn cheer counts for nobody and is hidden. New withdrawals are refused since R1.1. */
+  withdrawnOn?: string
+}
+export interface CheerBook {
+  cheers: Cheer[]
+  /** President/VP weekly line: person ID → the Monday of the week they dismissed it or acted on it. */
+  weeklyLineDismissed?: Record<string, string>
+}
+
+/** The kinds the activity record knows. Unknown kinds in an imported file are kept as data. */
+export type ActivityKind =
+  | "task.created" | "task.removed" | "task.assigned" | "task.claimed" | "task.status" | "task.waiting_on" | "task.target_changed"
+  | "task.submitted" | "task.done" | "task.reopened" | "reminder.recorded" | "event.created"
+  | "playbook.answer_added" | "playbook.voted" | "handoff.step"
+  | "cheer.sent" | "cheer.withdrawn" | "progress.milestone"
+/** A fact is an ID, an enum, a number, a boolean or a demo date: never free text a person wrote. */
+export type ActivityFact = string | number | boolean | null
+export interface ActivityEvent {
+  /** `act:<seq>` for live events, `act:bf:<kind>:<subject>` for backfilled ones. */
+  id: string
+  /** 1, 2, 3 … in the order events were recorded; never reused. */
+  seq: number
+  /** The demo date (`DemoState.today`) the event happened on: never the real clock. */
+  on: string
+  /** Who did it: a person ID, `system:reminders` or `system:clock`, or null when not known (backfill). */
+  actorId: string | null
+  kind: ActivityKind | string
+  /** The people the event is about (the owner, the person waited on, the recipient). */
+  personIds: string[]
+  nodeId?: string
+  eventId?: string
+  facts?: Record<string, ActivityFact>
+  source: "live" | "backfill"
 }
 
 
@@ -707,4 +831,57 @@ export interface LogEntry {
   applied: boolean
   /** The study session it was written in (src/lib/studySession.ts); missing when no session had begun in this browser. */
   session?: string
+}
+
+/**
+ * Playbook (phase 1, 2026-11-25; docs/feedback-fix/PLAYBOOK_P1_CONTRACT.md). A question-first experience library.
+ * One question = one card. Each card shows at most one primary answer per kind: "rule" (read-only, from the school pack),
+ * "club" (club practice, written by the president or VP) and "experience" (any current officer); other answers of the same kind collapse.
+ */
+export type PlaybookCategory = "funding" | "venues" | "food" | "promotion" | "people" | "timeline" | "tools"
+export interface PlaybookQuestion {
+  id: string
+  /** The reader-facing question, 1–100 characters (MAX_QUESTION_TEXT). */
+  text: string
+  /** One of the seven universal categories, or the id of a club category (`cat:…`). */
+  category: PlaybookCategory | string
+  /** "all" or the role IDs this question is for. Kept for later use: since 2026-11-26 every viewer sees every question (no role filter). */
+  roleIds: string[] | "all"
+  /** Policy record IDs (internal; the interface shows source names). */
+  policyIds: string[]
+  /** Checklist item IDs the question belongs to (phase 2 shows "related questions" there). */
+  checklistItemIds: string[]
+  origin: "seed" | "handoff" | "club" | "asked" | "records" | "community"
+  /** Set when merged into another question; old links follow it. */
+  mergedInto?: string
+  createdOn: string
+  createdBy: string | null
+}
+export interface PlaybookAnswer {
+  id: string
+  questionId: string
+  kind: "rule" | "club" | "experience"
+  /** 1–400 characters. Rule answers come only from the school pack and are never edited by a club. */
+  text: string
+  authorId: string | null
+  /** For rule answers: the policy record ID it quotes (shown as the source name). */
+  policyId?: string
+  on: string
+  verifiedOn?: string
+  /** Hiding was removed on 2026-11-26 (delete instead); an old save's "hidden" answers are dropped when read (src/data/playbook.ts). */
+  status: "active" | "stale"
+  votes: { up: string[]; down: string[] }
+  /** Phase 4 interface only. */
+  share?: "none" | "pending" | "shared"
+}
+export interface PlaybookAsked { id: string; questionText: string; askedBy: string; askedOn: string; status: "open" | "answered"; questionId?: string }
+export interface Playbook {
+  questions: PlaybookQuestion[]
+  answers: PlaybookAnswer[]
+  /** Club-added categories (the seven universal ones are in code). */
+  categories?: { id: string; label: string }[]
+  /** Questions a person sent to "ask a person" (phase 3). Never read from the research log. */
+  asked?: PlaybookAsked[]
+  /** Per person: question IDs they have opened (only shown to that person). */
+  reads?: Record<string, string[]>
 }

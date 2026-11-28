@@ -3,7 +3,6 @@ import AxeBuilder from "@axe-core/playwright"
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { EVENT_STEPS } from "../src/engine/playbooks"
 import { closeRail, noOverflow } from "./helpers"
-import { openMenu } from "./workflowLegacyHelpers"
 import { addDays } from "../src/lib/dates"
 import type { DemoState } from "../src/data/types"
 
@@ -54,15 +53,16 @@ test("the original 46-step template opens fully grouped with four preset teams",
 })
 
 test("arbitrary team names survive reload and the preset still creates grouped Plan tasks", async ({ page }) => {
-  await page.goto("/#/settings")
+  // Teams are renamed in Roles & teams (Workflow no longer has its own Teams panel).
+  await page.goto("/#/settings?tab=roles")
   await closeRail(page)
-  await page.getByRole("button", { name: "Workflow", exact: true }).click()
-  await expect(page.getByTestId("workflow-builder")).toBeVisible()
+  await expect(page.getByTestId("org-chart")).toBeVisible()
   const before = await read(page)
   const renamed = ["Board", "Event crew", "Storytelling", "Resources"]
-  await openMenu(page, "More", "Teams")
-  for (let i = 0; i < before.org.workflowTeams!.length; i++) await page.getByLabel(`Team name: ${before.org.workflowTeams![i].name}`, { exact: true }).fill(renamed[i])
-  await page.getByRole("button", { name: "Save teams", exact: true }).click()
+  for (let i = 0; i < before.org.workflowTeams!.length; i++) {
+    await page.locator(`[data-testid="team-zone"][data-team-id="${before.org.workflowTeams![i].id}"] button`).first().click()
+    await page.getByTestId("roles-inspector").getByLabel("Team name", { exact: true }).fill(renamed[i])
+  }
   await expect.poll(async () => (await read(page)).org.workflowTeams?.map(team => team.name)).toEqual(renamed)
   await page.reload()
   await page.getByRole("button", { name: "Workflow", exact: true }).click()
@@ -77,8 +77,9 @@ test("arbitrary team names survive reload and the preset still creates grouped P
   const form = page.getByTestId("plan-form").last()
   await form.getByLabel("Event name", { exact: true }).fill("Renamed team preset event")
   await form.getByLabel("Date", { exact: true }).fill(addDays(saved.today, 150))
-  await form.getByRole("button", { name: "Continue", exact: true }).click()
-  await page.getByTestId("change-item").last().getByRole("button", { name: "Apply this change", exact: true }).click()
+  await form.getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect.poll(async () => (await read(page)).events.some(event => event.name === "Renamed team preset event")).toBe(true)
   await closeRail(page)
   saved = await read(page)
@@ -88,6 +89,10 @@ test("arbitrary team names survive reload and the preset still creates grouped P
   expect(tasks.length).toBeGreaterThanOrEqual(31)
   expect(tasks.every(node => !!node.teamId)).toBe(true)
   expect(tasks.every(node => node.id === `${event.id}:${node.stepKey}`)).toBe(true)
-  await expect(page.getByTestId("team-execution-lane")).toHaveCount(4)
+  // The run draws the template's Settings branches; each branch pill carries a renamed team name.
+  await expect(page.getByTestId("milestone-execution-chart")).toHaveCount(1)
+  const pills = await page.getByTestId("milestone-execution-branch").allTextContents()
+  expect(pills.length).toBeGreaterThan(0)
+  expect(pills.every(pill => renamed.some(name => pill.startsWith(`${name} · `)))).toBe(true)
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(tasks.length)
 })

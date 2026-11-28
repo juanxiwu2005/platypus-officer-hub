@@ -1,10 +1,14 @@
 import { changeHandoff, repairLegacyHandoff, type HandoffAction } from "./handoff"
+import { changePlaybook, playbookOf, type PlaybookAction } from "./playbook"
+import { changeCheers, withSanitizedCheers, type CheerAction } from "./cheers"
 import { validDate } from "../lib/commands"
 import type { ApplicationPackage } from "../lib/preflight"
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Phase, StepTemplate, WorkflowBranch, WorkflowTemplateDraft, WorkflowTeam } from "./types"
+import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, OnboardingChecklist, Phase, StepTemplate, WorkflowBranch, WorkflowTemplateDraft, WorkflowTeam } from "./types"
+import { countItems, sameChecklist, sanitizeChecklist } from "../lib/checklist"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
-import { assignedNotice, canApplyOp, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
+import { assignedNotice, canApplyOp, canChangeEvent, canLead, createTasks, newObjects, sendTaskEmail, undoCreatedEvent, validateReview, type HumanInputs, type NewTask } from "./changeReview"
+import { assignTeamTaskError } from "./teamLeads"
 import { nudgeBlocked } from "../lib/nudges"
 import type { Channel, NudgeVia } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
@@ -16,6 +20,8 @@ import { ensureWorkflowPresetTeams } from "./workflowTeamDefaults"
 import { saveWorkflowTeams } from "./workflowTeamSettings"
 import { nextCounter } from "../lib/ids"
 import { PHASES, ancestorsOf, cleanPatch, createsLoop, phaseOrderOf, type StepEdit } from "../lib/stepOrder"
+import type { RunFlowDefinition } from "./runFlow"
+import { lazyActions } from "./lazyActions"
 import { cannotDelete, insertFlowBranch, insertFlowStep, moveBetween, newStepNode, removalEdits, type FlowInsertionTarget } from "../lib/flowEdit"
 import { DEFAULT_WORKFLOW_BRANCHES, branchConditions, conditionsOf, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "../engine/workflowBranches"
 import { isAsuStep, isCoreStep } from "../engine/workflowPolicy"
@@ -25,8 +31,8 @@ import { addNotices, claimTask, closeSilence, replyToTask, reviewExtension, type
 import { usableGrant } from "../lib/officerLinks"
 import type { OfficerGrant } from "./types"
 import { startWorkspace, resetWorkflow, saveClubSettings, saveProfile, saveWorkflow, type ClubDraft, type ProfilePatch } from "./settings"
-import type { BoardSettings, NodeStatus, OrgSettings, ReminderMode } from "./types"
-import { addBoardTask, canMoveTask, moveTask, saveBoard } from "./board"
+import type { NodeStatus, OrgSettings, ReminderMode } from "./types"
+import { canMoveTask, moveTask } from "./board"
 import { addContact, addOrganization, deleteContact, deleteOrganization, logInteraction, updateContact, updateInteraction, updateOrganization, type ContactInput, type ContactPatch, type InteractionInput, type OrgPatch } from "./crm"
 import { syncBudgetFlow } from "../engine/eventBudget"
 import { attemptLastAt, firstEventChoice, loadOnboardingRecord, rearm, reminderModeChoice, type OnboardingAttempt, type OnboardingRecord } from "../lib/onboardingRecord"
@@ -36,13 +42,16 @@ import { onUi, type UiEvent } from "../lib/uiLog"
 import { buildTimeline } from "../lib/timeline"
 import { BUILD_INFO } from "../lib/buildInfo"
 import { normalizeTerms } from "./roleTerms"
+import { withActivity } from "./activity"
+import { withActivityBackfill } from "./activityBackfill"
 import { isOfficer } from "./permissions"
 import { changeRole, type RoleChange } from "./roleChanges"
 import { advancePlannedClock, afterReminderAction, confirmLegacyPlannedReminder, confirmPlannedReminder, enableReminderPlan, remindersEnabled, upgradeReminderPlan, reviewLegacyReminder } from "../reminders/adapter"
 import { recordReminderBatch } from "../reminders/batch"
 import type { ReminderBatch } from "../reminders/deliveryContracts"
-import { applyReminderDigests, type ReminderDigestBatch } from "../reminders/digest"
+import { applyReminderDigests, withoutEditedText, type ReminderDigestBatch } from "../reminders/digest"
 import { useAutomaticReminders } from "../reminders/useAutomaticReminders"
+import { draftsAfterAction } from "../reminders/draftLoader"
 import type { ReminderMailSnapshot, TaskAccessGrant, TaskAccessUpdate } from "../reminders/accessContracts"
 import { taskAccessIssueValid, usableTaskAccessGrant } from "../reminders/taskAccess"
 import { applyTaskAccessUpdate } from "../reminders/taskAccessActions"
@@ -116,6 +125,7 @@ export type EventPatch = Partial<Pick<Event, "date" | "name" | "headcount" | "de
 
 export type Action =
   | { type: "handoffAction"; action:HandoffAction }
+  | { type: "cheerAction"; action: CheerAction }
   | { type: "roleChange"; change: RoleChange }
   | { type: "reportOutput"; outputId:string; text:string }
   | { type: "resolveReport"; id:string }
@@ -132,8 +142,6 @@ export type Action =
   | { type: "contactCadence"; id:string; days:number }
   | { type: "reset" }
   | { type: "moveTask"; nodeId: string; status: NodeStatus; beforeId?: string | null }
-  | { type: "addTask"; title: string; status: NodeStatus }
-  | { type: "saveBoard"; board: BoardSettings }
   | ({ type: "addContact" } & ContactInput)
   | { type: "updateContact"; id: string; patch: ContactPatch }
   | { type: "deleteContact"; id: string }
@@ -153,12 +161,18 @@ export type Action =
   | { type: "addEventStep"; eventId: string; id: string; uId: string | null; vId: string | null; target?: FlowInsertionTarget }
   | { type: "addEventBranch"; eventId: string; id: string; branch: WorkflowBranch; title: string }
   | { type: "removeEventStep"; eventId: string; nodeId: string }
+  | { type: "editRunFlow"; eventId: string; definition: RunFlowDefinition }
+  /** An event's team lead hands one of the team's open tasks to someone on the team (option A, Juanxi 2026-11-28). */
+  | { type: "assignTeamTask"; nodeId: string; ownerId: string; expectedTask?: string }
   | { type: "restoreEventNodes"; eventId: string; nodes: Node[]; branches?: WorkflowBranch[] }
   | { type: "updateEvent"; id: string; patch: EventPatch }
   | { type: "draftChanges"; changeSet: ChangeSet }
   | { type: "aiAutoApply"; changeSet: ChangeSet }
   | { type: "undoAuto"; id: string }
+  /** Undo on the "created" card of the New event form: removes the events this change set created, with their tasks and notices. */
+  | { type: "undoCreatedEvent"; id: string }
   | { type: "createTasks"; id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }
+  | { type: "sendTaskEmail"; nodeId: string }
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
   | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string; via?: NudgeVia; message?: ReminderMailSnapshot }
   | { type: "enableReminderPlan" }
@@ -192,6 +206,9 @@ export type Action =
   | { type: "discardWorkflowTemplateDraft"; id: string }
   | { type: "restoreWorkflowPreset"; id: string }
   | { type: "saveWorkflowTeams"; teams: WorkflowTeam[]; roleTeams: Record<string, string> }
+  /** Settings → Onboarding: the whole checklist template, sanitized against the current roles. Null removes it (start over). */
+  | { type: "saveOnboardingChecklist"; checklist: OnboardingChecklist | null }
+  | { type: "playbookAction"; action: PlaybookAction }
 
 const NODE_FIELDS: (keyof NodePatch)[] = ["externalLinks", "title", "instructions", "completionCriteria", "tags", "ownerId", "clubDeadlineOverride", "estDays", "startPolicy", "approverRoleId", "consultedRoleIds", "informedRoleIds", "why", "draftLink", "tier", "dependsOn", "phase"]
 const pick = <T extends object, K extends keyof T>(o: T, keys: K[]) => Object.fromEntries(keys.filter(k => k in o).map(k => [k, o[k]])) as unknown as Partial<T>
@@ -373,12 +390,33 @@ function cleanBudgetPatch(raw: Partial<Omit<BudgetLineItem, "id">>): Partial<Omi
   return patch
 }
 
-/** Every action, then keep role terms in step with who holds what (src/data/roleTerms.ts). Returns the same object when nothing changed. */
+/**
+ * Every action, then the activity record (R0, docs/feedback-fix/CHEERS_R0_CONTRACT.md): one place compares the state before and after,
+ * so every path that changes a task is recorded once. Reset, import and first-time setup start a new record from existing data instead.
+ * Internal calls use coreReducer so a nested action is not recorded twice. Returns the same object when nothing changed.
+ */
 export function reducer(state: DemoState, action: Action): DemoState {
+  const next = coreReducer(state, action)
+  if (next === state) return state
+  // First-time setup replaces the demo club with a new one, so its record starts again from the new club's data.
+  if (action.type === "completeSetup") { const { activity: _old, cheers: _oldCheers, ...fresh } = next; void _old; void _oldCheers; return withActivityBackfill(fresh) }
+  if (action.type === "reset" || action.type === "replace") return withActivityBackfill(withSanitizedCheers(next))
+  return withActivity(state, next, action, actorOf(state, action))
+}
+
+/** Who an action is done by: the task-link holder, Platypus for automatic reminders, otherwise the viewer. */
+export function actorOf(state: DemoState, action: Action): string {
+  const grant = action.type === "officerAction" ? usableGrant(state, action.token) : undefined
+  const access = action.type === "taskAccessAction" ? usableTaskAccessGrant(state, action.token) : undefined
+  return (action.type === "saveTaskWork" || action.type === "updateTaskTarget") ? taskWorkActor(state, action.nodeId, action.authorization) ?? state.viewerId : (action.type === "recordReminderBatch" || action.type === "recordReminderDigests") && action.via === "automatic" ? "system:reminders" : access?.recipientId ?? grant?.ownerId ?? state.viewerId
+}
+
+/** Every action, then keep role terms in step with who holds what (src/data/roleTerms.ts). Returns the same object when nothing changed. */
+function coreReducer(state: DemoState, action: Action): DemoState {
   if (!READ_ONLY_OK.has(action.type) && state.people.some(p => p.id === state.viewerId && !isOfficer(p))) return state
   const grant = action.type === "officerAction" ? usableGrant(state, action.token) : undefined
   const access = action.type === "taskAccessAction" ? usableTaskAccessGrant(state, action.token) : undefined
-  const actorId = (action.type === "saveTaskWork" || action.type === "updateTaskTarget") ? taskWorkActor(state, action.nodeId, action.authorization) ?? state.viewerId : (action.type === "recordReminderBatch" || action.type === "recordReminderDigests") && action.via === "automatic" ? "system:reminders" : access?.recipientId ?? grant?.ownerId ?? state.viewerId
+  const actorId = actorOf(state, action)
   let next = normalizeTerms(baseReducer(state, action))
   if (next === state) return state
   if (action.type === "completeSetup" && (next.reminderRuntime !== undefined || next.taskAccessGrants !== undefined)) {
@@ -387,6 +425,8 @@ export function reducer(state: DemoState, action: Action): DemoState {
     next = workspace
   }
   if (action.type === "completeSetup") return enableReminderPlan(next)
+  // A reset demo or an imported file starts on the current reminder plan, like a loaded save (withCurrentReminders).
+  if (action.type === "reset" || action.type === "replace") return withCurrentReminders(next)
   if (!remindersEnabled(state) || ["reset", "replace", "enableReminderPlan", "upgradeReminderPlan", "reviewLegacyReminder", "recordReminderBatch", "recordReminderDigests", "advanceClock"].includes(action.type)) return next
   const updated = action.type === "saveTaskWork" ? action.input.submit ? [action.nodeId] : [] : action.type === "claimTask" || action.type === "replyTask" || action.type === "updateTaskTarget" ? [action.nodeId]
     : action.type === "officerAction" && grant ? [grant.nodeId]
@@ -398,10 +438,12 @@ export function reducer(state: DemoState, action: Action): DemoState {
  * What someone who is not a current officer may do while viewed as (D-3a): a next officer who has not taken the role yet (or a former officer)
  * reads, works through their own handoff steps and switches view, but cannot claim, create or change tasks, contacts, events or settings.
  */
-const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction", "recordReminderBatch", "recordReminderDigests", "saveTaskWork", "updateTaskTarget"])
+const READ_ONLY_OK = new Set<Action["type"]>(["handoffAction", "cheerAction", "playbookAction", "setViewer", "setAi", "reset", "replace", "advanceClock", "markNoticeRead", "reportOutput", "taskAccessAction", "recordReminderBatch", "recordReminderDigests", "saveTaskWork", "updateTaskTarget"])
 function baseReducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
     case "handoffAction": return changeHandoff(state,action.action)
+    // Cheers (R1): who may send, withdraw or mark seen is checked in changeCheers (incoming officers may only mark their cards seen).
+    case "cheerAction": return changeCheers(state, action.action, state.viewerId)
     case "roleChange": return changeRole(state,action.change)
     case "reportOutput": return state.feedback.some(f=>f.outputId===action.outputId&&f.reportedBy===state.viewerId)?state:{...state,feedback:[...state.feedback,{id:`report:${nextCounter(state.feedback.map(f=>f.id),/^report:(\d+)/)}`,outputId:action.outputId.slice(0,20000),text:action.text.slice(0,10000),reportedBy:state.viewerId,on:state.today,resolved:false}]}
     case "resolveReport":return canLead(state)?{...state,feedback:state.feedback.map(f=>f.id===action.id?{...f,resolved:true}:f)}:state
@@ -455,8 +497,6 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "reset":
       return ensureWorkflowPresetTeams(seedDemo(undefined, "v2"))
     case "moveTask": return moveTask(state, action.nodeId, action.status, action.beforeId ?? null)
-    case "addTask": return addBoardTask(state, action.title, action.status)
-    case "saveBoard": return saveBoard(state, action.board)
     case "addContact": return addContact(state, action)
     case "updateContact": return updateContact(state, action.id, action.patch)
     case "deleteContact": return deleteContact(state, action.id)
@@ -478,13 +518,23 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       const next = updateNode(state, action.id, action.patch)
       return next === state ? state : applySchedule(next)
     }
+    case "assignTeamTask": {
+      const node = state.nodes.find(n => n.id === action.nodeId)
+      if (!node || assignTeamTaskError(state, action.nodeId, action.ownerId) || (action.expectedTask !== undefined && action.expectedTask !== taskDefinitionKey(node))) return state
+      const next = updateNode(state, action.nodeId, { ownerId: action.ownerId })
+      return next === state ? state : applySchedule(next)
+    }
     case "applyStepEdits": return canLead(state) ? applyStepEdits(state, action.eventId, action.edits, action.phaseOrder) : state
     case "addEventStep": return canLead(state) ? addEventStep(state, action.eventId, action.id, action.uId, action.vId, action.target) : state
     case "addEventBranch": return canLead(state) ? addEventBranch(state, action.eventId, action.id, action.branch, action.title) : state
     case "removeEventStep": return canLead(state) ? removeEventStep(state, action.eventId, action.nodeId) : state
+    // Loaded with Plan's Edit flow editor (RunFlowEditor imports runFlow.ts), the only sender of this action.
+    case "editRunFlow": return canLead(state) && lazyActions.editRunFlow ? lazyActions.editRunFlow(state, action.eventId, action.definition) : state
     case "restoreEventNodes": return canLead(state) ? restoreEventNodes(state, action.eventId, action.nodes, action.branches) : state
     case "updateEvent": {
-      const patch = pick(action.patch, ["date", "name", "headcount", "details"])
+      // Event Details stay open to every officer; date, name and headcount follow who may create events.
+      const patch = pick(action.patch, canChangeEvent(state) ? ["date", "name", "headcount", "details"] : ["details"])
+      if (!Object.keys(patch).length) return state
       if (patch.date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(patch.date)) return state
       if (patch.details !== undefined) patch.details = String(patch.details).slice(0, 5000) || undefined
       return applySchedule({ ...state, events: state.events.map(e => (e.id === action.id ? { ...e, ...patch } : e)) })
@@ -501,7 +551,14 @@ function baseReducer(state: DemoState, action: Action): DemoState {
         const choice = action.changeSet.workflowChoices?.[originalIndex]
         return op.op === "create_event" && choice && typeof choice.templateId === "string" && Number.isInteger(choice.templateVersion) ? [[index, choice]] : []
       }))
-      return { ...state, changeSets: [...state.changeSets, { ...action.changeSet, workflowChoices, ops, status: "pending", reviews: ops.map(() => "pending") }] }
+      // Form inputs are kept only for a create_event, with a well-formed date and plain team → person ids.
+      const formInputs = Object.fromEntries(accepted.flatMap(({ op, originalIndex }, index) => {
+        const input = action.changeSet.formInputs?.[originalIndex]
+        if (op.op !== "create_event" || !input || typeof input.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return []
+        const leads = input.teamLeads && typeof input.teamLeads === "object" ? Object.fromEntries(Object.entries(input.teamLeads).filter(([team, person]) => typeof team === "string" && typeof person === "string")) : undefined
+        return [[index, { date: input.date, ...(leads ? { teamLeads: leads } : {}) }]]
+      }))
+      return { ...state, changeSets: [...state.changeSets, { ...action.changeSet, workflowChoices, ...(Object.keys(formInputs).length ? { formInputs } : { formInputs: undefined }), ops, status: "pending", reviews: ops.map(() => "pending") }] }
     }
     case "aiAutoApply": return aiAutoApply(state, action.changeSet)
     case "undoAuto": {
@@ -513,7 +570,9 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       const kept = state.nodes.filter(n => !created.has(n.id)).map(n => nodes.get(n.id) ?? n).map(n => n.dependsOn.some(d => created.has(d)) ? { ...n, dependsOn: n.dependsOn.filter(d => !created.has(d)) } : n)
       return applySchedule({ ...state, nodes: kept, notifications: state.notifications.filter(n => !created.has(n.nodeId ?? "")), contacts: state.contacts.map(c => contacts.get(c.id) ?? c), changeSets: state.changeSets.map(c => c.id === change.id ? { ...c, undone: true } : c) })
     }
+    case "undoCreatedEvent": return undoCreatedEvent(state, action.id)
     case "createTasks": return createTasks(state, action)
+    case "sendTaskEmail": return sendTaskEmail(state, action.nodeId)
     case "reviewChange": {
       const change = state.changeSets.find(c => c.id === action.id)
       if (!change || change.status !== "pending" || !change.ops[action.index] || !canApplyOp(state, change.ops[action.index]) || (change.reviews?.[action.index] ?? "pending") !== "pending") return state
@@ -528,9 +587,9 @@ function baseReducer(state: DemoState, action: Action): DemoState {
         const clean = sanitizeOps([raw], commandContext(state))[0]
         op = clean
         switch (clean.op) {
-          case "assign_owner": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { ownerId: clean.ownerId } }); break
-          case "set_tier": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { tier: clean.tier } }); break
-          case "link_dependency": next = reducer(state, { type: "updateNode", id: clean.nodeId, patch: { dependsOn: [...new Set([...state.nodes.find(n => n.id === clean.nodeId)!.dependsOn, clean.dependsOnId])] } }); break
+          case "assign_owner": next = coreReducer(state, { type: "updateNode", id: clean.nodeId, patch: { ownerId: clean.ownerId } }); break
+          case "set_tier": next = coreReducer(state, { type: "updateNode", id: clean.nodeId, patch: { tier: clean.tier } }); break
+          case "link_dependency": next = coreReducer(state, { type: "updateNode", id: clean.nodeId, patch: { dependsOn: [...new Set([...state.nodes.find(n => n.id === clean.nodeId)!.dependsOn, clean.dependsOnId])] } }); break
           case "create_event":
           case "add_node": {
             const id = `${change.id}:${action.index}`
@@ -542,9 +601,9 @@ function baseReducer(state: DemoState, action: Action): DemoState {
             break
           }
           case "update_event": next = applySchedule({ ...state, events: state.events.map(e => e.id === clean.eventId ? { ...e, ...(clean.name ? { name: clean.name } : {}), ...(clean.headcount ? { headcount: clean.headcount } : {}) } : e) }); break
-          case "add_contact": next = reducer(state, { type: "addContact", name: clean.name, organization: clean.organization, relation: clean.relation, ownerRoleId: clean.ownerRoleId, cadenceDays: clean.cadenceDays }); break
-          case "set_funding_amount": next = reducer(state, { type: "fundingAmount", eventId: clean.eventId, amount: clean.amount }); break
-          case "advance_funding": next = reducer(state, { type: "advanceFunding", eventId: clean.eventId }); break
+          case "add_contact": next = coreReducer(state, { type: "addContact", name: clean.name, organization: clean.organization, relation: clean.relation, ownerRoleId: clean.ownerRoleId, cadenceDays: clean.cadenceDays }); break
+          case "set_funding_amount": next = coreReducer(state, { type: "fundingAmount", eventId: clean.eventId, amount: clean.amount }); break
+          case "advance_funding": next = coreReducer(state, { type: "advanceFunding", eventId: clean.eventId }); break
         }
       }
       const reviews = change.ops.map((_, i) => i === action.index ? action.decision : change.reviews?.[i] ?? "pending")
@@ -603,7 +662,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       const entry = state.protocolLog.find(e => e.id === action.entryId && e.kind === "suggest_owner")
       const c = state.silenceCases.find(c => c.id === entry?.caseId && !c.closedOn)
       if (!entry?.suggestedOwnerId || !c || c.temporaryOwnerId || !state.people.some(p => p.id === entry.suggestedOwnerId)) return state
-      const next = reducer(state, { type: "updateNode", id: entry.nodeId, patch: { ownerId: entry.suggestedOwnerId } })
+      const next = coreReducer(state, { type: "updateNode", id: entry.nodeId, patch: { ownerId: entry.suggestedOwnerId } })
       return { ...next, silenceCases: next.silenceCases.map(x => x.id === c.id ? { ...c, temporaryOwnerId: entry.suggestedOwnerId } : x) }
     }
     case "approveRecovery": {
@@ -641,9 +700,30 @@ function baseReducer(state: DemoState, action: Action): DemoState {
     case "discardWorkflowTemplateDraft": return discardWorkflowTemplateDraft(state, action.id)
     case "restoreWorkflowPreset": return restoreWorkflowPreset(state, action.id)
     case "saveWorkflowTeams": return saveWorkflowTeams(state, action.teams, action.roleTeams)
+    case "saveOnboardingChecklist": return saveOnboardingChecklist(state, action.checklist)
+    case "playbookAction": return changePlaybook(state, action.action)
     case "saveWorkflow": return saveWorkflow(state, action.steps, action.branches)
     case "resetWorkflow": return resetWorkflow(state)
   }
+}
+
+/**
+ * Leads only (not in READ_ONLY_OK). The checklist is sanitized with the current role ids, so unknown or archived roles are
+ * dropped. The same state comes back when the input is not a checklist, when nothing but `updatedOn` would change, or
+ * when there is nothing to remove, so Undo and the log never record an empty save.
+ */
+function saveOnboardingChecklist(state: DemoState, raw: unknown): DemoState {
+  if (!canLead(state)) return state
+  const current = state.org.onboardingChecklist
+  if (raw === null) {
+    if (!current) return state
+    const { onboardingChecklist: _removed, ...org } = state.org
+    void _removed
+    return { ...state, org }
+  }
+  const next = sanitizeChecklist(raw, state.roles.map(r => r.id), state.today)
+  if (!next || (current && sameChecklist(current, next))) return state
+  return { ...state, org: { ...state.org, onboardingChecklist: next } }
 }
 
 /* ───────────── Storage: load, back up, save ───────────── */
@@ -688,7 +768,19 @@ function backUp(raw: string, tag: string): string | null {
  */
 export function loadStateWithNotice(): { state: DemoState; notice: StorageNotice | null } {
   const loaded = readStateWithNotice()
-  return { ...loaded, state: ensureWorkflowPresetTeams(loaded.state) }
+  // Data held back for download (migration_blocked) is kept exactly as it was read.
+  if (loaded.notice?.kind === "migration_blocked") return { ...loaded, state: ensureWorkflowPresetTeams(loaded.state) }
+  return { ...loaded, state: withActivityBackfill(withSanitizedCheers(withCurrentReminders(ensureWorkflowPresetTeams(loaded.state)))) }
+}
+
+/**
+ * S2 (Juanxi, 2026-11-22; supersedes the 2026-11-16 rule that an old save upgrades only when a lead presses "Enable updated reminders"):
+ * every loaded, reset or imported state runs on the current reminder plan. A legacy plan (none yet, or a valid version 1) is upgraded by
+ * the same pure logic as the upgradeReminderPlan action, keeping every setting and all history; an invalid runtime is kept for recovery.
+ * It is not a user action, so it is not logged, and it does not depend on the viewer. Returns the same object when nothing changes.
+ */
+export function withCurrentReminders(s: DemoState): DemoState {
+  return upgradeReminderPlan(s)
 }
 
 function readStateWithNotice(): { state: DemoState; notice: StorageNotice | null } {
@@ -812,6 +904,12 @@ function payloadOf(a: Action): unknown {
     case "confirmPlannedReminder": return { candidateId: a.candidateId, via: a.via, ...(a.message ? { message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : {}) }
     case "confirmNudgeSent": return a.message ? { nodeId: a.nodeId, channel: a.channel, via: a.via, message: { source: a.message.source, wordCount: a.message.wordCount, accessId: a.message.accessId } } : slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
     case "replace": return { nodes: a.state.nodes.length, events: a.state.events.length }
+    // IDs and numbers only: a cheer's note never enters the log, and of the people let know (R1.1) only how many. Every cheer is emailed since R1.1.
+    case "cheerAction": { const x = a.action; return x.kind === "send" ? { kind: x.kind, recipients: Array.isArray(x.toIds) ? x.toIds.length : 0, points: x.points, noteLength: typeof x.note === "string" ? x.note.trim().length : 0, nodeId: x.nodeId ?? null, card: x.card, email: true, cc: Array.isArray(x.ccIds) ? x.ccIds.length : 0 } : x.kind === "markSeen" ? { kind: x.kind, ids: Array.isArray(x.ids) ? x.ids.slice(0, 20) : [] } : x.kind === "withdraw" ? { kind: x.kind, id: x.id } : { kind: x.kind } }
+    // Counts only, like its "before" value: the default would copy (truncated) checklist titles on every debounced save.
+    // Counts and IDs only: question and answer text never enters the log.
+    case "playbookAction": { const x = a.action; return { kind: x.kind, ...("questionId" in x ? { questionId: x.questionId } : {}), ...("answerId" in x ? { answerId: x.answerId } : {}), ...("vote" in x ? { vote: x.vote } : {}), ...(x.kind === "addQuestion" ? { category: x.category } : {}), ...(x.kind === "addAnswer" ? { answerKind: x.answerKind } : {}) } }
+    case "saveOnboardingChecklist": { const modules = Array.isArray(a.checklist?.modules) ? a.checklist.modules : []; return { cleared: a.checklist === null, modules: modules.length, items: modules.reduce((n, m) => n + (Array.isArray(m?.items) ? m.items.length : 0), 0) } }
     case "officerAction": return { reply: a.reply, input: slim(a.input) }
     case "issueOfficerGrant": return { nodeId: a.grant.nodeId, ownerId: a.grant.ownerId, issuedOn: a.grant.issuedOn }
     case "fundingPackage": return { eventId: a.eventId, application: "[application package]" }
@@ -821,6 +919,7 @@ function payloadOf(a: Action): unknown {
     case "addEventStep": return { eventId: a.eventId, id: a.id, uId: a.uId, vId: a.vId, target: a.target }
     case "addEventBranch": return { eventId: a.eventId, id: a.id, branch: a.branch, title: a.title }
     case "removeEventStep": return { eventId: a.eventId, nodeId: a.nodeId }
+    case "editRunFlow": return { eventId: a.eventId, steps: Array.isArray(a.definition?.steps) ? a.definition.steps.length : 0, branches: Array.isArray(a.definition?.graph?.teamBranches) ? a.definition.graph.teamBranches.length : 0 }
     case "restoreEventNodes": return { eventId: a.eventId, steps: Array.isArray(a.nodes) ? a.nodes.length : 0, branches: a.branches?.map(b => b.id) }
     case "applyStepEdits": return { eventId: a.eventId, edits: (Array.isArray(a.edits) ? a.edits : []).map(e => ({ id: e?.id, dependsOn: e?.patch?.dependsOn, estDays: e?.patch?.estDays, phase: e?.patch?.phase })), phaseOrder: a.phaseOrder }
     default: return slim(Object.fromEntries(Object.entries(a).filter(([k]) => k !== "type")))
@@ -842,7 +941,8 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "updateTaskTarget": out = fields(node(a.nodeId), ["clubDeadline", "clubDeadlineOverride", "targetDates"]); break
     case "updateNode": out = fields(node(a.id), Object.keys(a.patch).filter(k => (NODE_FIELDS as string[]).includes(k))); break
     case "updateEvent": out = fields(s.events.find(e => e.id === a.id), Object.keys(a.patch).filter(k => ["date", "name", "headcount", "details"].includes(k))); break
-    case "moveTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break
+    case "moveTask":
+    case "assignTeamTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break
     case "claimTask":
     case "replyTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break
     case "officerAction": { const g = usableGrant(s, a.token); out = g ? fields(node(g.nodeId), ["status", "ownerId"]) : undefined; break }
@@ -856,17 +956,20 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "setViewer": out = { viewerId: s.viewerId }; break
     case "setAi": out = { aiEnabled: s.aiEnabled }; break
     case "advanceClock": out = { today: s.today }; break
-    case "saveBoard": out = { board: s.org.board }; break
     case "removeEventStep": out = fields(node(a.nodeId), ["title", "dependsOn", "status", "estDays", "ownerId"]); break
     case "newWorkflowTemplate": case "saveWorkflowTemplateDraft": case "publishWorkflowTemplate": case "duplicateWorkflowTemplate": case "setDefaultWorkflowTemplate": case "discardWorkflowTemplateDraft": case "restoreWorkflowPreset": out = { templateIds: s.org.workflowTemplates?.map(template => template.id), defaultWorkflowTemplateId: s.org.defaultWorkflowTemplateId }; break
     case "saveWorkflowTeams": out = { workflowTeams: s.org.workflowTeams, workflowRoleTeams: s.org.workflowRoleTeams }; break
+    // Counts only: checklist titles are club text the log does not need. Guarded: an imported state may hold a damaged checklist.
+    case "playbookAction": { const p = playbookOf(s); out = { playbookQuestions: p.questions.length, playbookAnswers: p.answers.length }; break }
+    case "saveOnboardingChecklist": { const c = s.org.onboardingChecklist, ok = Array.isArray(c?.modules) && c!.modules.every(m => Array.isArray(m?.items)); out = { onboardingModules: ok ? c!.modules.length : 0, onboardingItems: ok ? countItems(c!) : 0 }; break }
     case "saveWorkflow": case "resetWorkflow": out = { eventWorkflow: s.org.eventWorkflow }; break
     case "saveClubSettings": out = { name: s.org.name, mission: s.org.mission, settings: s.org.settings }; break
     case "saveProfile": out = fields(s.people.find(p => p.id === a.personId), Object.keys(a.patch)); break
     case "markNoticeRead": out = fields(s.notifications.find(n => n.id === a.id), ["read"]); break
     case "resolveReport": out = fields(s.feedback.find(f => f.id === a.id), ["resolved"]); break
     case "reviewExtension": out = fields(s.extensionRequests.find(r => r.id === a.id), ["status"]); break
-    case "undoAuto": out = fields(s.changeSets.find(c => c.id === a.id), ["undone"]); break
+    case "undoAuto":
+    case "undoCreatedEvent": out = fields(s.changeSets.find(c => c.id === a.id), ["undone"]); break
     case "applyStepEdits": out = { steps: (Array.isArray(a.edits) ? a.edits : []).map(e => ({ id: e?.id, ...fields(node(e?.id), ["dependsOn", "estDays", "phase"]) })), ...(a.phaseOrder ? { phaseOrder: phaseOrderOf(s.events.find(e => e.id === a.eventId)) } : {}) }; break
     case "reviewChange": { const c = s.changeSets.find(x => x.id === a.id); out = c ? { review: c.reviews?.[a.index] ?? "pending", status: c.status } : undefined; break }
   }
@@ -990,7 +1093,8 @@ export function buildExport(state: DemoState, log: LogEntry[], exportedAt: numbe
     onboardingFlowVersion: FLOW_VERSION,
     session: latest ? { ...sessions[sessions.length - 1], olderEntriesLeftOut: sum("previousEntriesCleared") + log.length - entries.length, olderAttemptsLeftOut: sum("previousAttemptsCleared") + onboarding.attempts.length - attempts.length } : null,
     sessions,
-    state: { ...state, demoLinkKey: "[omitted]" },
+    // R-S0: an edited reminder email is counted (`edited: true`), never exported with what the lead typed.
+    state: { ...withoutEditedText(state), demoLinkKey: "[omitted]" },
     onboarding: record,
     interactionLog: { limit: LOG_LIMIT, count: entries.length, firstSeq, lastSeq: entries[entries.length - 1]?.seq ?? null, droppedEarlier: capDropped, entries },
     timeline: buildTimeline(entries, record, listed),
@@ -1031,6 +1135,12 @@ interface StoreValue {
   dispatch: (a: Action) => void
   /** Configuration/AI prerequisites: persist before publishing the state; false leaves current business state intact. */
   tryDispatch: (a: Action) => boolean
+  /**
+   * Why the last tryDispatch could not save, read at call time (so a handler can ask right after a refused tryDispatch):
+   * "other-tab" when another tab changed the saved data, "storage" when this browser refused or blocked the write
+   * (or saving is held back), null when nothing is known to be wrong.
+   */
+  saveProblem: () => SaveProblem
   getState: () => DemoState
   reset: () => void
   /** The interaction log as it is right now, oldest first (read at call time, so it is never stale). */
@@ -1041,6 +1151,7 @@ interface StoreValue {
   exportData: () => void
 }
 
+export type SaveProblem = "other-tab" | "storage" | null
 const StoreContext = createContext<StoreValue | null>(null)
 
 export function StoreProvider({ children, initial, initialLog }: { children: ReactNode; initial?: DemoState; initialLog?: LogEntry[] }) {
@@ -1119,7 +1230,10 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
     if ((held && boot.notice?.kind === "migration_blocked") || !storageUnchanged(true)) return
     const before = rootRef.current!
     if (["completeSetup", "replace"].includes(action.type) && before.app.matching && !backUp(JSON.stringify(before.app), `matching-${before.app.org.matchingWorkspaceId ?? "prior"}`)) { setSaveFailed(true); return }
-    const at = Date.now(); commit(loggedReducer(before, { action, at, session: sessionAt(at) }))
+    const at = Date.now(), next = loggedReducer(before, { action, at, session: sessionAt(at) })
+    commit(next)
+    // Unsent reminder drafts belong to this club, viewer and sending mode (R-S0): reset, import and View as clear them.
+    draftsAfterAction(action.type, before.app, next.app)
   }, [commit, sessionAt, held, boot.notice, storageUnchanged])
   const tryDispatch = useCallback((action: Action) => {
     if (held || !storageUnchanged()) return false
@@ -1129,9 +1243,11 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
     if (!persistApp(next.app)) { saved.current.app = false; setSaveFailed(true); return false }
     savedApp.current = next.app; saved.current.app = true
     commit(next); setSaveFailed(!saved.current.log)
+    draftsAfterAction(action.type, before.app, next.app)
     return true
   }, [held, commit, sessionAt, storageUnchanged, persistApp])
   const getState = useCallback(() => rootRef.current!.app, [])
+  const saveProblem = useCallback((): SaveProblem => conflict.current ? "other-tab" : held || !saved.current.app ? "storage" : null, [held])
   const logUi = useCallback((e: UiEvent) => {
     const r = rootRef.current!
     const at = Date.now()
@@ -1152,7 +1268,7 @@ export function StoreProvider({ children, initial, initialLog }: { children: Rea
   const persistenceFailed = saveFailed || held
   const automaticReminders = useAutomaticReminders(root.app, held, getState, tryDispatch)
   // The log is left out of the value on purpose: a click must not re-render every screen that reads the store.
-  const value = useMemo(() => ({ state: root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, getState, reset, getLog, logUi, exportData])
+  const value = useMemo(() => ({ state: root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, saveProblem, getState, reset, getLog, logUi, exportData }), [root.app, persistenceFailed, automaticReminders, dispatch, tryDispatch, saveProblem, getState, reset, getLog, logUi, exportData])
   const shown: StorageNotice | null = notice?.kind === "storage_conflict" ? notice : saveFailed ? { kind: "save_failed" } : notice
   return <StoreContext.Provider value={value}>
     {exportPartial && <div role="status" className="save-status err">Exported without task files and private drafts; this browser could not read them. <button type="button" className="btn small" onClick={downloadCurrent}>Retry export</button></div>}
@@ -1230,11 +1346,11 @@ function aiAutoApply(state: DemoState, set: ChangeSet): DemoState {
       case "set_tags":
       case "set_tier":
         if (!lead) { note = "Only the president or VP can edit task details."; break }
-        next = reducer(next, { type: "updateNode", id: op.nodeId, patch: op.op === "rename_task" ? { title: op.title } : op.op === "set_tags" ? { tags: op.tags } : { tier: op.tier } })
+        next = coreReducer(next, { type: "updateNode", id: op.nodeId, patch: op.op === "rename_task" ? { title: op.title } : op.op === "set_tags" ? { tags: op.tags } : { tier: op.tier } })
         touchedNodes.add(op.nodeId)
         break
       case "mark_contacted":
-        next = reducer(next, { type: "contacted", id: op.contactId })
+        next = coreReducer(next, { type: "contacted", id: op.contactId })
         if (next === before) note = "Only the partner's owner or a lead can log contact."
         else touchedContacts.add(op.contactId)
         break

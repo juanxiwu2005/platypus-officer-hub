@@ -29,7 +29,7 @@ test("questions, reading, read-back, shadow task and check-ins, with scores seen
   await role.getByRole("button", { name: "Confirm as outgoing officer", exact: true }).click()
   await viewAs(page, "alex")
   await role.getByRole("button", { name: "Approve as president", exact: true }).click()
-  await role.getByLabel("Incoming fictional officer name").fill("Taylor Example")
+  await role.getByLabel("Incoming officer name").fill("Taylor Example")
   await role.getByRole("button", { name: "Name as next officer" }).click()
   await role.getByRole("button", { name: "Pick a task to shadow" }).click()
   await expect(role.getByTestId("new-officer")).toContainText("Shadowing")

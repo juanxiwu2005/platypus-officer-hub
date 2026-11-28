@@ -1,27 +1,25 @@
 import { expect, test } from "@playwright/test"
 
-// M1 (Juanxi 2026-10-27): the shipped build hides server storage. No screen may reach it, and no
-// request may go to the storage endpoints. (The endpoints themselves answer 404; see
-// src/test/serverStorageHidden.test.ts.)
+// The retired Organization Setup and Activity workspace stored data on the server. Their screens and
+// endpoints were removed; no main page may request those endpoints or link to the old /phase1 pages.
 const STORAGE = /\/api\/(org\/|workspace)/
 
-test("no screen reaches server storage: the main pages never link to /phase1, and /phase1 stays local", async ({ page }) => {
+test("no screen requests the removed server storage, and old /phase1 links return to the main workspace", async ({ page }) => {
   const storageRequests: string[] = []
   page.on("request", r => { if (STORAGE.test(r.url())) storageRequests.push(r.url()) })
 
-  for (const path of ["/", "/events", "/tasks", "/team", "/funding", "/handoff", "/partners", "/rules", "/settings", "/help", "/setup"]) {
+  for (const path of ["/", "/events", "/tasks", "/team", "/funding", "/handoff", "/playbook", "/partners", "/rules", "/settings", "/help", "/setup"]) {
     await page.goto(`/#${path}`)
     await expect(page.locator("main").first()).toBeVisible()
     await expect(page.locator('a[href*="phase1"]')).toHaveCount(0)
   }
 
-  // Without ?example=1 the stored build opens the live workspace; the hidden build shows the local example.
-  await page.goto("/#/phase1/")
-  await expect(page.getByRole("heading", { name: /A little less coordinating/ })).toBeVisible()
-  // Online setup sends you to the local setup instead.
-  await page.goto("/#/phase1/setup")
-  await expect(page).toHaveURL(/#\/phase1\/setup-legacy$/)
-  await expect(page.getByRole("link", { name: "Back to home" })).toBeVisible()
+  // Old bookmarks fall through to the main workspace's catch-all redirect.
+  for (const path of ["/phase1/", "/phase1/setup"]) {
+    await page.goto(`/#${path}`)
+    await expect(page).not.toHaveURL(/phase1/)
+    await expect(page.locator("main").first()).toBeVisible()
+  }
 
   expect(storageRequests).toEqual([])
 })

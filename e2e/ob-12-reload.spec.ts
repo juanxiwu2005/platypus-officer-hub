@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
-import { MISSION, onboardingRecord, passReminders } from "./ob-helpers"
+import { onboardingRecord } from "./ob-helpers"
 import { onboardingCopy as c } from "../src/onboarding/copy"
 
 // P3-D: a reload in the middle of the founder flow (or a phone reloading the tab after switching apps) keeps everything the president typed and
@@ -25,91 +25,68 @@ const cont = (page: Page) => page.getByRole("button", { name: c.next, exact: tru
 const h1 = (page: Page, name: string) => expect(page.getByRole("heading", { level: 1, name })).toBeVisible()
 const chain = (page: Page) => page.getByRole("region", { name: c.founder.firstEvent.chainLabel })
 
-/** Study link → Name → Constitution (sample, read in the browser) → Goals. */
-const toGoals = async (page: Page, club = "Sun Devil Robotics Club") => {
+/** Study link → screen 1: the name and a planned Welcome mixer. */
+const planned = async (page: Page, club = "Sun Devil Robotics Club") => {
   await page.goto("/#/start")
-  await page.getByLabel(c.founder.name.field).fill(club); await cont(page)
-  await page.getByRole("button", { name: c.founder.constitution.sample }).click()
-  await expect(page.getByTestId("reading-note")).toBeVisible()
-  await cont(page)
-  await h1(page, c.founder.goals.title)
+  await page.getByLabel(c.founder.name.field).fill(club)
+  await page.getByRole("button", { name: "Welcome mixer" }).click()
+  await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
+  await expect(chain(page)).toBeVisible()
 }
 
-test("Name starts empty with an example, and Continue waits for a name", async ({ page }) => {
+test("Name starts empty with an example; Continue waits for a name and a plan, Skip for now for a name", async ({ page }) => {
   await page.goto("/#/start")
   const name = page.getByLabel(c.founder.name.field)
   await expect(name).toHaveValue("")
   await expect(name).toHaveAttribute("placeholder", c.founder.name.example)
   await expect(page.getByRole("button", { name: c.next, exact: true })).toBeDisabled()
+  await expect(page.getByRole("button", { name: c.skip, exact: true })).toBeDisabled()
   await name.fill("   ")
-  await expect(page.getByRole("button", { name: c.next, exact: true })).toBeDisabled()
+  await expect(page.getByRole("button", { name: c.skip, exact: true })).toBeDisabled()
   await name.fill("Sun Devil Robotics Club")
-  await expect(page.getByRole("button", { name: c.next, exact: true })).toBeEnabled()
+  await expect(page.getByRole("button", { name: c.skip, exact: true })).toBeEnabled()
+  await expect(page.getByRole("button", { name: c.next, exact: true })).toBeDisabled()
 })
 
-test("a reload on Goals keeps the name, the constitution's roles, the mission and the goals, on the same screen", async ({ page }) => {
-  await toGoals(page)
-  const mission = page.getByRole("textbox", { name: c.founder.goals.missionField })
-  await expect(mission).toHaveValue("")
-  await mission.fill(MISSION)
-  await page.getByRole("switch", { name: "External income" }).check()
-  await page.getByRole("button", { name: "Increase Active members" }).click()
-  await reloadAfterSave(page, d => d.club.mission === MISSION && d.club.goals.length === 3 && d.club.goals.some(g => g.target === 45))
-  await expect(page).toHaveURL(/#\/welcome\/founder\/goals$/)
-  await h1(page, c.founder.goals.title)
-  await expect(page.getByRole("textbox", { name: c.founder.goals.missionField })).toHaveValue(MISSION)
-  for (const g of ["Weekly events", "Active members", "External income"]) await expect(page.getByRole("switch", { name: g })).toBeChecked()
-  await expect(page.getByRole("spinbutton", { name: "Active members target" })).toHaveValue("45")
-  // Back on Constitution: the document is still chosen, and its reading (finished before the reload) is still there.
-  await page.getByRole("button", { name: c.back }).click()
-  await expect(page.getByTestId("constitution-chip")).toBeVisible()
-  await expect(page.getByTestId("reading-note")).toBeVisible()
-  await page.getByRole("button", { name: c.back }).click()
-  await expect(page.getByLabel(c.founder.name.field)).toHaveValue("Sun Devil Robotics Club")
-  // Still one attempt, still open.
-  const rec = await onboardingRecord(page)
-  expect(rec.attempts).toHaveLength(1)
-  expect(rec.attempts[0].outcome).toBeUndefined()
-})
-
-test("a reload on Team keeps edited roles and people; a reload on First event keeps the planned event and buffer; a reload on Confirm keeps it all", async ({ page }) => {
-  await toGoals(page)
-  await page.getByRole("textbox", { name: c.founder.goals.missionField }).fill(MISSION)
-  await cont(page)
-  await h1(page, c.founder.team.title)
-  const roles = await page.locator(".ob-role-title").count()
-  await page.getByRole("textbox", { name: "Role 2" }).fill("Executive Vice President of Internal Affairs")
-  await page.getByRole("textbox", { name: "Person 2" }).fill("Dana Cole")
-  await reloadAfterSave(page, d => d.club.roles.some(r => r.displayName === "Executive Vice President of Internal Affairs"))
-  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
-  await expect(page.getByRole("textbox", { name: "Role 2" })).toHaveValue("Executive Vice President of Internal Affairs")
-  await expect(page.getByRole("textbox", { name: "Person 2" })).toHaveValue("Dana Cole")
-  await expect(page.locator(".ob-role-title")).toHaveCount(roles)
-  await cont(page)
-
-  await h1(page, c.founder.firstEvent.title)
-  await expect(page.getByRole("textbox", { name: c.founder.firstEvent.sentenceLabel })).toHaveValue("")
-  await page.getByRole("button", { name: "Welcome mixer" }).click()
-  await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
-  await expect(chain(page)).toBeVisible()
+test("a reload on screen 1 keeps the name, the planned event and the days-early choice, on the same screen", async ({ page }) => {
+  await planned(page)
   await page.getByRole("button", { name: "5 days" }).click()
   const dots = await chain(page).getByRole("listitem").allInnerTexts()
-  await reloadAfterSave(page, d => d.event?.name === "Welcome Mixer" && d.buffer === 5)
-  await expect(page).toHaveURL(/#\/welcome\/founder\/first-event$/)
+  await reloadAfterSave(page, d => d.club.name === "Sun Devil Robotics Club" && d.event?.name === "Welcome Mixer" && d.buffer === 5)
+  await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)
+  await expect(page.getByLabel(c.founder.name.field)).toHaveValue("Sun Devil Robotics Club")
   await expect(chain(page)).toBeVisible()
   expect(await chain(page).getByRole("listitem").allInnerTexts()).toEqual(dots)
   await expect(page.getByRole("button", { name: "5 days" })).toHaveAttribute("aria-pressed", "true")
   await expect(page.getByRole("button", { name: c.next, exact: true })).toBeEnabled()
-  await cont(page)
-  await passReminders(page, "auto_email")                                  // P3-H (its own reload is in e2e/p3h-reminder-mode.spec.ts)
+  const rec = await onboardingRecord(page)
+  expect(rec.attempts).toHaveLength(1)                                     // still one attempt, still open
+  expect(rec.attempts[0].outcome).toBeUndefined()
+})
 
-  await h1(page, c.founder.confirm.title)
-  await page.reload()
-  await expect(page).toHaveURL(/#\/welcome\/founder\/confirm$/)
-  await expect(page.getByTestId("confirm-summary")).toContainText("Sun Devil Robotics Club")
-  await expect(page.getByTestId("confirm-summary")).toContainText("Welcome Mixer")
-  await expect(page.getByText(c.founder.confirm.missing)).toHaveCount(0)
-  await page.getByRole("button", { name: c.founder.confirm.start }).click()
+test("a reload on Team keeps the constitution and its reading, the edited roles and people; Start workspace then finishes, and a reload stays on Invite", async ({ page }) => {
+  await planned(page)
+  await cont(page)
+  await h1(page, c.founder.team.title)
+  await page.getByRole("button", { name: c.founder.constitution.open }).click()
+  await page.getByRole("button", { name: new RegExp(c.founder.constitution.sample) }).click()
+  await expect(page.getByTestId("reading-note")).toBeVisible()
+  const roles = await page.locator(".ob-role-title").count()
+  await page.getByRole("textbox", { name: "Role 2" }).fill("Executive Vice President of Internal Affairs")
+  await page.getByRole("textbox", { name: "Person 2" }).fill("Dana Cole")
+  await reloadAfterSave(page, d => d.club.roles.some(r => r.displayName === "Executive Vice President of Internal Affairs") && !!d.doc && d.applied)
+  await expect(page).toHaveURL(/#\/welcome\/founder\/team$/)
+  await expect(page.getByRole("textbox", { name: "Role 2" })).toHaveValue("Executive Vice President of Internal Affairs")
+  await expect(page.getByRole("textbox", { name: "Person 2" })).toHaveValue("Dana Cole")
+  await expect(page.locator(".ob-role-title")).toHaveCount(roles)
+  await expect(page.getByTestId("constitution-chip")).toBeVisible()          // a chosen document opens the reading again
+  await expect(page.getByTestId("reading-note")).toBeVisible()               // finished before the reload, so not read again
+  // Back on screen 1: the name and the plan are still there.
+  await page.getByRole("button", { name: c.back, exact: true }).click()
+  await expect(page.getByLabel(c.founder.name.field)).toHaveValue("Sun Devil Robotics Club")
+  await expect(chain(page)).toBeVisible()
+  await cont(page)
+  await page.getByRole("button", { name: c.founder.team.start }).click()
   await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/)
   await expect.poll(async () => JSON.parse((await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))) ?? "{}")?.org?.name).toBe("Sun Devil Robotics Club")
   await expect.poll(() => saved(page)).toBeNull()                         // finishing deletes the saved draft
@@ -117,44 +94,29 @@ test("a reload on Team keeps edited roles and people; a reload on First event ke
   await h1(page, c.founder.invite.title)                                   // a reload after finishing stays on Invite
 })
 
-test("a reload after Skip for now on First event keeps the skip, and Confirm starts without an event", async ({ page }) => {
+test("a reload after Skip for now on the first event keeps the skip, and Start workspace starts without an event", async ({ page }) => {
   await page.goto("/#/start")
-  await page.getByLabel(c.founder.name.field).fill("Maple Club"); await cont(page)
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await page.getByRole("textbox", { name: c.founder.goals.missionField }).fill(MISSION)
-  await page.getByRole("button", { name: c.skip }).click()
-  await page.getByRole("button", { name: c.skip }).click()
-  await page.getByRole("button", { name: c.skip }).click()                 // First event
-  await passReminders(page)                                                // Reminders
-  await h1(page, c.founder.confirm.title)
-  await reloadAfterSave(page, d => d.skipped.includes("founder.first-event") && d.skipped.includes("founder.reminders"))
-  await expect(page.getByTestId("confirm-no-event")).toBeVisible()
-  await expect(page.getByTestId("confirm-summary")).toContainText("Maple Club")
+  await page.getByLabel(c.founder.name.field).fill("Maple Club")
+  await page.getByRole("button", { name: c.skip, exact: true }).click()
+  await h1(page, c.founder.team.title)
+  await reloadAfterSave(page, d => d.skipped.includes("founder.name"))
+  await h1(page, c.founder.team.title)
+  await page.getByRole("button", { name: c.founder.team.start }).click()
+  await expect(page).toHaveURL(/#\/welcome\/founder\/invite$/)
+  await expect.poll(async () => JSON.parse((await page.evaluate(() => localStorage.getItem("platypus.v1.demo"))) ?? "{}")?.org?.name).toBe("Maple Club")
+  const events = await page.evaluate(() => (JSON.parse(localStorage.getItem("platypus.v1.demo") ?? "{}").events ?? []) as { id: string }[])
+  expect(events.filter(e => e.id.startsWith("setup-event-"))).toEqual([])
 })
 
 test("after a finished attempt, the study link starts a fresh draft", async ({ page }) => {
-  await page.goto("/#/start")
-  await page.getByLabel(c.founder.name.field).fill("First Club"); await cont(page)
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await page.getByRole("textbox", { name: c.founder.goals.missionField }).fill(MISSION)
-  await page.getByRole("button", { name: c.skip }).click()
-  await page.getByRole("button", { name: c.skip }).click()
-  await page.getByRole("button", { name: "Welcome mixer" }).click()
-  await page.getByRole("button", { name: c.founder.firstEvent.cta }).click()
+  await planned(page, "First Club")
   await cont(page)
-  await passReminders(page)
-  await page.getByRole("button", { name: c.founder.confirm.start }).click()
+  await page.getByRole("button", { name: c.founder.team.start }).click()
   await page.getByRole("button", { name: c.founder.invite.today }).click()
   await expect(page.locator("main h1")).toHaveText("Reminders")
 
   await page.goto("/#/start")
   await expect(page.getByLabel(c.founder.name.field)).toHaveValue("")
-  await page.getByLabel(c.founder.name.field).fill("Second Club"); await cont(page)
-  await page.getByRole("button", { name: c.founder.constitution.skip }).click()
-  await expect(page.getByRole("textbox", { name: c.founder.goals.missionField })).toHaveValue("")
-  await page.getByRole("textbox", { name: c.founder.goals.missionField }).fill(MISSION)
-  await page.getByRole("button", { name: c.skip }).click()
-  await page.getByRole("button", { name: c.skip }).click()
   await expect(page.getByRole("textbox", { name: c.founder.firstEvent.sentenceLabel })).toHaveValue("")
   await expect(chain(page)).toHaveCount(0)                                // no event carried over from the first attempt
   const rec = await onboardingRecord(page)
@@ -163,7 +125,7 @@ test("after a finished attempt, the study link starts a fresh draft", async ({ p
 
 test("opening the study link again mid-attempt starts fresh and closes the earlier attempt as exited (with no exit step)", async ({ page }) => {
   await page.goto("/#/start")
-  await page.getByLabel(c.founder.name.field).fill("Half Club"); await cont(page)
+  await page.getByLabel(c.founder.name.field).fill("Half Club")
   await expect.poll(async () => (await saved(page))?.club.name).toBe("Half Club")
   await page.goto("/#/start")
   await expect(page).toHaveURL(/#\/welcome\/founder\/name$/)

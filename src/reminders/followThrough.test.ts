@@ -116,11 +116,11 @@ describe("waiting requests remain open until input is provided", () => {
   })
   it("writes the correct reason in both kinds of follow-up email, with one task entry", () => {
     const ordinary = advance(sent(input()), 2), helper = advance(sent(waiting()), 2)
-    for (const i of [ordinary, helper]) {
+    for (const [i, reason] of [[ordinary, "Checking in again on this one. Could you share a quick update?"], [helper, "Jordan asked for help and hasn't heard back yet."]] as const) {
       const candidate = planReminders(i).ready[0], request = i.runtime.waitingRequests[0]
       const mail = buildReminderMail({ today: i.today, facts: i.tasks[0], recipient: i.people.find(p => p.id === candidate.recipientId)!, candidate, request, requesterName: "Jordan", taskUrl: "https://demo.example.org/#/officer?access=fictional.signature" })
       expect(mail.checked).toBe(true)
-      expect(mail.body.toLowerCase()).toContain("no reply")
+      expect(mail.body).toContain(reason)
       expect(mail.body.match(/https:\/\/\S+/g)).toHaveLength(1)
     }
   })

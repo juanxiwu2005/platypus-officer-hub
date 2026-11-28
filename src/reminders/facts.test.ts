@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { seedDemo } from "../data/seed"
 import type { DemoState } from "../data/types"
-import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
+import { buildReminderFacts, buildReminderInput, reminderPeople, reminderSenderName } from "./facts"
 import type { ReminderRuntime } from "./contracts"
 
 const base = seedDemo(undefined, "v2")
@@ -120,7 +120,10 @@ describe("reminder people and input", () => {
     const s = structuredClone(base)
     const before = structuredClone(s)
     const input = buildReminderInput(s, runtime)
-    expect(input.mode).toBeNull()
+    // The sample club starts on "I review, Platypus sends" (S2); an old save without a choice has none.
+    expect(input.mode).toBe("review_then_auto")
+    const { reminderMode: _gone, ...settings } = s.org.settings; void _gone
+    expect(buildReminderInput({ ...s, org: { ...s.org, settings } }, runtime).mode).toBeNull()
     expect(input.maxPerTask).toBe(base.org.settings.maxRemindersPerTask)
     expect(input.today).toBe(base.today)
     expect(input.runtime).toBe(runtime)
@@ -129,5 +132,23 @@ describe("reminder people and input", () => {
     expect(runtime.deliveries).toEqual([])
     const mode = { ...s, org: { ...s.org, settings: { ...s.org.settings, reminderMode: "auto_email" as const } } }
     expect(buildReminderInput(mode, runtime).mode).toBe("auto_email")
+  })
+})
+
+describe("who signs a reminder email (C2)", () => {
+  const nameOf = (id: string) => base.people.find(p => p.id === id)!.name
+  // The seed club has no vice president, so the treasurer's role becomes one here.
+  const maya = base.people.find(p => p.id === "maya")!
+  const withVp: DemoState = { ...base, roles: base.roles.map(r => r.id === maya.roleId ? { ...r, fn: "vice_president" } : r) }
+  it("is the president or vice president preparing it, by their saved name", () => {
+    for (const [state, viewerId] of [[base, "alex"], [withVp, "maya"]] as const) {
+      expect(reminderSenderName({ ...state, viewerId })).toBe(nameOf(viewerId))
+      expect(reminderSenderName({ ...state, viewerId }, "manual")).toBe(nameOf(viewerId))
+      expect(reminderSenderName({ ...state, viewerId }, "platypus")).toBe(nameOf(viewerId))
+    }
+  })
+  it("is nobody for an automatic email or a viewer who cannot lead", () => {
+    expect(reminderSenderName({ ...base, viewerId: "alex" }, "automatic")).toBeNull()
+    expect(reminderSenderName({ ...base, viewerId: "maya" })).toBeNull()
   })
 })

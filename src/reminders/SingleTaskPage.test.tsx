@@ -9,7 +9,7 @@ import { applySchedule, computeSchedule } from "../engine/schedule"
 import { addDays, fmtShort } from "../lib/dates"
 import { makeTaskAccessGrant, taskAccessToken, taskAccessUrl, usableTaskAccessGrant, verifyTaskAccessGrant } from "./taskAccess"
 import type { ReminderRuntime } from "./contracts"
-import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
+import { buildReminderFacts, buildReminderInput, reminderPeople, reminderSenderName } from "./facts"
 import { buildReminderMail } from "./mail"
 import { planReminders } from "./engine"
 import SingleTaskPage from "./SingleTaskPage"
@@ -109,7 +109,7 @@ describe("the standalone owner task", () => {
     fireEvent.change(screen.getByRole("combobox", { name: "Task status" }), { target: { value: "in_progress" } })
     await waitFor(() => expect(latest.nodes[0].status).toBe("in_progress"))
     expect((screen.getByRole("combobox", { name: "Task status" }) as HTMLSelectElement).value).toBe("in_progress")
-    expect(screen.getByText("Your update is saved. Thank you.")).toBeTruthy()
+    expect(screen.getByText("Saved.")).toBeTruthy()
     expect(usableTaskAccessGrant(latest, token)).toBeTruthy()
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room confirmed; reference saved." } }); fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
     await waitFor(() => expect(latest.nodes[0].status).toBe("done"))
@@ -162,7 +162,7 @@ describe("the standalone owner task", () => {
     await show(state, token)
     fireEvent.change(screen.getByRole("combobox", { name: "Task status" }), { target: { value: "in_progress" } })
     await waitFor(() => expect(latest.nodes[0].status).toBe("in_progress"))
-    expect(screen.getByText("Your update is saved. Thank you.")).toBeTruthy()
+    expect(screen.getByText("Saved.")).toBeTruthy()
     expect(within(screen.getByTestId("single-task-page")).queryByRole("alert")).toBeNull()
     expect(latest.reminderRuntime).toEqual(malformed)
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)!) as DemoState
@@ -225,8 +225,8 @@ describe("the standalone owner task", () => {
     const helper = await makeTaskAccessGrant(waiting, NODE, candidate.waitingRequestId)
     const prepared = reducer(waiting, {type: "issueTaskAccessGrant", grant: helper})
     const facts = buildReminderFacts(prepared, NODE)!, people = reminderPeople(prepared)
-    const mail = buildReminderMail({today: waiting.today, facts, candidate, recipient: people.find(p => p.id === candidate.recipientId)!, request: prepared.reminderRuntime!.waitingRequests[0], requesterName: people.find(p => p.id === facts.ownerId)?.name, taskUrl: taskAccessUrl("https://demo.example.org", helper)})
-    const delivered = reducer(prepared, { type: "confirmPlannedReminder", candidateId: candidate.id, via: "manual", message: {...mail, channel: "email", preparedOn: waiting.today, accessId: helper.id} })
+    const mail = buildReminderMail({today: waiting.today, facts, candidate, recipient: people.find(p => p.id === candidate.recipientId)!, request: prepared.reminderRuntime!.waitingRequests[0], requesterName: people.find(p => p.id === facts.ownerId)?.name, taskUrl: taskAccessUrl("https://demo.example.org", helper), senderName: reminderSenderName(prepared)})
+    const delivered = reducer(prepared, { type: "confirmPlannedReminder", candidateId: candidate.id, via: waiting.org.settings.reminderMode === "review_then_auto" ? "platypus" : "manual", message: {...mail, channel: "email", preparedOn: waiting.today, accessId: helper.id} })
     expect(delivered.reminderRuntime!.deliveries).toHaveLength(1)
     const { state, token } = await issued(delivered)
     const originalRequest = state.reminderRuntime!.waitingRequests[0]
@@ -235,7 +235,7 @@ describe("the standalone owner task", () => {
     expect((screen.getByRole("combobox", { name: "Waiting on" }) as HTMLSelectElement).value).toBe("sam")
     expect((screen.getByRole("textbox", { name: /What help or input/ }) as HTMLTextAreaElement).value).toBe(detail)
     fireEvent.click(screen.getByRole("button", { name: "Save waiting status" }))
-    await screen.findByText("Your update is saved. Thank you.")
+    await screen.findByText("Saved.")
     expect(latest.nodes[0].waitingOn).toBe(detail)
     expect(latest.reminderRuntime!.waitingRequests).toEqual([originalRequest])
     expect(latest.reminderRuntime!.deliveries).toEqual(state.reminderRuntime!.deliveries)
@@ -254,7 +254,7 @@ describe("the standalone owner task", () => {
     expect((screen.getByRole("combobox", { name: "Waiting on" }) as HTMLSelectElement).value).toBe("maya")
     expect((screen.getByRole("textbox", { name: /What help or input/ }) as HTMLTextAreaElement).value).toBe("Please confirm the projector connection")
     fireEvent.click(screen.getByRole("button", { name: "Save waiting status" }))
-    await screen.findByText("Your update is saved. Thank you.")
+    await screen.findByText("Saved.")
     expect(latest.nodes[0]).toMatchObject({ waitingOn: "Please confirm the projector connection", waitingOnPersonId: "maya" })
   })
 
@@ -266,7 +266,7 @@ describe("the standalone owner task", () => {
     expect((screen.getByRole("combobox", { name: "Waiting on" }) as HTMLSelectElement).value).toBe("other")
     expect((screen.getByRole("textbox", { name: /What help or input/ }) as HTMLTextAreaElement).value).toBe(detail)
     fireEvent.click(screen.getByRole("button", { name: "Save waiting status" }))
-    await screen.findByText("Your update is saved. Thank you.")
+    await screen.findByText("Saved.")
     expect(latest.nodes[0]).toMatchObject({ waitingOn: detail, waitingOnPersonId: null })
     expect(latest.reminderRuntime!.waitingRequests).toEqual(state.reminderRuntime!.waitingRequests)
   })
@@ -307,9 +307,9 @@ describe("the standalone owner task", () => {
     await show(state, token)
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, org: { ...state.org, name: "Updated in another tab" } }))
     fireEvent.change(screen.getByRole("combobox", { name: "Task status" }), { target: { value: "in_progress" } })
-    expect((await within(screen.getByTestId("single-task-page")).findByRole("alert")).textContent).toContain("not saved")
+    expect((await within(screen.getByTestId("single-task-page")).findByRole("alert")).textContent).toBe("Changed in another tab. Reload.")
     expect(latest.nodes[0].status).toBe("accepted")
-    expect(screen.queryByText("Your update is saved. Thank you.")).toBeNull()
+    expect(screen.queryByText("Saved.")).toBeNull()
   })
 
   it("keeps entered waiting details and the real task unchanged after a failed storage write, then saves on retry", async () => {
@@ -326,15 +326,15 @@ describe("the standalone owner task", () => {
     try {
       fireEvent.click(screen.getByRole("button", { name: "Save waiting status" }))
       const page = screen.getByTestId("single-task-page")
-      expect((await within(page).findByRole("alert")).textContent).toContain("not saved")
+      expect((await within(page).findByRole("alert")).textContent).toBe("Can't save in this browser.")
       expect(latest.nodes[0].status).toBe("accepted")
       expect(latest.reminderRuntime!.waitingRequests).toEqual([])
       expect((screen.getByRole("textbox", { name: /What help or input/ }) as HTMLTextAreaElement).value).toBe("Confirm the accessible room entrance")
-      expect(screen.queryByText("Your update is saved. Thank you.")).toBeNull()
+      expect(screen.queryByText("Saved.")).toBeNull()
     } finally { failedWrite.mockRestore() }
     fireEvent.click(screen.getByRole("button", { name: "Save waiting status" }))
     await waitFor(() => expect(latest.nodes[0].status).toBe("waiting"))
-    expect(screen.getByText("Your update is saved. Thank you.")).toBeTruthy()
+    expect(screen.getByText("Saved.")).toBeTruthy()
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).nodes[0]).toMatchObject({ status: "waiting", waitingOnPersonId: "sam", waitingOn: "Confirm the accessible room entrance" })
   })
 })

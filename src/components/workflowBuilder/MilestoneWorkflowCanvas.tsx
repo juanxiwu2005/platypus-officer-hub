@@ -3,7 +3,7 @@ import type { StepTemplate, WorkflowMilestoneGraph } from "../../data/types"
 import { workflowMilestoneDates, WORKFLOW_DONE, WORKFLOW_START } from "../../engine/workflowMilestones"
 import { workflowStepKind } from "../../engine/workflowStepKind"
 import { fmtShort } from "../../lib/dates"
-import { buildLaneLayout, laneDropSlots, nearestDropSlot, PHASE_HEADER, type Lane, type LaneDropSlot, type LaneStation } from "./laneLayout"
+import { buildLaneLayout, laneDropSlots, nearestDropSlot, type Lane, type LaneDropSlot, type LaneStation } from "./laneLayout"
 import "./lane-editor.css"
 
 export interface MilestoneWorkflowCanvasProps {
@@ -23,8 +23,6 @@ interface Moving { stepId: string; x: number; y: number; slots: LaneDropSlot[]; 
 const SNAP_PX = 48
 const MISSED_DROP = "Dropped away from a diamond, so nothing changed. Drop a step on a diamond."
 const MIN_ZOOM = 0.5, MAX_ZOOM = 1.6, READABLE_ZOOM = 0.85, ZOOM_STEP = 0.15, TONES = 6
-/** Approximate width of one phase-label character at --fs-sm semibold, plus the label's left padding. */
-const PHASE_CHAR = 7.6, PHASE_PAD = 12
 
 const stationTestId = (station: LaneStation) => station.id === WORKFLOW_START ? "workflow-start" : station.id === WORKFLOW_DONE ? "workflow-done" : station.kind === "day" ? `workflow-event-day-${(station.dayIndex ?? 0) + 1}` : `workflow-task-${station.id}`
 
@@ -37,14 +35,10 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
   // Fit shows the whole chart; the default opens at a readable size and scrolls sideways when the chart is wider.
   const fit = Math.min(1, Math.max(MIN_ZOOM, (available - 4) / layout.width))
   const scale = zoom ?? Math.max(READABLE_ZOOM, fit)
-  // The phase header is a fixed-height strip; the scaled stage starts right under it.
-  const screenY = (y: number) => PHASE_HEADER + (y - PHASE_HEADER) * scale
-  // Narrow phases (one event day at a small zoom) push the next label right instead of overlapping it.
-  const phaseIndents = layout.phases.reduce<{ indents: number[]; end: number }>((acc, phase) => {
-    const start = Math.max(phase.x0 * scale + PHASE_PAD, acc.end + PHASE_PAD)
-    return { indents: [...acc.indents, start - phase.x0 * scale], end: start + phase.label.length * PHASE_CHAR }
-  }, { indents: [], end: -Infinity }).indents
+  const screenY = (y: number) => y * scale
   const cancel = () => { gesture.current = null; setMoving(null) }
+  // A task's ring takes its branch line's colour (lane-editor.css --wfx-line).
+  const toneOfBranch = (branchId: string) => { const lane = layout.lanes.find(item => item.branch.id === branchId); return lane ? teamOf(lane).tone : "none" }
   const teamOf = (lane: Lane) => {
     const index = teams.findIndex(team => team.id === lane.branch.teamId)
     return { name: index < 0 ? "Choose team" : teams[index].name, tone: index < 0 ? "none" : String(index % TONES) }
@@ -73,7 +67,7 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
     }
     const x = point.x * scale, y = screenY(point.y)
     if (x < element.scrollLeft + 60 || x > element.scrollLeft + element.clientWidth - 60) element.scrollLeft = Math.max(0, x - element.clientWidth / 2)
-    if (y < element.scrollTop + PHASE_HEADER + 60 || y > element.scrollTop + element.clientHeight - 100) element.scrollTop = Math.max(0, y - element.clientHeight / 2)
+    if (y < element.scrollTop + 60 || y > element.scrollTop + element.clientHeight - 100) element.scrollTop = Math.max(0, y - element.clientHeight / 2)
   }, [selected, layout, scale])
 
   // Tasks in a lane and tasks on the main line drag the same way; event days, Start and Done stay put.
@@ -97,7 +91,7 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
       const bounds = element.getBoundingClientRect()
       if (event.clientX < bounds.left + 28) element.scrollLeft -= 16
       else if (event.clientX > bounds.right - 28) element.scrollLeft += 16
-      if (event.clientY < bounds.top + PHASE_HEADER + 28) element.scrollTop -= 14
+      if (event.clientY < bounds.top + 28) element.scrollTop -= 14
       else if (event.clientY > bounds.bottom - 28) element.scrollTop += 14
     }
   }
@@ -139,11 +133,8 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
       </div>
     </div>
     <p className="small wfx-drop-note" role="status" data-testid="workflow-drop-note">{dropNote}</p>
-    <div className="wfx-scroll" ref={viewport} role="region" tabIndex={0} aria-label="Workflow main line and team branches" style={{ "--wfx-scale": scale, "--wfx-head": `${PHASE_HEADER}px` } as CSSProperties}>
-      <ol className="wfx-phases" aria-label="Workflow phases" style={{ width: layout.width * scale }}>
-        {layout.phases.map((phase, index) => <li key={phase.id} data-testid={`workflow-phase-${phase.id}`} className={`wfx-phase is-${phase.id}`} style={{ left: phase.x0 * scale, width: (phase.x1 - phase.x0) * scale, "--wfx-indent": `${phaseIndents[index]}px` } as CSSProperties}><span>{phase.label}</span><i aria-hidden="true" /></li>)}
-      </ol>
-      <div className="wfx-size" style={{ width: layout.width * scale, height: (layout.height - PHASE_HEADER) * scale }}>
+    <div className="wfx-scroll" ref={viewport} role="region" tabIndex={0} aria-label="Workflow main line and team branches" style={{ "--wfx-scale": scale} as CSSProperties}>
+      <div className="wfx-size" style={{ width: layout.width * scale, height: layout.height * scale }}>
         <div className="wfx-stage" style={{ width: layout.width, height: layout.height }}>
           {layout.lanes.map(lane => {
             const team = teamOf(lane), count = lane.branch.stepIds.length
@@ -163,12 +154,12 @@ export function MilestoneWorkflowCanvas({ steps, graph, teams, eventDate, select
             return <button key={station.id} type="button" data-testid={stationTestId(station)} data-station-id={station.id} title={station.title} aria-label={`Edit ${station.title}`} aria-pressed={selected === station.id} className={`wfx-station is-${station.kind}${situation ? " is-situation" : ""}${selected === station.id ? " is-selected" : ""}${dragging ? " is-dragging" : ""}`} style={{ left: dragging ? moving.x : station.x, top: dragging ? moving.y : station.y }} {...(station.kind === "task" ? dragHandlers(station.id, station.x, station.y) : {})} onClick={event => station.kind === "task" ? clickStation(event, station.id) : onSelect(station.id)}>
               <i aria-hidden="true" />
               <strong>{station.title}</strong>
-              {station.kind === "day" && <><span>{dates[station.id] ? fmtShort(dates[station.id]) : "Date unavailable"}</span><small>{station.dayIndex === 0 ? "Day 1 · T0" : `Day 2 · T+${graph.eventDays[station.dayIndex ?? 0].offsetDays}`}</small></>}
+              {station.kind === "day" && <><span>{dates[station.id] ? fmtShort(dates[station.id]) : "Date unavailable"}</span><small>{station.dayIndex === 0 ? "Event day" : `Event day + ${graph.eventDays[station.dayIndex ?? 0].offsetDays}`}</small></>}
             </button>
           })}
           {layout.points.map(point => {
             const key = point.step.key, isChecked = selectMode && checked.has(key), dragging = moving?.stepId === key
-            return <button key={key} type="button" data-testid={`workflow-task-${key}`} data-branch-id={point.branchId} title={point.step.title} aria-label={`${selectMode ? "Select" : "Edit"} ${point.step.title}`} aria-pressed={selectMode ? isChecked : selected === key} className={`wfx-task${workflowStepKind(point.step) === "situation" ? " is-situation" : ""}${!selectMode && selected === key ? " is-selected" : ""}${isChecked ? " is-checked" : ""}${dragging ? " is-dragging" : ""}`} style={{ left: dragging ? moving.x : point.x, top: dragging ? moving.y : point.y }} {...dragHandlers(key, point.x, point.y)} onClick={event => clickTask(event, key)}>
+            return <button key={key} type="button" data-testid={`workflow-task-${key}`} data-branch-id={point.branchId} title={point.step.title} aria-label={`${selectMode ? "Select" : "Edit"} ${point.step.title}`} aria-pressed={selectMode ? isChecked : selected === key} className={`wfx-task wfx-tone-${toneOfBranch(point.branchId)}${workflowStepKind(point.step) === "situation" ? " is-situation" : ""}${!selectMode && selected === key ? " is-selected" : ""}${isChecked ? " is-checked" : ""}${dragging ? " is-dragging" : ""}`} style={{ left: dragging ? moving.x : point.x, top: dragging ? moving.y : point.y }} {...dragHandlers(key, point.x, point.y)} onClick={event => clickTask(event, key)}>
               <i aria-hidden="true">{isChecked ? "✓" : ""}</i>
               <strong>{point.step.title || "Untitled task"}</strong>
             </button>

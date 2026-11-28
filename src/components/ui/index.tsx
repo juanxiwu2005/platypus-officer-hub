@@ -1,5 +1,4 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject } from "react"
-import { useStore } from "../../data/store"
 import { describeHover, publishUi, routeOf } from "../../lib/uiLog"
 import type { DemoState, Node, NodeStatus } from "../../data/types"
 import type { ForecastResult } from "../../engine/forecast"
@@ -11,20 +10,19 @@ import type { ForecastResult } from "../../engine/forecast"
  */
 
 import { prefersReducedMotion, tokenMs } from "../../lib/motion"
-import { PALETTE, STATUS_DEFAULTS, STATUS_ORDER } from "./statusDefaults"
-export { PALETTE, STATUS_DEFAULTS, STATUS_ORDER }
+import { STATUS_DEFAULTS, STATUS_ORDER } from "./statusDefaults"
+export { STATUS_DEFAULTS, STATUS_ORDER }
 
 export type StatusStyles = Record<NodeStatus, { label: string; color: string }>
-export function statusStyles(state: DemoState): StatusStyles {
-  const b = state.org.board
-  return Object.fromEntries(STATUS_ORDER.map(s => [s, {
-    label: b?.labels?.[s]?.trim() || STATUS_DEFAULTS[s].label,
-    color: b?.colors?.[s] || STATUS_DEFAULTS[s].color,
-  }])) as StatusStyles
+/**
+ * The six status names and colours are fixed (S3, 2026-11-23). Renamed statuses or colours in an old save
+ * (org.board.labels / colors) stay in the data untouched but are never shown.
+ */
+export function statusStyles(_state?: DemoState): StatusStyles {
+  return Object.fromEntries(STATUS_ORDER.map(s => [s, { ...STATUS_DEFAULTS[s] }])) as StatusStyles
 }
 export function useStatusStyles() {
-  const { state } = useStore()
-  return statusStyles(state)
+  return statusStyles()
 }
 
 /** Solid coloured status label, the same everywhere (monday-style). */
@@ -165,7 +163,8 @@ export function Chain({ stops, label, showLabels = true, compact }: { stops: Sto
 }
 
 export function Avatar({ name, size = "md", title }: { name: string | null | undefined; size?: "sm" | "md"; title?: string }) {
-  const text = name ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : "?"
+  // No owner: a centred person outline in the dashed ring, not a "?" glyph that sits off-centre (DESIGN_TOKENS §12).
+  const text = name ? name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() : <svg viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="5.5" r="2.75" /><path d="M2.75 14c.6-2.6 2.7-4.25 5.25-4.25S12.65 11.4 13.25 14" /></svg>
   return <span className={`avatar ${size === "sm" ? "sm" : ""}${name ? "" : " empty"}`} title={title ?? name ?? "No owner"} aria-label={title ?? name ?? "No owner"}>{text}</span>
 }
 

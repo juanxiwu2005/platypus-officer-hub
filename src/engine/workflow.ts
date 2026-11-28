@@ -1,5 +1,6 @@
 import type { DemoState, Event, Node, Phase, Role, StepTemplate, Tier, WorkflowBranch } from "../data/types"
 import { addDays } from "../lib/dates"
+import { ruleSourceNames } from "../data/rules"
 import { EVENT_STEPS, buildEventNodes, roleFor } from "./playbooks"
 import { computeSchedule } from "./schedule"
 import { DEFAULT_WORKFLOW_BRANCHES, branchOf, conditionsOf, isWorkflowCondition, placementOf, resolveBranches, scopeKey, validateBranchDefinitions } from "./workflowBranches"
@@ -20,7 +21,8 @@ export const presetSteps = (): StepTemplate[] => structuredClone(EVENT_STEPS)
 
 /** A step ASU rules depend on: it has a rule, or its deadline comes from one. The club cannot remove it or move its deadline. */
 export const isLocked = (s: Pick<StepTemplate, "ruleIds" | "anchor">) => isAsuStep(s)
-export const ruleList = (s: Pick<StepTemplate, "ruleIds">) => (s.ruleIds ?? []).join(", ")
+/** The step's rule sources by name, in parentheses after a space, or "" when it has no rule IDs. */
+export const ruleList = (s: Pick<StepTemplate, "ruleIds">) => s.ruleIds?.length ? ` (${ruleSourceNames(s.ruleIds).join("; ")})` : ""
 
 export interface StepPatch {
   title?: string
@@ -109,7 +111,7 @@ export function applyChanges(steps: StepTemplate[], changes: WorkflowChange[], r
       cur = removeStep(cur, c.key); applied.push(c); continue
     }
     const p = c.patch
-    if (isLocked(step) && (p.phase || p.daysBefore !== undefined)) { no(c, `Kept: this step's place and deadline come from ASU rule ${ruleList(step) || "R0x"}.`); continue }
+    if (isLocked(step) && (p.phase || p.daysBefore !== undefined)) { no(c, `Kept: an ASU rule sets this step's place and deadline${ruleList(step)}.`); continue }
     const phase = p.phase ?? step.phase
     const owner = p.ownerRoleId === undefined ? step.ownerRoleId : p.ownerRoleId && roleIds.has(p.ownerRoleId) ? p.ownerRoleId : step.ownerRoleId
     const patched: StepTemplate = {
@@ -213,13 +215,13 @@ export function checkWorkflow(steps: StepTemplate[], roles: Role[], state?: Demo
   }
   for (const p of EVENT_STEPS.filter(isLocked)) {
     const s = by.get(p.key)
-    if (!s) { out.push({ level: "blocked", text: `“${p.title}” is missing. ASU rule${(p.ruleIds?.length ?? 0) > 1 ? "s" : ""} ${ruleList(p) || "on its deadline"} require it.`, key: p.key, rules: p.ruleIds }); continue }
-    if (JSON.stringify(s.anchor ?? null) !== JSON.stringify(p.anchor ?? null)) out.push({ level: "blocked", text: `“${s.title}” has a deadline set by ASU rule ${ruleList(p) || "R0x"}. The club cannot change it; use the club buffer instead.`, key: p.key, rules: p.ruleIds })
-    if (s.cond !== p.cond) out.push({ level: "blocked", text: `“${s.title}” only applies to some events, as ASU rule ${ruleList(p) || "R0x"} says. That cannot change.`, key: p.key, rules: p.ruleIds })
+    if (!s) { out.push({ level: "blocked", text: `“${p.title}” is missing. An ASU rule requires it${ruleList(p)}.`, key: p.key, rules: p.ruleIds }); continue }
+    if (JSON.stringify(s.anchor ?? null) !== JSON.stringify(p.anchor ?? null)) out.push({ level: "blocked", text: `“${s.title}” has a deadline set by an ASU rule${ruleList(p)}. The club cannot change it; use days early instead.`, key: p.key, rules: p.ruleIds })
+    if (s.cond !== p.cond) out.push({ level: "blocked", text: `“${s.title}” only applies to some events, as an ASU rule says${ruleList(p)}. That cannot change.`, key: p.key, rules: p.ruleIds })
     if (scopeKey(s, definitions) !== scopeKey(p, DEFAULT_WORKFLOW_BRANCHES)) out.push({ level: "blocked", text: `The branch cannot change when ASU step “${s.title}” is required.`, key: p.key, rules: p.ruleIds })
     // A step ASU rules depend on must still come after the steps it needs (for example the speaker request waits for the signed agreement).
     for (const d of p.dependsOn ?? []) {
-      if (by.has(d) && !ancestors(steps, p.key).has(d)) out.push({ level: "blocked", text: `“${s.title}” must wait for “${by.get(d)!.title}” (ASU rule ${ruleList(p) || ruleList(by.get(d)!)}).`, key: p.key, rules: p.ruleIds })
+      if (by.has(d) && !ancestors(steps, p.key).has(d)) out.push({ level: "blocked", text: `“${s.title}” must wait for “${by.get(d)!.title}”, as an ASU rule says${ruleList(p) || ruleList(by.get(d)!)}.`, key: p.key, rules: p.ruleIds })
     }
   }
   for (const s of steps) {

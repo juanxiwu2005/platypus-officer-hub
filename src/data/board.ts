@@ -1,5 +1,4 @@
-import { defaultTaskDue } from "../engine/taskDates"
-import type { BoardSettings, DemoState, Node, NodeStatus } from "./types"
+import type { DemoState, Node, NodeStatus } from "./types"
 import { canLead } from "./changeReview"
 import { addNotices, claimTask, closeSilence, replyToTask } from "./taskWorkflow"
 import { applySchedule } from "../engine/schedule"
@@ -10,7 +9,8 @@ import { isBudgetControlledNode } from "../engine/eventBudget"
  * Task board actions (v1.1, decision 3): officers drag their own tasks; the president or VP can drag anyone's,
  * and the owner gets a private note. The claim handshake still holds: only the owner can claim a task.
  */
-const label = (s: DemoState, st: NodeStatus) => s.org.board?.labels?.[st]?.trim() || STATUS_DEFAULTS[st].label
+// The six status names are fixed (S3, 2026-11-23). A renamed status in an old save stays in the data but is not shown.
+const label = (_s: DemoState, st: NodeStatus) => STATUS_DEFAULTS[st].label
 
 export function canMoveTask(s: DemoState, n: Node, to: NodeStatus): string | null {
   const lead = canLead(s), owner = n.ownerId === s.viewerId
@@ -33,7 +33,7 @@ function reorder(s: DemoState, nodeId: string, status: NodeStatus, beforeId: str
   const ranks = new Map(column.map((n, i) => [n.id, i]))
   return { ...s, nodes: s.nodes.map(n => ranks.has(n.id) ? { ...n, rank: ranks.get(n.id) } : n) }
 }
-export const byRank = (a: Node, b: Node) => (a.rank ?? 1e6) - (b.rank ?? 1e6) || (a.latestStart ?? "9999").localeCompare(b.latestStart ?? "9999") || a.id.localeCompare(b.id)
+const byRank =(a: Node, b: Node) => (a.rank ?? 1e6) - (b.rank ?? 1e6) || (a.latestStart ?? "9999").localeCompare(b.latestStart ?? "9999") || a.id.localeCompare(b.id)
 
 export function moveTask(s: DemoState, nodeId: string, to: NodeStatus, beforeId: string | null = null): DemoState {
   const n = s.nodes.find(x => x.id === nodeId)
@@ -60,28 +60,6 @@ export function moveTask(s: DemoState, nodeId: string, to: NodeStatus, beforeId:
 }
 
 /**
- * A new task never lands in Done, and an officer's new task is their own, so the column a person
- * adds from is not always the column the card appears in. `startStatus` is the one source of truth
- * for where it lands, and `addTaskNotice` says so in the person's own words when it differs.
- */
-export function startStatus(s: DemoState, asked: NodeStatus): NodeStatus {
-  // Creating cannot finish a task: reopening a done task needs the president or VP (canMoveTask),
-  // and the Done reply (contribution, notices) belongs to moveTask, not to the create path.
-  const wanted: NodeStatus = asked === "done" ? "accepted" : asked
-  // Only a lead can post a task for someone else to claim; anyone else's new task is their own.
-  if (wanted === "unclaimed") return canLead(s) ? "unclaimed" : "accepted"
-  return wanted
-}
-
-/** What to tell the person when the card will not land in the column they added from; null when it will. */
-export function addTaskNotice(s: DemoState, asked: NodeStatus): string | null {
-  const landed = startStatus(s, asked)
-  if (landed === asked) return null
-  if (asked === "done") return `A new task cannot start as ${label(s, "done")}. It is in ${label(s, landed)} — move it to ${label(s, "done")} once the work is finished.`
-  return `A task you add is yours, so it is in ${label(s, landed)}. Only the president or VP can post one for someone else to claim.`
-}
-
-/**
  * Where a task from the page-head form went (FB-5), said in the person's own words. It follows createTasks: your own
  * task is in To do at once; someone else's waits in Not claimed until they accept it; no owner means anyone can claim it.
  */
@@ -90,31 +68,4 @@ export function newTaskNotice(s: DemoState, ownerId: string | null): string {
   const first = s.people.find(p => p.id === ownerId)?.name.split(" ")[0]
   if (ownerId && first) return `Sent to ${first}. It stays in ${label(s, "unclaimed")} until ${first} accepts.`
   return `Posted in ${label(s, "unclaimed")}. Anyone can claim it.`
-}
-
-export function addBoardTask(s: DemoState, title: string, status: NodeStatus): DemoState {
-  const t = title.trim().slice(0, 100)
-  if (!t) return s
-  const person = s.people.find(p => p.id === s.viewerId)
-  const fn = s.roles.find(r => r.id === person?.roleId)?.fn ?? "programs"
-  const st = startStatus(s, status)
-  const ownerId = st === "unclaimed" ? null : s.viewerId
-  const id = `task-${s.nodes.length}-${Date.now().toString(36)}`
-  const node: Node = { id, title: t, eventId: null, stepKey: null, phase: null, fn, ownerId, approverRoleId: s.roles.find(r => r.fn === "president")?.id ?? null, consultedRoleIds: [], informedRoleIds: [], dependsOn: [], tier: "light", estDays: 1, anchor: { kind: "fixed", official: null, club: defaultTaskDue(s) }, clubDeadlineOverride: null, officialDeadline: null, clubDeadline: null, latestStart: null, ruleIds: [], status: st, acceptedOn: ownerId ? s.today : null, waitingOn: null, draftLink: null, why: "", source: "Added on the task board", lastUpdate: s.today, assignedOn: s.today, ownerVersion: 0 }
-  return applySchedule(reorder({ ...s, nodes: [...s.nodes, node] }, id, st, null))
-}
-
-const HEX = /^#[0-9a-f]{6}$/i
-export function saveBoard(s: DemoState, b: BoardSettings): DemoState {
-  if (!canLead(s)) return s
-  const statuses = Object.keys(STATUS_DEFAULTS) as NodeStatus[]
-  const labels: BoardSettings["labels"] = {}, colors: BoardSettings["colors"] = {}
-  for (const st of statuses) {
-    const l = b.labels?.[st]?.trim().slice(0, 24); if (l) labels[st] = l
-    const c = b.colors?.[st]; if (c && HEX.test(c)) colors[st] = c
-  }
-  const tags = (b.tags ?? []).slice(0, 12).filter(t => t && typeof t.label === "string" && t.label.trim() && HEX.test(t.color)).map(t => ({ id: String(t.id).slice(0, 40), label: t.label.trim().slice(0, 20), color: t.color }))
-  const fields = (b.fields ?? ["owner", "due", "event", "tags"]).filter(f => ["owner", "due", "event", "tags"].includes(f))
-  const keep = new Set(tags.map(t => t.id))
-  return { ...s, org: { ...s.org, board: { labels, colors, tags, fields } }, nodes: s.nodes.map(n => n.tags?.some(t => !keep.has(t)) ? { ...n, tags: n.tags.filter(t => keep.has(t)) } : n) }
 }

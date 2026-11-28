@@ -67,8 +67,11 @@ test.describe("+ New event (PLAN 8.1)", () => {
     const date = addDays(s.today, 40)
     await form.getByLabel("Event name").fill("Stage Night")
     await form.getByLabel("Date").fill(date)
-    await form.getByRole("button", { name: "Continue" }).click()
-    await rail.getByTestId("change-item").last().getByRole("button", { name: "Apply this change" }).click()
+    // Option A (2026-11-28): Create event makes the event at once and the chat shows it with Undo.
+    await form.getByRole("button", { name: "Review event" }).click()
+    // Review option B: the form drafts; Create event in the change list is the approval.
+    await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
+    await expect(rail.getByTestId("event-created")).toContainText("Stage Night created")
     await expect.poll(async () => (await demo(page)).events.find(e => e.name === "Stage Night")?.date).toBe(date)
     expect(chatCalls).toBe(0)
     // Everything after the form is as before: the plan check follows in Ask, and the new event opens on the Events page.
@@ -130,14 +133,21 @@ test.describe("+ New task: assign a person, one Due (PLAN 8.2, 8.3)", () => {
     await form.getByRole("button", { name: "Add", exact: true }).click()
     await expect(page.locator(".board-notice")).toContainText("Sent to Sam. It stays in Not claimed until Sam accepts.")
     await expect(page.getByTestId("new-task-form")).toHaveCount(0)
+    // 2026-11-28: a task for someone else asks once whether to email them; Not now sends nothing.
+    const ask = page.getByTestId("email-ask")
+    await expect(ask.getByRole("button", { name: "Send email", exact: true })).toBeFocused()
+    await ask.getByRole("button", { name: "Not now", exact: true }).click()
+    await expect(ask).toHaveCount(0)
     await expect(page.getByTestId("new-task")).toBeFocused()
+    expect((await savedDemo(page)).taskEmails ?? []).toEqual([])
     const task = await savedTask(page, "Print the sign-in sheet")
     expect(task).toMatchObject({ ownerId: "sam", status: "unclaimed", clubDeadline: addDays(s.today, s.org.settings.taskDueDays ?? 5) })
     expect((await demo(page)).notifications.some(n => n.nodeId === task.id && n.recipientId === "sam")).toBe(true)
-    // Sam sees it in their own Not claimed column and accepts it.
+    // Sam sees it as Not claimed in their own task list and accepts it.
     await viewAs(page, "sam")
     await closeRail(page)
-    const mine = page.getByTestId("task-board").getByRole("region", { name: "Not claimed", exact: true })
+    const mine = page.getByTestId("my-tasks").getByTestId("task-card").filter({ hasText: "Print the sign-in sheet" })
+    await expect(mine).toContainText("Not claimed")
     await mine.getByRole("button", { name: "Print the sign-in sheet" }).click()
     await page.getByTestId("task-detail").getByRole("button", { name: "I've got it", exact: true }).click()
     expect(await savedTask(page, task.id)).toMatchObject({ ownerId: "sam", status: "accepted" })
@@ -160,7 +170,7 @@ test.describe("+ New task: assign a person, one Due (PLAN 8.2, 8.3)", () => {
     await form.getByRole("button", { name: "Add", exact: true }).click()
     await expect(page.locator(".board-notice")).toContainText("Added to your To do.")
     expect(await savedTask(page, "Reconcile the receipts")).toMatchObject({ ownerId: "maya", status: "accepted", clubDeadline: due })
-    await expect(page.getByTestId("task-board").getByRole("region", { name: "To do", exact: true })).toContainText("Reconcile the receipts")
+    await expect(page.getByTestId("my-tasks").getByTestId("task-card").filter({ hasText: "Reconcile the receipts" })).toContainText("To do")
   })
 
   test("Anyone (open) has no owner; Undo takes it back; an empty name is refused", async ({ page }) => {
@@ -179,17 +189,47 @@ test.describe("+ New task: assign a person, one Due (PLAN 8.2, 8.3)", () => {
     await expect.poll(() => savedTask(page, "Book a bigger room")).toBeUndefined()
   })
 
-  test("Escape closes the form and gives focus back; the column's quick add stays name-only", async ({ page }) => {
+  test("a club task links to an event, takes a quick due date and can email its owner (2026-11-28)", async ({ page }) => {
+    await page.goto("/#/tasks")
+    await closeRail(page)
+    const s = await savedDemo(page)
+    await page.getByTestId("new-task").click()
+    const form = page.getByTestId("new-task-form")
+    await form.getByLabel("New task name").fill("Print name badges")
+    await form.getByLabel("Assign to").selectOption({ label: "Sam Okafor" })
+    await form.getByRole("button", { name: "In 3 days", exact: true }).click()
+    await expect(form.getByLabel("Due", { exact: true })).toHaveValue(addDays(s.today, 3))
+    await expect(form.getByRole("button", { name: "In 3 days", exact: true })).toHaveAttribute("aria-pressed", "true")
+    await expect(form.getByTestId("new-task-link-note")).toContainText("A club task.")
+    await form.getByLabel("Link to an event").selectOption("e-night")
+    await expect(form.getByTestId("new-task-link-note")).toContainText("goes last in Sam's Marketing branch before Networking Night")
+    expect((await new AxeBuilder({ page }).include("[data-testid=new-task-form]").analyze()).violations).toEqual([])
+    await form.getByRole("button", { name: "Add", exact: true }).click()
+    const ask = page.getByTestId("email-ask")
+    await expect(ask).toContainText("Email Sam about this task?")
+    expect((await new AxeBuilder({ page }).include("[data-testid=email-ask]").analyze()).violations).toEqual([])
+    await ask.getByRole("button", { name: "Send email", exact: true }).click()
+    await expect(page.locator(".board-notice")).toContainText("Emailed Sam.")
+    const task = await savedTask(page, "Print name badges")
+    expect(task).toMatchObject({ eventId: "e-night", clubTask: true, ownerId: "sam", clubDeadline: addDays(s.today, 3), placement: { branchId: "marketing" } })
+    expect((await savedDemo(page)).taskEmails).toEqual([expect.objectContaining({ nodeId: task.id, toId: "sam" })])
+    // It stays under Club tasks, tagged with its event, and the type filter keeps it with the club tasks.
+    await page.getByLabel("Task scope").selectOption("team")
+    const row = page.getByTestId("my-tasks").getByTestId("task-card").filter({ hasText: "Print name badges" })
+    await expect(row).toContainText("Networking Night")
+    await page.getByLabel("Task type").selectOption("event")
+    await expect(row).toHaveCount(0)
+    await page.getByLabel("Task type").selectOption("club")
+    await expect(row).toHaveCount(1)
+  })
+
+  test("Escape closes the form and gives focus back", async ({ page }) => {
     await page.goto("/#/tasks")
     await closeRail(page)
     await page.getByTestId("new-task").click()
     await page.getByTestId("new-task-form").getByLabel("New task name").press("Escape")
     await expect(page.getByTestId("new-task-form")).toHaveCount(0)
     await expect(page.getByTestId("new-task")).toBeFocused()
-    const column = page.getByRole("region", { name: "To do", exact: true })
-    await column.getByRole("button", { name: "+ Add task", exact: true }).click()
-    const quick = column.locator("form.board-add")
-    await expect(quick.locator("input, select")).toHaveCount(1)
   })
 
   test("an incoming officer viewed as cannot create tasks or events", async ({ page }) => {

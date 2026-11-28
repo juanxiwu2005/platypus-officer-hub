@@ -107,12 +107,12 @@ describe("A7b · append-only interaction log", () => {
       { type: "updateNode", id: "e-night:usg", patch: { clubDeadlineOverride: "2026-11-02" } },
       { type: "updateEvent", id: "e-night", patch: { headcount: 77 } },
       { type: "setAi", enabled: false },
-      { type: "addTask", title: "Order name tags", status: "accepted" },
+      { type: "createTasks", id: "log-task", sentence: "Order name tags", tasks: [{ title: "Order name tags", ownerId: "alex", eventId: null }], date: "2026-11-10", buffered: false },
       { type: "setViewer", viewerId: "maya" },
     ])
     expect(log).toHaveLength(5)
     expect(log.map(e => e.seq)).toEqual([1, 2, 3, 4, 5])
-    expect(log.map(e => e.type)).toEqual(["updateNode", "updateEvent", "setAi", "addTask", "setViewer"])
+    expect(log.map(e => e.type)).toEqual(["updateNode", "updateEvent", "setAi", "createTasks", "setViewer"])
     expect(log.map(e => e.at)).toEqual([T, T + 1000, T + 2000, T + 3000, T + 4000])
     expect(log.map(e => e.actor)).toEqual(["alex", "alex", "alex", "alex", "alex"]) // who was "viewing as" when it ran
     expect(log[0].before).toEqual({ clubDeadlineOverride: oldDeadline ?? null })
@@ -121,7 +121,7 @@ describe("A7b · append-only interaction log", () => {
     expect(log[3].before).toBeUndefined() // creating something: nothing existed before
     expect(log[4].before).toEqual({ viewerId: "alex" })
     expect(log[0].payload).toEqual({ id: "e-night:usg", patch: { clubDeadlineOverride: "2026-11-02" } })
-    expect(log[3].payload).toEqual({ title: "Order name tags", status: "accepted" })
+    expect(log[3].payload).toMatchObject({ id: "log-task", tasks: [{ title: "Order name tags", ownerId: "alex", eventId: null }] })
     expect(log.every(e => e.applied)).toBe(true)
     expect(app.viewerId).toBe("maya")
     // The screen's dates still follow the fixed demo clock, not the real clock the log uses.

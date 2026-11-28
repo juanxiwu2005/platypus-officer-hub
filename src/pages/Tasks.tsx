@@ -1,37 +1,27 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom"
 import { useSchedule, useStore, useViewer } from "../data/store"
-import type { Node, NodeStatus } from "../data/types"
+import type { Node } from "../data/types"
 import { PageHead } from "../components/Page"
 import { Bts, BtsTr } from "../components/Bts"
 import { useRail } from "../components/rail/RailContext"
 import { FollowupPanel } from "../components/FollowupPanel"
-import { daysBetween, fmtShort, fromISO, toISO } from "../lib/dates"
-import { isInActionHorizon } from "../engine/team"
-import { canMoveTask, byRank, addTaskNotice, newTaskNotice } from "../data/board"
-import { useDragSort } from "../lib/dragSort"
-import { Avatar, Empty, NodePill, useStatusStyles } from "../components/ui"
+import { addDays, daysBetween, fmtShort } from "../lib/dates"
+import { inMyTasks, isInTaskHorizon } from "../data/myWork"
+import { newTaskNotice } from "../data/board"
+import { Avatar, Empty, NodePill } from "../components/ui"
 import { canLead } from "../data/changeReview"
 import { isOfficer, officers } from "../data/permissions"
 import { TaskTypeIcon } from "../components/TaskTypeIcon"
 import { defaultTaskDue } from "../engine/taskDates"
 import { TaskDueFields } from "../components/rail/TaskFields"
+import { isClubTask, linkableEvents, linkBranch, linkError, taskKind } from "../data/clubTasks"
 
 import { planTaskPath, resolvePlanEntry } from "../reminders/planEntry"
 import { useTaskAccess } from "../reminders/useTaskAccess"
 
-type View = "table" | "board" | "timeline"
-const BOARD_STATUSES: NodeStatus[] = ["unclaimed", "accepted", "in_progress", "waiting", "blocked", "done"]
-
-/** The Tasks page is an action horizon, not the whole semester's project plan. */
-export function isInTaskHorizon(node: Node, today: string): boolean {
-  if (node.status === "done") {
-    const day = fromISO(today)
-    day.setDate(day.getDate() - ((day.getDay() + 6) % 7) - 7) // Monday of last week
-    return (node.completedOn ?? node.lastUpdate ?? "") >= toISO(day)
-  }
-  return isInActionHorizon(node, today)
-}
+/** The Tasks page is an action horizon, not the whole semester's project plan (src/data/myWork.ts). */
+export { isInTaskHorizon }
 
 export default function Tasks() {
   const { state, dispatch } = useStore()
@@ -41,50 +31,44 @@ export default function Tasks() {
   const access = useTaskAccess(params.get("access") ?? "")
   const entry = resolvePlanEntry(state, params, access.grant, access.checking, "tasks")
   const location = useLocation()
-  const [view, setView] = useState<View>("board")
   const [scope, setScope] = useState("mine")
   const [notice, setNotice] = useState("")
   // FB-5: the last task the page-head form created, so the notice can offer Undo (the same undo as the Ask form).
   const [undoId, setUndoId] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
-  const lead = canLead(state)
+  const [kind, setKind] = useState("all")
+  // The task just given to someone else: ask once whether to email them (Juanxi, 2026-11-28).
+  const [emailAsk, setEmailAsk] = useState<string | null>(null)
   const linked = params.get("node")
   useEffect(() => { if (!params.has("access") && linked && state.nodes.some(n => n.id === linked)) rail.show({ kind: "task", id: linked, reply: params.get("reply") }) }, [linked, params.get("reply"), location.key])
   useEffect(() => { if (!notice) return; const t = setTimeout(() => { setNotice(""); setUndoId(null) }, undoId ? 8000 : 3200); return () => clearTimeout(t) }, [notice, undoId])
   const say = (text: string) => { setUndoId(null); setNotice(text) }
 
-  // The board's quick "+ Add task" goes through here, so the card never lands somewhere without saying why (audit §6.4).
-  const addTask = (title: string, status: NodeStatus) => {
-    if (!title.trim()) return
-    say(addTaskNotice(state, status) ?? "")
-    dispatch({ type: "addTask", title, status })
-  }
-  // A teammate who is explicitly holding up a task sees it in To do as well as
-  // receiving an Update. Ownership stays with the original task owner.
-  const visible = state.nodes.filter(n => (scope === "team" || n.ownerId === person.id || n.waitingOnPersonId === person.id || (n.status === "unclaimed" && !n.ownerId)) && isInTaskHorizon(n, state.today))
+  // "My tasks" is the same list the Plan badge counts (src/data/myWork.ts): mine, tasks a teammate is waiting on me for,
+  // and, for the president or VP, open work with no owner yet.
+  const visible = state.nodes.filter(n => scope === "team" ? isInTaskHorizon(n, state.today) : inMyTasks(state, n, person.id)).filter(n => kind === "all" || taskKind(n) === kind)
   if (params.has("access")) {
-    if (entry.checking) return <p role="status">Opening your task in Events…</p>
+    if (entry.checking) return <p role="status">Opening task…</p>
     if (entry.error || !entry.node) return <section className="card"><h1>Check your task link</h1><p role="alert">{entry.error ?? "This task is unavailable."}</p><Link to="/events">Open Plan</Link></section>
     return <Navigate to={planTaskPath(state.events.find(event => event.id === entry.node!.eventId)?.id, entry.node.id, params.get("access")!, entry.origin?.id)} replace />
   }
   return <>
     <PageHead path="/tasks" actions={<>
-      <div className="seg" role="group" aria-label="Task view">{(["board", "table", "timeline"] as View[]).map(v => <button key={v} type="button" aria-pressed={view === v} onClick={() => setView(v)}>{v === "table" ? "Table" : v === "board" ? "Board" : "Timeline"}</button>)}</div>
       <select className="select" aria-label="Task scope" value={scope} onChange={e => setScope(e.target.value)}><option value="mine">My tasks</option><option value="team">Team tasks</option></select>
-      {/* The only create entry used to sit at the foot of one board column, so the page looked read-only (audit §6.1). */}
+      <select className="select" aria-label="Task type" value={kind} onChange={e => setKind(e.target.value)}><option value="all">All types</option><option value="club">Club tasks</option><option value="event">Event tasks</option></select>
+      {/* S3 (2026-11-23): the Table is the only view; "+ New task" and Ask are the ways to create a task. */}
       <NewTask open={creating} onOpen={() => setCreating(true)} />
     </>} />
-    {creating && <NewTaskForm onClose={() => setCreating(false)} onCreated={(text, id) => { setNotice(text); setUndoId(id) }} />}
+    {creating && <NewTaskForm onClose={() => setCreating(false)} onCreated={(text, id, nodeId, ownerId) => { setNotice(text); setUndoId(id); if (ownerId && ownerId !== state.viewerId) setEmailAsk(nodeId) }} />}
+    {emailAsk && <EmailAsk nodeId={emailAsk} onDone={sent => { setEmailAsk(null); if (sent) setNotice(text => `${text} ${sent}`.trim()) }} />}
     {notice && <p className="board-notice" role="status">{notice}{undoId && <button type="button" className="link" data-testid="new-task-undo" onClick={() => { dispatch({ type: "undoAuto", id: undoId }); say("Task removed.") }}>Undo</button>}</p>}
-    {view === "table" && <TaskTable nodes={visible} editable={lead} showOwner={scope === "team"} />}
-    {view === "board" && <Board nodes={visible} onAdd={addTask} onNotice={say} />}
-    {view === "timeline" && <TaskTimeline nodes={visible.filter(n => n.status !== "done")} onSelect={n => rail.show({ kind: "task", id: n.id })} />}
+    <TaskTable nodes={visible} showOwner={scope === "team"} />
     <FollowupPanel />
   </>
 }
 
 /**
- * "+ New task" in the page head, in all three views (FB-5). It opens the small form below the head; incoming and
+ * "+ New task" in the page head (FB-5). It opens the small form below the head; incoming and
  * former officers viewed as can read but not create (store.tsx READ_ONLY_OK), so for them it is off and says why.
  */
 function NewTask({ open, onOpen }: { open: boolean; onOpen: () => void }) {
@@ -103,14 +87,20 @@ const ANYONE = "__anyone"
  * waits in Not claimed until they press "I've got it", and they get a notice; "Anyone" (president or VP) has no owner.
  * The one date is the task's due date, from the rule engine's default (AGENTS.md rule 3); it goes through createTasks.
  */
-function NewTaskForm({ onClose, onCreated }: { onClose: () => void; onCreated: (text: string, changeSetId: string) => void }) {
+function NewTaskForm({ onClose, onCreated }: { onClose: () => void; onCreated: (text: string, changeSetId: string, nodeId: string, ownerId: string | null) => void }) {
   const { state, dispatch } = useStore()
   const lead = canLead(state)
   const [title, setTitle] = useState("")
   const [assignee, setAssignee] = useState(state.viewerId)
   const [due, setDue] = useState(() => defaultTaskDue(state))
+  const [eventId, setEventId] = useState("")
   const [error, setError] = useState("")
   const others = officers(state).filter(p => p.id !== state.viewerId)
+  const events = linkableEvents(state)
+  const event = events.find(e => e.id === eventId)
+  const ownerId = assignee === ANYONE ? null : assignee
+  const branch = event ? linkBranch(state, event, ownerId) : null
+  const owner = state.people.find(p => p.id === ownerId)
   const opener = useRef<HTMLElement | null>(null)
   useEffect(() => { opener.current = document.querySelector<HTMLElement>("[data-testid=new-task]") }, [])
   const close = () => { onClose(); setTimeout(() => opener.current?.focus(), 0) }
@@ -121,10 +111,11 @@ function NewTaskForm({ onClose, onCreated }: { onClose: () => void; onCreated: (
       const name = title.trim()
       if (!name) return setError("Give the task a name.")
       if (!/^\d{4}-\d{2}-\d{2}$/.test(due) || due < state.today) return setError("Pick a due date from today on.")
-      const ownerId = assignee === ANYONE ? null : assignee
+      const linkProblem = eventId ? linkError(state, eventId, due) : null
+      if (linkProblem) return setError(linkProblem)
       const id = `tasks-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-      dispatch({ type: "createTasks", id, sentence: name, tasks: [{ title: name, ownerId, eventId: null }], date: due, buffered: false, source: "Added on the Tasks page" })
-      onCreated(newTaskNotice(state, ownerId), id)
+      dispatch({ type: "createTasks", id, sentence: name, tasks: [{ title: name, ownerId, eventId: null, ...(event ? { link: { eventId: event.id, branchId: branch?.branchId ?? "event-lead", order: branch?.order ?? 0, ...(branch?.teamId ? { teamId: branch.teamId } : {}) } } : {}) }], date: due, buffered: false, source: "Added on the Tasks page" })
+      onCreated(newTaskNotice(state, ownerId), id, `${id}:0`, ownerId)
       close()
     }}>
     <label className="new-task-name">Task name<input id="new-task-name" autoFocus value={title} maxLength={100} placeholder="e.g. Order name tags" aria-label="New task name" onChange={e => { setTitle(e.target.value); setError("") }} /></label>
@@ -133,7 +124,24 @@ function NewTaskForm({ onClose, onCreated }: { onClose: () => void; onCreated: (
       {others.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
       {lead && <option value={ANYONE}>Anyone (open)</option>}
     </select></label>
-    <div className="new-task-due"><TaskDueFields due={due} onDue={d => { setDue(d); setError("") }} /></div>
+    <div className="new-task-due">
+      <TaskDueFields due={due} onDue={d => { setDue(d); setError("") }} />
+      {/* Quick dates (Juanxi, 2026-11-28): today plus 3, 5 or 7 calendar days. */}
+      <div className="new-task-quick ctl-row ctl-sm" role="group" aria-label="Quick due dates">{[3, 5, 7].map(days => {
+        const date = addDays(state.today, days)
+        return <button key={days} type="button" className="btn" aria-pressed={due === date} disabled={!!event && date >= event.date} onClick={() => { setDue(date); setError("") }}>In {days} days</button>
+      })}</div>
+    </div>
+    {/* Only the president or VP may put a task into an event's flow (Juanxi 2026-11-28); other officers make club tasks. */}
+    {lead && <>
+      <label className="new-task-link">Link to an event (optional)<select aria-label="Link to an event" value={eventId} onChange={e => { setEventId(e.target.value); setError("") }}>
+        <option value="">No event: a club task</option>
+        {events.map(e => <option key={e.id} value={e.id}>{e.name} · {fmtShort(e.date)}</option>)}
+      </select></label>
+      <p className="new-task-link-note small muted" data-testid="new-task-link-note">{event
+        ? <>It stays in Club tasks and also goes last in {owner ? `${owner.name.split(" ")[0]}'s` : "the"} <b>{branch?.title ?? "event"}</b> branch before {event.name} ({fmtShort(event.date)}). To change the event's own steps, use Edit flow on <Link to={`/events?event=${encodeURIComponent(event.id)}`}>{event.name}</Link>.</>
+        : "A club task. Linking it to an event also puts it in that event's flow."}</p>
+    </>}
     {error && <p className="small late-text" role="alert">{error}</p>}
     <div className="new-task-buttons">
       <button className="btn btn-primary" type="submit">Add</button>
@@ -142,122 +150,73 @@ function NewTaskForm({ onClose, onCreated }: { onClose: () => void; onCreated: (
   </form>
 }
 
-/** monday-style table grouped by event; owner and due date are edited right in the row. */
-function TaskTable({ nodes, editable, showOwner }: { nodes: Node[]; editable: boolean; showOwner: boolean }) {
-  const { state, dispatch } = useStore()
+/**
+ * monday-style table grouped by event. Owner and due are read-only here; a row opens Task Details, whose Edit changes them (S3).
+ * With the Board gone (S3), the finished tasks in the current scope sit in one "Done (N)" group at the bottom, folded by
+ * default, so a finished task (and its Undo mark done or reopen) can still be reached from this page.
+ */
+function TaskTable({ nodes, showOwner }: { nodes: Node[]; showOwner: boolean }) {
+  const { state } = useStore()
   const sched = useSchedule()
   const rail = useRail()
   const [toggled, setToggled] = useState<Record<string, boolean>>({})
+  const [doneOpen, setDoneOpen] = useState(false)
   const open = nodes.filter(n => n.status !== "done").sort((a, b) => (a.latestStart ?? "9999").localeCompare(b.latestStart ?? "9999"))
-  const groups = [...state.events.map(e => ({ id: e.id, name: e.name })), { id: "", name: "Club tasks" }].map(g => ({ ...g, rows: open.filter(n => (n.eventId ?? "") === g.id) })).filter(g => g.rows.length)
+  const done = nodes.filter(n => n.status === "done").sort((a, b) => (b.completedOn ?? b.lastUpdate ?? "").localeCompare(a.completedOn ?? a.lastUpdate ?? "") || a.id.localeCompare(b.id))
+  const groups = [...state.events.map(e => ({ id: e.id, name: e.name })), { id: "", name: "Club tasks" }].map(g => ({ ...g, rows: open.filter(n => g.id ? n.eventId === g.id && !n.clubTask : isClubTask(n)) })).filter(g => g.rows.length)
   // Groups whose work is all more than three weeks away start folded, like monday's collapsed groups.
   const folded = (g: (typeof groups)[number]) => toggled[g.id] ?? g.rows.every(n => n.latestStart && daysBetween(state.today, n.latestStart) > 21)
   const cols = showOwner ? 4 : 3
+  const row = (n: Node) => {
+    const late = n.status !== "done" && n.clubDeadline && n.clubDeadline < state.today
+    return [<tr key={n.id} data-testid="task-card">
+      <td><button type="button" className="row-btn task-title" onClick={() => rail.show({ kind: "task", id: n.id })}><TaskTypeIcon node={n} /><span>{n.title}</span></button>{n.clubTask && n.eventId && <span className="task-link-tag small muted">{state.events.find(e => e.id === n.eventId)?.name}</span>}</td>
+      {showOwner && <td><span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />{state.people.find(p => p.id === n.ownerId)?.name.split(" ")[0] ?? ""}</span></td>}
+      <td><NodePill node={n} small /></td>
+      <td className={late ? "late-text" : ""}><span className="small">{n.clubDeadline ? fmtShort(n.clubDeadline) : ""}</span></td>
+    </tr>,
+    <BtsTr key={`${n.id}-bts`} cols={cols}>
+      <Bts label="Rule engine">{sched.nodes[n.id]?.explain.club}</Bts>
+    </BtsTr>]
+  }
   return <section className="card tbl-wrap" data-testid="my-tasks">
     <table className="tbl">
       <thead><tr><th>Task</th>{showOwner && <th>Owner</th>}<th>Status</th><th>Due</th></tr></thead>
       <tbody>{groups.map(g => [
         <tr key={`g-${g.id}`} className="group"><td colSpan={cols}><button type="button" className="group-btn" aria-expanded={!folded(g)} onClick={() => setToggled({ ...toggled, [g.id]: folded(g) ? false : true })}><span className="caret" aria-hidden="true">{folded(g) ? "▸" : "▾"}</span>{g.name}<span className="count">{g.rows.length}</span></button></td></tr>,
-        ...(folded(g) ? [] : g.rows).map(n => {
-          const late = n.clubDeadline && n.clubDeadline < state.today
-          return [<tr key={n.id} data-testid="task-card">
-            <td><button type="button" className="row-btn task-title" onClick={() => rail.show({ kind: "task", id: n.id })}><TaskTypeIcon node={n} /><span>{n.title}</span></button></td>
-            {showOwner && <td>{editable
-              ? <span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" /><select aria-label={`Owner of ${n.title}`} value={n.ownerId ?? ""} onChange={e => dispatch({ type: "updateNode", id: n.id, patch: { ownerId: e.target.value || null } })}><option value="">None</option>{officers(state).map(p => <option key={p.id} value={p.id}>{p.name.split(" ")[0]}</option>)}{state.people.filter(p => p.id === n.ownerId && !isOfficer(p)).map(p => <option key={p.id} value={p.id} disabled>{p.name.split(" ")[0]} (former)</option>)}</select></span>
-              : <span className="who"><Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />{state.people.find(p => p.id === n.ownerId)?.name.split(" ")[0] ?? ""}</span>}</td>}
-            <td><NodePill node={n} small /></td>
-            <td className={late ? "late-text" : ""}>{editable && n.clubDeadline
-              ? <input type="date" aria-label={`Due for ${n.title}`} value={n.clubDeadline} onChange={e => /^\d{4}-\d{2}-\d{2}$/.test(e.target.value) && dispatch({ type: "updateNode", id: n.id, patch: { clubDeadlineOverride: e.target.value } })} />
-              : <span className="small">{n.clubDeadline ? fmtShort(n.clubDeadline) : ""}</span>}</td>
-          </tr>,
-          <BtsTr key={`${n.id}-bts`} cols={cols}>
-            <Bts label="Rule engine">{sched.nodes[n.id]?.explain.club}</Bts>
-          </BtsTr>]
-        }),
+        ...(folded(g) ? [] : g.rows).map(row),
       ])}</tbody>
+      {done.length > 0 && <tbody data-testid="done-tasks">
+        <tr className="group"><td colSpan={cols}><button type="button" className="group-btn" data-testid="done-group" aria-expanded={doneOpen} onClick={() => setDoneOpen(!doneOpen)}><span className="caret" aria-hidden="true">{doneOpen ? "▾" : "▸"}</span>Done ({done.length})</button></td></tr>
+        {doneOpen && done.map(row)}
+      </tbody>}
     </table>
     {!open.length && <Empty>Nothing open.</Empty>}
   </section>
 }
 
-/** Board: drag a card to change its status or order; details handle explicit status updates. */
-function Board({ nodes, onAdd, onNotice }: { nodes: Node[]; onAdd: (title: string, status: NodeStatus) => void; onNotice: (text: string) => void }) {
+/**
+ * Right after a task is given to someone else (Juanxi, 2026-11-28): email them about it? One ask, nothing is sent without "Send
+ * email". Demo: the email is recorded (src/data/changeReview.ts sendTaskEmail), nothing leaves the app, and it is not a reminder.
+ */
+function EmailAsk({ nodeId, onDone }: { nodeId: string; onDone: (sent: string | null) => void }) {
   const { state, dispatch } = useStore()
-  const rail = useRail()
-  const styles = useStatusStyles()
-  const [adding, setAdding] = useState<NodeStatus | null>(null)
-  const [title, setTitle] = useState("")
-  // An empty column folds into a narrow strip so the others have room (DX-16). These are the empty ones the person opened by hand.
-  const [opened, setOpened] = useState<ReadonlySet<NodeStatus>>(new Set())
-  const toggleOpened = (st: NodeStatus) => setOpened(prev => { const next = new Set(prev); if (next.has(st)) next.delete(st); else next.add(st); return next })
-  const fields = state.org.board?.fields ?? ["owner", "due", "event", "tags"]
-  const tags = state.org.board?.tags ?? []
-  /** Move a card, if the rules allow it (they say why if not). Returns whether it moved. */
-  const move = (id: string, status: NodeStatus, before: string | null): boolean => {
-    const n = state.nodes.find(x => x.id === id)
-    if (!n) return false
-    const why = canMoveTask(state, n, status)
-    if (why) { onNotice(why); return false }
-    dispatch({ type: "moveTask", nodeId: id, status, beforeId: before })
-    return true
-  }
-  const columnOf = (n: Node): NodeStatus => n.status === "waiting" && n.waitingOnPersonId === state.viewerId && n.ownerId !== state.viewerId ? "accepted" : n.status
-  // Dragging with a pointer (and Alt + ← / → from the keyboard): see src/lib/dragSort.ts. Moving a card still goes through `move` above.
-  const dnd = useDragSort({
-    onDrop: (id, t) => { move(id, t.dest as NodeStatus, t.before) },
-    onNudge: (id, direction) => {
-      const n = state.nodes.find(x => x.id === id)
-      if (!n) return null
-      const to = BOARD_STATUSES[BOARD_STATUSES.indexOf(columnOf(n)) + direction]
-      if (!to) return null
-      return move(id, to, null) ? `Moved “${n.title}” to ${styles[to].label}.` : null
-    },
-  })
-  const drag = dnd.draggingId
-  const over = dnd.over ? { status: dnd.over.dest as NodeStatus, before: dnd.over.before } : null
-  return <>
-    <div className="board" data-testid="task-board" data-drag-scroll style={{ "--drag-h": `${dnd.dragHeight}px` } as CSSProperties}>
-      {BOARD_STATUSES.map(st => {
-        const statusForViewer = (n: Node): NodeStatus => n.status === "waiting" && n.waitingOnPersonId === state.viewerId && n.ownerId !== state.viewerId ? "accepted" : n.status
-        const cards = nodes.filter(n => statusForViewer(n) === st).sort(byRank)
-        // Folded: nothing in it, not opened by hand, no card resting over it, and nobody typing a new task into it.
-        const folded = cards.length === 0 && !opened.has(st) && dnd.dwell !== st && adding !== st
-        // Where a dragged card would go in this column: the cards from there on move down to make room.
-        const insertAt = over?.status === st ? (over.before ? cards.findIndex(c => c.id === over.before) : cards.length) : -1
-        return <section key={st} className={`board-col ${over?.status === st ? "over" : ""} ${folded ? "is-folded" : ""}`} aria-label={styles[st].label} data-drop-col={st}>
-          <header style={{ "--pill": styles[st].color } as CSSProperties}><h2>{styles[st].label}</h2><span className="count">{cards.length}</span></header>
-          {cards.length === 0 && <button type="button" className="board-col-toggle" aria-expanded={!folded} aria-label={`${styles[st].label}, no tasks. ${folded ? "Show" : "Hide"} column`} onClick={() => toggleOpened(st)} />}
-          {cards.map((n, index) => {
-            const ev = state.events.find(e => e.id === n.eventId)
-            const late = n.status !== "done" && n.clubDeadline && n.clubDeadline < state.today
-            const shifted = drag !== null && drag !== n.id && insertAt >= 0 && index >= insertAt
-            return <article key={n.id} className={`board-card ${drag === n.id ? "is-dragging" : ""} ${shifted ? "is-shifted" : ""}`} data-testid="board-card" {...dnd.cardProps(n.id)}>
-              {/* A span, not a <button>: Chrome will not start a drag from inside a button. */}
-              <span role="button" tabIndex={0} className="row-btn board-title task-title" onClick={() => rail.show({ kind: "task", id: n.id })} onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); rail.show({ kind: "task", id: n.id }) } }}><TaskTypeIcon node={n} /><span>{n.title}</span></span>
-              {fields.includes("tags") && !!n.tags?.length && <div className="tag-row">{n.tags.map(id => { const t = tags.find(x => x.id === id); return t && <span key={id} className="tag-chip" style={{ "--tag": t.color } as CSSProperties}>{t.label}</span> })}</div>}
-              <div className="board-meta">
-                {fields.includes("owner") && <Avatar name={state.people.find(p => p.id === n.ownerId)?.name} size="sm" />}
-                {fields.includes("due") && n.clubDeadline && <span className={`small ${late ? "late-text" : "muted"}`}>{fmtShort(n.clubDeadline)}</span>}
-                {ev && <span className="small muted ev-name">{ev.name}</span>}
-                {n.status === "waiting" && n.waitingOnPersonId === state.viewerId && n.ownerId !== state.viewerId && <span className="small wait-for-you">Waiting on you</span>}
-              </div>
-            </article>
-          })}
-          {adding === st
-            ? <form className="board-add" onSubmit={e => { e.preventDefault(); onAdd(title, st); setTitle(""); setAdding(null) }}><input autoFocus value={title} maxLength={100} placeholder="Task name" aria-label="New task name" onChange={e => setTitle(e.target.value)} onBlur={() => { if (!title.trim()) setAdding(null) }} /><button className="btn small btn-primary" type="submit">Add</button></form>
-            : <button type="button" className="board-add-btn" aria-label="+ Add task" onClick={() => { setAdding(st); setTitle("") }}>+ Add task</button>}
-        </section>
-      })}
+  const node = state.nodes.find(n => n.id === nodeId)
+  const to = state.people.find(p => p.id === node?.ownerId)
+  const send = useRef<HTMLButtonElement | null>(null)
+  // After the form hands focus back to "+ New task" (its own timeout), so the question gets it.
+  useEffect(() => { const t = setTimeout(() => send.current?.focus(), 0); return () => clearTimeout(t) }, [])
+  if (!node || !to) return null
+  const close = (sent: string | null) => { onDone(sent); setTimeout(() => document.querySelector<HTMLElement>("[data-testid=new-task]")?.focus(), 0) }
+  return <div className="email-ask-backdrop">
+    <div className="card email-ask" role="alertdialog" aria-modal="true" aria-labelledby="email-ask-title" aria-describedby="email-ask-text" data-testid="email-ask"
+      onKeyDown={e => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(null) } }}>
+      <h2 id="email-ask-title">Email {to.name.split(" ")[0]} about this task?</h2>
+      <p id="email-ask-text" className="small">“{node.title}” goes to {to.email || to.name} with a link to the task. They already see it in their task list.</p>
+      <div className="email-ask-buttons ctl-row">
+        <button ref={send} type="button" className="btn btn-primary" data-log-name="new-task-email-send" onClick={() => { dispatch({ type: "sendTaskEmail", nodeId }); close(`Emailed ${to.name.split(" ")[0]}.`) }}>Send email</button>
+        <button type="button" className="btn" data-log-name="new-task-email-skip" onClick={() => close(null)}>Not now</button>
+      </div>
     </div>
-    <div className="sr-only" aria-live="polite" data-testid="board-announce">{dnd.announce}</div>
-  </>
-}
-
-function TaskTimeline({ nodes, onSelect }: { nodes: Node[]; onSelect: (n: Node) => void }) {
-  const starts = nodes.map(n => n.latestStart).filter((d): d is string => !!d).sort()
-  const ends = nodes.map(n => n.clubDeadline).filter((d): d is string => !!d).sort()
-  const from = starts[0], to = ends.at(-1)
-  if (!from || !to) return <section className="card"><Empty>No dated tasks in this view.</Empty></section>
-  const span = Math.max(1, daysBetween(from, to) + 1)
-  return <section className="card task-gantt" data-testid="task-gantt"><header><h2>Timeline</h2><span className="small muted">{fmtShort(from)} → {fmtShort(to)}</span></header>{nodes.sort((a, b) => (a.latestStart ?? "").localeCompare(b.latestStart ?? "")).map(n => <div key={n.id} className="task-gantt-row"><button className="row-btn small task-title" onClick={() => onSelect(n)}><TaskTypeIcon node={n} /><span>{n.title}</span></button><div className="task-gantt-track">{n.latestStart && n.clubDeadline && <button className="task-gantt-bar" style={{ left: `${daysBetween(from, n.latestStart) / span * 100}%`, width: `${Math.max(1, (daysBetween(n.latestStart, n.clubDeadline) + 1) / span * 100)}%` }} aria-label={`${n.title}: ${fmtShort(n.latestStart)} to ${fmtShort(n.clubDeadline)}`} onClick={() => onSelect(n)} />}</div><span className="small muted">{n.clubDeadline ? fmtShort(n.clubDeadline) : "—"}</span></div>)}</section>
+  </div>
 }

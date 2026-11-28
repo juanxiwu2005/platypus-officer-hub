@@ -44,7 +44,7 @@ const scan = async (page: Page) => (await new AxeBuilder({ page }).include("[dat
 
 // The universal Task Details (docs/feedback-fix/TASK_DETAILS_UNIVERSAL_HANDOFF.md) replaced the three zones: one Due, a compact status
 // menu, the requirement and one submission form. Remind moved to the reminder centre; Edit is a separate drawer; planning dates stay private.
-const STATUS_OPTIONS = ["To do", "Working on it", "Stuck", "Waiting on", "Need more time\u2026"]
+const STATUS_OPTIONS = ["To do", "Working on it", "Stuck", "Waiting", "Need more time\u2026"]
 
 test("the owner: one Due, one primary button, four status updates, and no private planning dates", async ({ page }, info) => {
   const { n, owner } = await ruledStep(page)
@@ -56,12 +56,29 @@ test("the owner: one Due, one primary button, four status updates, and no privat
   await expect(detail.getByRole("combobox", { name: "Task status", exact: true }).locator("option")).toHaveText(STATUS_OPTIONS)
   await expect(detail.getByRole("button", { name: /^Remind/ })).toHaveCount(0)
   await expect(detail.getByRole("button", { name: /Edit/ })).toHaveCount(0)
-  await expect(detail.getByText("Copy All Event Details")).toHaveCount(0)
+  await expect(detail.getByRole("button", { name: "Copy details", exact: true })).toHaveCount(0)
   await expect(detail).not.toContainText(/Start by|Personal planning start|Why this date/)
   await shot(page, "owner", info.project.name)
   if (info.project.name === "mobile") expect(await noOverflow(page)).toBeLessThanOrEqual(0)
   await page.keyboard.press("Escape")
   await expect(detail).toHaveCount(0)
+})
+
+test("the owner marks the task done with Submit & mark done once Details has the result; Undo shows beside the status (Details required, files optional)", async ({ page }) => {
+  const { n, owner } = await ruledStep(page)
+  const detail = await openAs(page, owner, n.id)
+  // Juanxi (2026-11-28): one completion button, under Details; no second Mark done beside the status.
+  await expect(detail.getByRole("button", { name: "Mark done", exact: true })).toHaveCount(0)
+  const submit = detail.getByRole("button", { name: "Submit & mark done", exact: true })
+  await submit.click()
+  await expect(detail.getByRole("alert")).toHaveText("Add the result in Details before you mark this done.")
+  await expect(detail.getByLabel("Details", { exact: true })).toBeFocused()
+  expect(await savedTask(page, n.id)).toMatchObject({ status: n.status })
+  await detail.getByLabel("Details", { exact: true }).fill("Room 204 booked")
+  await submit.click()
+  await expect(detail.getByRole("combobox", { name: "Task status", exact: true })).toHaveValue("done")
+  expect(await savedTask(page, n.id)).toMatchObject({ status: "done" })
+  await expect(detail.getByTestId("single-task-status").getByRole("button", { name: "Undo mark done", exact: true })).toBeFocused()
 })
 
 test("the president on an officer's task: Edit owner and Due through the store, and both can be put back", async ({ page }, info) => {
@@ -119,16 +136,20 @@ test("a budget step: Done is not offered here and Event Budget is one tap away",
   await expect(page).toHaveURL(/events\?event=e-night&view=budget/)
 })
 
-test("Events List has four columns, and Copy All Event Details lives in the event's own details", async ({ page }, info) => {
+test("Events shows Flow and Budget only; Copy details lives in the event's own details, opened on purpose", async ({ page }, info) => {
   await page.goto("/#/events?event=e-night")
   await closeRail(page)
-  await page.getByTestId("view-list").click()
-  await expect(page.getByTestId("event-list").locator("thead th")).toHaveText(["Step", "Owner", "Status", "Due"])
-  await shot(page, "events-list", info.project.name)
+  await expect(page.getByRole("group", { name: "View" }).getByRole("button")).toHaveText(["Flow", "Budget"])
+  await expect(page.getByTestId("view-list")).toHaveCount(0)
+  await shot(page, "events-views", info.project.name)
   const other = (await demo(page)).events.find(e => e.id !== "e-night")
   test.skip(!other, "the demo has only one event, so there is no event switcher")
   const navButton = page.getByRole("navigation", { name: "Events" }).getByRole("button", { name: other!.name, exact: true })
   if (await navButton.isVisible()) await navButton.click()
   else await page.getByLabel("Choose an event").selectOption(other!.id)
-  await expect(page.getByRole("region", { name: "Event details" }).getByRole("button", { name: /Copy All Event Details|Event details copied/ })).toBeVisible()
+  await expect(page.getByRole("heading", { level: 2, name: other!.name, exact: true })).toBeVisible()
+  // S3: changing the event no longer opens its details by itself.
+  await expect(page.getByRole("region", { name: "Event details" })).toHaveCount(0)
+  await page.getByTestId("event-details-open").click()
+  await expect(page.getByRole("region", { name: "Event details" }).getByRole("button", { name: /^(Copy details|Event details copied)$/ })).toBeVisible()
 })

@@ -4,7 +4,6 @@ import { useStore } from "../../data/store"
 import { prefersReducedMotion } from "../../lib/motion"
 import { onboardingCopy } from "../copy"
 import { useOnboardingDraft } from "../draft"
-import { useFlow } from "../engine/useFlow"
 import { bufferExample } from "./firstEvent/bufferExample"
 import { fmtShort } from "../../lib/dates"
 import { EventChain } from "./firstEvent/EventChain"
@@ -17,31 +16,26 @@ const FOOD: { value: FirstEventFields["food"]; label: string }[] = [{ value: "no
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1)
 
 /**
- * Screen 5, the witness moment: one sentence becomes the first event, and its progress chain draws itself with dates from the rule engine.
+ * The witness moment: one sentence becomes the first event, and its progress chain draws itself with dates from the rule engine.
  * Everything lives in the shared draft (event, date, source, buffer), so Back/Continue and a reload keep it. The chain plays once per press of
- * Plan it; turning the buffer or editing a field only changes the dates and never replays it. The screen is optional (Phase 3): Skip for now clears
- * the planned event and goes to Confirm, which then starts the club with no event. Plan it and Skip for now are equally one press; neither is chosen for the president.
+ * Plan it; turning the buffer or editing a field only changes the dates and never replays it.
+ * Since ob-6 (S6) this is part of the first founder screen (Name.tsx), under the club name: the screen owns Continue and Skip for now, and asks
+ * `ready` whether Continue may go on. `drop` forgets the planned event (Skip for now): the sentence stays, so Plan it brings the plan back in one press.
  */
-export function FirstEvent() {
+export function useFirstEventPlanner() {
   const { state } = useStore()
   const { draft, patch } = useOnboardingDraft()
-  const flow = useFlow()
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState("")
   const [stale, setStale] = useState(false)          // the sentence changed after the last plan
   const [play, setPlay] = useState(0)                // a new number remounts the chain, which restarts the drawing
   const [drawing, setDrawing] = useState<number | null>(null)
-  const [open, setOpen] = useState(false)
   const request = useRef(0)
   const played = useRef(0)
   useEffect(() => () => { request.current = -1 }, [])   // an answer that arrives after leaving the screen is dropped
 
   const { event, date, buffer } = draft
-  const example = useMemo(() => bufferExample(state.today, buffer), [state.today, buffer])
   const preview = useMemo(() => previewFor(state, draft.club, event, date, draft.inviteCode, draft.steps, buffer), [state, draft.club, event, date, draft.inviteCode, draft.steps, buffer])
-  const dots = useMemo(() => chainDots(preview), [preview])
-  const needsDate = !!event && !preview
-  useEffect(() => { if (needsDate) setOpen(true) }, [needsDate])
 
   async function plan() {
     const sentence = draft.sentence.trim()
@@ -58,16 +52,31 @@ export function FirstEvent() {
     setPlay(n); setDrawing(prefersReducedMotion() ? null : n)
   }
   const edit = (sentence: string) => { patch({ sentence }); setStale(true) }
-  const eventPatch = (next: Partial<FirstEventFields>) => { if (event) patch({ event: { ...event, ...next }, confirmed: false }) }
-  // Skip for now: no first event. The sentence stays, so Back from Confirm and Plan it brings the plan back in one press. A plan still on its way is dropped.
-  const skip = () => { request.current++; setBusy(false); patch({ event: null, date: "", source: "", confirmed: false }); flow?.skip() }
+  const drop = () => { request.current++; setBusy(false); patch({ event: null, date: "", source: "", confirmed: false }) }
+  return { busy, notice, stale, play, drawing, setDrawing, preview, plan, edit, drop, ready: !!preview && !stale && !busy }
+}
+export type FirstEventPlanner = ReturnType<typeof useFirstEventPlanner>
 
-  return <section className="ob-card ob6" data-testid="first-event">
-    <h1>{c.title}</h1>
+/** The first event's part of screen 1: the sentence, the examples, Plan it, the chain with the club buffer, and the event details. */
+export function FirstEventPlan({ planner }: { planner: FirstEventPlanner }) {
+  const { state } = useStore()
+  const { draft, patch } = useOnboardingDraft()
+  const { busy, notice, stale, play, drawing, setDrawing, preview, plan, edit } = planner
+  const [open, setOpen] = useState(false)
+  const { event, date, buffer } = draft
+  const example = useMemo(() => bufferExample(state.today, buffer), [state.today, buffer])
+  const dots = useMemo(() => chainDots(preview), [preview])
+  const needsDate = !!event && !preview
+  useEffect(() => { if (needsDate) setOpen(true) }, [needsDate])
+  const eventPatch = (next: Partial<FirstEventFields>) => { if (event) patch({ event: { ...event, ...next }, confirmed: false }) }
+
+  return <section className="ob6" data-testid="first-event" aria-labelledby="ob6-h">
+    <h2 id="ob6-h">{c.title}</h2>
     <textarea className="ob6-sentence" aria-label={c.sentenceLabel} placeholder={c.sentenceExample} maxLength={1000} rows={3} value={draft.sentence} onChange={e => edit(e.target.value)} />
-    <div className="ob6-examples" role="group" aria-label={c.examplesLabel}>
+    {/* The examples are a way in: once a plan is shown they step aside (the sentence stays editable), which keeps screen 1 within 60 words. */}
+    {!preview && <div className="ob6-examples" role="group" aria-label={c.examplesLabel}>
       {c.examples.map(x => <button key={x.label} type="button" className="chip" onClick={() => edit(x.sentence)}>{x.label}</button>)}
-    </div>
+    </div>}
     <div className="ob-actions">
       <button type="button" className="btn btn-primary" disabled={!draft.sentence.trim()} onClick={() => void plan()}>{busy ? c.planning : c.cta}</button>
     </div>
@@ -77,7 +86,7 @@ export function FirstEvent() {
     {preview && event && <>
       <EventChain key={play} dots={dots} today={state.today} drawing={drawing === play && play > 0} stale={stale} onDrawn={() => setDrawing(null)} />
       <div className="ob6-buffer">
-        <span id="ob6-buffer-label" className="ob6-buffer-label">{c.buffer} · {c.days}</span>
+        <span id="ob6-buffer-label" className="ob6-buffer-label">{c.buffer}</span>
         <div className="seg ob6-seg" role="group" aria-labelledby="ob6-buffer-label">
           {BUFFER_CHOICES.map(n => <button key={n} type="button" aria-pressed={buffer === n} aria-label={`${n} ${n === 1 ? c.day : c.days}`} onClick={() => patch({ buffer: n })}>{n}</button>)}
         </div>
@@ -99,13 +108,5 @@ export function FirstEvent() {
         <label className="check-label"><input type="checkbox" checked={event.speaker} onChange={e => eventPatch({ speaker: e.target.checked })} />{c.fields.speaker}</label>
       </div>
     </details>}
-
-    {/* The same footer as Goals and Team: Back, Continue, and the optional step's Skip for now. Like Constitution, the "later" hint shows only
-        until something is chosen (here: a plan), which also keeps the planned screen within its 60-word budget. */}
-    <div className="ob-gt-nav">
-      <button type="button" className="btn" onClick={() => flow?.back()}>{onboardingCopy.back}</button>
-      <button type="button" className="btn btn-primary" disabled={!preview || stale || busy} onClick={() => flow?.next()}>{onboardingCopy.next}</button>
-      <div className="ob-gt-skip"><button type="button" className="btn btn-quiet" onClick={skip}>{onboardingCopy.skip}</button>{!event && <p className="ob-gt-hint">{c.skipHint}</p>}</div>
-    </div>
   </section>
 }

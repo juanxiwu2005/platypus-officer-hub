@@ -1,11 +1,12 @@
 import type { DemoState, Event, Node } from "./types"
-import { canLead } from "./permissions"
+import { canLead, isOfficer } from "./permissions"
 import { commandContext, sanitizeOps, validDate, type CommandOp } from "../lib/commands"
 import type { ChangeSet, Tier } from "./types"
 import { applySchedule } from "../engine/schedule"
 import { topoOrder } from "../engine/schedule"
 import { taskAnchor } from "../engine/taskDates"
 import { addNotices } from "./taskWorkflow"
+import { teamLeadsError, withTeamLeads } from "./teamLeads"
 import { findWorkflowTemplateVersion, instantiateWorkflowTemplate, publishedWorkflowTemplates, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplateRunError } from "./workflowTemplates"
 
 export { canLead }
@@ -17,6 +18,20 @@ export const canCreateEvent = (s: DemoState) => {
   if (canLead(s)) return true
   const mode = s.org.settings.eventCreators ?? "leads"
   return mode === "everyone" || (mode === "chosen" && (s.org.settings.eventCreatorIds ?? []).includes(s.viewerId))
+}
+/**
+ * Who may change an event's date, name and headcount (S0, Juanxi 2026-11-22): the same people who may create events,
+ * and only while they are a current officer (the reducer already makes former and incoming officers read-only).
+ */
+export const canChangeEvent = (s: DemoState) => canCreateEvent(s) && !s.people.some(p => p.id === s.viewerId && !isOfficer(p))
+/**
+ * The one permission line for events (S3), for "+ New event", Ask's event forms and the event date. It names who can:
+ * the president or VP, plus the officers they choose when Settings says so. Null when this viewer may.
+ */
+export function eventBlocked(s: DemoState, verb: "create" | "change"): string | null {
+  if (s.people.some(p => p.id === s.viewerId && !isOfficer(p))) return `Only current officers can ${verb} events.`
+  if (canCreateEvent(s)) return null
+  return (s.org.settings.eventCreators ?? "leads") === "chosen" ? `Only the president, VP and officers they choose can ${verb} events.` : `Only the president or VP can ${verb} events.`
 }
 /** Tasks are open to everyone: for yourself, or for anyone else in the club (Juanxi, 2026-10-27). */
 export function canApplyOp(s: DemoState, op: { op: string; eventId?: string | null }): boolean {
@@ -35,6 +50,8 @@ export interface HumanInputs {
   /** Chosen by the organizer, outside the AI command whitelist. The version is pinned before approval. */
   workflowTemplateId?: string
   workflowTemplateVersion?: number
+  /** New event only: the lead chosen for each organization team (team id → person id), from the New event form. Absent keeps the workflow's owners. */
+  teamLeads?: Record<string, string>
 }
 
 function eventWorkflowChoice(s: DemoState, human: HumanInputs) {
@@ -62,6 +79,11 @@ export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = 
     if (!version) return "Choose a saved workflow version before creating this event."
     const problem = workflowTemplateRunError(s, version)
     if (problem) return problem
+    if (human.teamLeads !== undefined) {
+      const draft = instantiateWorkflowTemplate(s, newEvent(s, op, "team-lead-check", human), { ...choice, runId: "team-lead-check" })
+      const leads = teamLeadsError(s, draft.nodes, human.teamLeads)
+      if (leads) return leads
+    }
   }
   if (op.op === "link_dependency") {
     const n = s.nodes.find(n => n.id === op.nodeId)!
@@ -79,18 +101,46 @@ export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = 
   return null
 }
 
+function newEvent(s: DemoState, op: Extract<CommandOp, { op: "create_event" }>, id: string, human: HumanInputs): Event {
+  const { op: _kind, ...fields } = op
+  return { ...fields, id, date: human.date!, goalId: s.org.goals[0]?.id ?? null, playbookId: "seo-event" }
+}
+
+/** The tasks a new event would get from the chosen workflow, before any team lead is applied: what the New event form shows. */
+export function draftEventNodes(s: DemoState, op: CommandOp, human: HumanInputs): Node[] {
+  if (op.op !== "create_event" || !validDate(human.date ?? "")) return []
+  const choice = eventWorkflowChoice(s, human)
+  if (!Number.isInteger(choice.templateVersion) || !findWorkflowTemplateVersion(s, choice.templateId, choice.templateVersion)) return []
+  const result = instantiateWorkflowTemplate(s, newEvent(s, op, "draft-event", human), { ...choice, runId: "draft-event" })
+  return result.error ? [] : result.nodes
+}
+
+/**
+ * What creating this event would do, for the review checklist (option B, Juanxi 2026-11-28): how many tasks, how many
+ * people get one, and the first due date. Call it only once validateReview passes. Nothing is saved.
+ */
+export function previewNewEvent(s: DemoState, op: CommandOp, human: HumanInputs): { tasks: number; people: number; firstDue: string | null } | null {
+  if (op.op !== "create_event") return null
+  const made = newObjects(s, op, "preview-event", human)
+  if (!made.events) return null
+  const nodes = applySchedule({ ...s, ...made }).nodes.filter(n => n.eventId === "preview-event" && !n.clubTask)
+  const dues = nodes.flatMap(n => n.clubDeadline ? [n.clubDeadline] : []).sort()
+  return { tasks: nodes.length, people: new Set(nodes.flatMap(n => n.ownerId ? [n.ownerId] : [])).size, firstDue: dues[0] ?? null }
+}
+
 /** New objects only; all edits to existing nodes are routed through store.updateNode. */
 export function newObjects(s: DemoState, op: CommandOp, id: string, human: HumanInputs): { events?: Event[]; nodes?: Node[] } {
   if (op.op === "create_event") {
     // Replaying the same approved request must never duplicate tasks or reset their work.
     if (s.events.some(event => event.id === id) || s.nodes.some(node => node.eventId === id)) return {}
-    const { op: _kind, ...fields } = op
-    const event: Event = { ...fields, id, date: human.date!, goalId: s.org.goals[0]?.id ?? null, playbookId: "seo-event" }
+    const event = newEvent(s, op, id, human)
     const choice = eventWorkflowChoice(s, human)
     if (!Number.isInteger(choice.templateVersion) || !findWorkflowTemplateVersion(s, choice.templateId, choice.templateVersion)) return {}
     const result = instantiateWorkflowTemplate(s, event, choice)
     if (result.error) return {}
-    return { events: [...s.events, result.event], nodes: [...s.nodes, ...result.nodes] }
+    // Team leads (option A, Juanxi 2026-11-28): only when the New event form chose them; other paths keep the workflow's owners.
+    const led = human.teamLeads === undefined ? result : withTeamLeads(s, result.event, result.nodes, human.teamLeads)
+    return { events: [...s.events, led.event], nodes: [...s.nodes, ...led.nodes] }
   }
   if (op.op === "add_node") {
     if (op.eventId) {
@@ -109,6 +159,18 @@ export function newObjects(s: DemoState, op: CommandOp, id: string, human: Human
   return {}
 }
 
+/**
+ * The optional "new task" email (Juanxi, 2026-11-28): asked once, right after the maker gives someone else a task. Only the task's
+ * maker, once, and only to another current officer who owns it. Demo: recorded, nothing leaves the app. Reminders never see it.
+ */
+export function sendTaskEmail(s: DemoState, nodeId: string): DemoState {
+  const node = s.nodes.find(n => n.id === nodeId)
+  const made = s.changeSets.some(c => c.by === s.viewerId && !c.undone && c.createdIds?.includes(nodeId))
+  const to = s.people.find(p => p.id === node?.ownerId && isOfficer(p))
+  if (!node || !made || !to || to.id === s.viewerId || (s.taskEmails ?? []).some(e => e.nodeId === nodeId)) return s
+  return { ...s, taskEmails: [...(s.taskEmails ?? []), { id: `mail:${nodeId}`, nodeId, toId: to.id, fromId: s.viewerId, sentOn: s.today }] }
+}
+
 /** The notice the new owner gets when someone else gives them a task. */
 export function assignedNotice(s: DemoState, node: Node): DemoState {
   if (!node.ownerId || node.ownerId === s.viewerId) return s
@@ -116,7 +178,12 @@ export function assignedNotice(s: DemoState, node: Node): DemoState {
   return addNotices(s, node.id, [node.ownerId], "info", `${who} gave you a new task: “${node.title}”. Claim it when you're ready.`, `assigned:${node.id}`)
 }
 
-export interface NewTask { title: string; ownerId: string | null; eventId: string | null; tier?: Tier }
+/**
+ * `link`: a club task linked to an upcoming event, with the branch place the Tasks page worked out (src/data/clubTasks.ts, kept
+ * out of the startup bundle); `eventId` stays null for club tasks.
+ */
+export interface TaskLink { eventId: string; branchId: string; order: number; teamId?: string }
+export interface NewTask { title: string; ownerId: string | null; eventId: string | null; tier?: Tier; link?: TaskLink }
 /**
  * The Ask task form and the Tasks page form (M2b, FB-5): one task per owner, applied at once as the viewer, with Undo.
  * Anyone may create tasks for themselves or for anyone else (Juanxi, 2026-10-27); someone else's waits in Not claimed
@@ -126,7 +193,12 @@ export interface NewTask { title: string; ownerId: string | null; eventId: strin
 export function createTasks(s: DemoState, a: { id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }): DemoState {
   if (s.changeSets.some(c => c.id === a.id) || !a.tasks.length || a.tasks.length > 10) return s
   if (a.tasks.some(task => task.eventId !== null)) return s
+  // A linked club task needs an event still ahead and a due date before its event day (clubTasks.ts linkError says why to the user).
+  // A malformed branch place is harmless: placementOf (engine/workflowBranches.ts) shows it as an unrecognized branch.
+  if (a.tasks.some(({ link }) => link && !(s.events.some(e => e.id === link.eventId && e.date > s.today && a.date < e.date)))) return s
   const lead = canLead(s)
+  // Only the president or VP may put a task into an event's flow (Juanxi 2026-11-28), as with the event's own steps.
+  if (!lead && a.tasks.some(task => task.link)) return s
   // Only a lead can post a task nobody owns yet; anyone else's task without an owner is their own.
   const raw = a.tasks.map(t => ({ op: "add_node", title: t.title, eventId: t.eventId, ownerId: t.ownerId ?? (lead ? null : s.viewerId), tier: t.tier ?? "light" }))
   const ops = sanitizeOps(raw, commandContext(s)).filter((o): o is Extract<CommandOp, { op: "add_node" }> => o.op === "add_node")
@@ -140,9 +212,42 @@ export function createTasks(s: DemoState, a: { id: string; sentence: string; tas
     // M2b (AGENTS.md rule 3): a task given to someone else is theirs only once they accept it, so it waits in
     // Not claimed with them as owner until they press "I've got it" (claimTask). Your own task is To do at once.
     if (op.ownerId && op.ownerId !== s.viewerId) next = { ...next, nodes: next.nodes.map(n => n.id === id ? { ...n, status: "unclaimed", acceptedOn: null } : n) }
+    const link = a.tasks[i].link
+    // Linked club task: the event's flow shows it at the end of its owner's branch; its dates stay its own (engine/schedule.ts).
+    if (link) next = { ...next, nodes: next.nodes.map(n => n.id === id ? { ...n, eventId: link.eventId, clubTask: true, phase: "prepare", placement: { branchId: link.branchId, order: link.order }, ...(link.teamId ? { teamId: link.teamId } : {}) } : n) }
     next = assignedNotice(next, next.nodes.find(n => n.id === id)!)
     createdIds.push(id)
   })
   const record: ChangeSet = { id: a.id, sentence: a.sentence, ops, status: "applied", reviews: ops.map(() => "applied"), source: a.source, auto: true, by: s.viewerId, before: { nodes: [], contacts: [] }, createdIds }
   return applySchedule({ ...next, changeSets: [...next.changeSets, record] })
+}
+
+/**
+ * Undo on the New event form's "created" card (Option A, Juanxi 2026-11-28). Removes every event this change set created,
+ * with the event's own tasks, the notices about them and any funding record started for it, and marks the set undone.
+ * Allowed for whoever created it or a lead. A club task someone linked to the event stays, unlinked, because it is theirs.
+ */
+export function undoCreatedEvent(s: DemoState, id: string): DemoState {
+  const change = s.changeSets.find(c => c.id === id)
+  if (!change || change.undone || (change.by !== s.viewerId && !canLead(s))) return s
+  const eventIds = new Set(change.ops.flatMap((op, i) => op.op === "create_event" && change.reviews?.[i] === "applied" ? [`${change.id}:${i}`] : []))
+  if (![...eventIds].some(eventId => s.events.some(e => e.id === eventId))) return s
+  const removed = new Set(s.nodes.filter(n => n.eventId && eventIds.has(n.eventId) && !n.clubTask).map(n => n.id))
+  const nodes = s.nodes.filter(n => !removed.has(n.id)).map(n => {
+    let next = n.dependsOn.some(d => removed.has(d)) ? { ...n, dependsOn: n.dependsOn.filter(d => !removed.has(d)) } : n
+    if (next.clubTask && next.eventId && eventIds.has(next.eventId)) {
+      const { placement: _placement, ...rest } = next
+      void _placement
+      next = { ...rest, eventId: null }
+    }
+    return next
+  })
+  return applySchedule({
+    ...s,
+    events: s.events.filter(e => !eventIds.has(e.id)),
+    nodes,
+    notifications: s.notifications.filter(n => !removed.has(n.nodeId)),
+    funding: s.funding.filter(f => !eventIds.has(f.eventId)),
+    changeSets: s.changeSets.map(c => c.id === change.id ? { ...c, undone: true } : c),
+  })
 }

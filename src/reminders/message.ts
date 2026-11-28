@@ -1,13 +1,17 @@
 import type { DemoState } from "../data/types"
 import type { ReminderMailSnapshot } from "./accessContracts"
 import { buildReminderMail } from "./mail"
-import { buildReminderFacts, buildReminderInput, reminderPeople } from "./facts"
+import { buildReminderFacts, buildReminderInput, reminderPeople, reminderSenderName } from "./facts"
+import type { ReminderDelivery } from "./contracts"
 import { planReminders } from "./engine"
 import { isReminderRuntime } from "./runtime"
 import { legacyTaskAccessUrl, legacyTaskPlanUrl, taskAccessUrl, usableTaskAccessGrant } from "./taskAccess"
 
-/** Validate a reviewed message against the latest facts and a registered, assignment-scoped task entry. */
-export function validatedReminderMessage(s: DemoState, raw: ReminderMailSnapshot, nodeId: string, candidateId?: string): ReminderMailSnapshot | null {
+/**
+ * Validate a reviewed message against the latest facts and a registered, assignment-scoped task entry. `via` decides the
+ * sign-off (reminderSenderName): a lead-prepared message (the default) is signed by the viewing lead, an automatic one is not.
+ */
+export function validatedReminderMessage(s: DemoState, raw: ReminderMailSnapshot, nodeId: string, candidateId?: string, via?: ReminderDelivery["via"]): ReminderMailSnapshot | null {
   if (!raw || raw.preparedOn !== s.today || !["email", "sms", "whatsapp"].includes(raw.channel) || !raw.checked) return null
   try {
     const url = new URL(raw.taskUrl)
@@ -27,7 +31,7 @@ export function validatedReminderMessage(s: DemoState, raw: ReminderMailSnapshot
     if (!candidate && grant.scope !== "owner") return null
     const request = grant.waitingRequestId ? s.reminderRuntime?.waitingRequests.find(r => r.id === grant.waitingRequestId) : undefined
     if ((request || s.org.settings.reminderMode === "auto_email" || s.org.settings.reminderMode === "review_then_auto") && (raw.channel !== "email" || !raw.intendedEmail)) return null
-    const expected = buildReminderMail({ today: s.today, facts, recipient, taskUrl: raw.taskUrl, candidate, request, requesterName: people.find(p => p.id === facts.ownerId)?.name })
+    const expected = buildReminderMail({ today: s.today, facts, recipient, taskUrl: raw.taskUrl, candidate, request, requesterName: people.find(p => p.id === facts.ownerId)?.name, senderName: reminderSenderName(s, via) })
     if (!expected.checked || Object.entries(expected).some(([key, value]) => raw[key as keyof typeof raw] !== value)) return null
     return { ...expected, channel: raw.channel, preparedOn: raw.preparedOn, accessId: raw.accessId }
   } catch { return null }

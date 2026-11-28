@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import nudgeFn from "../../netlify/functions/nudge-draft.mts"
 import { AIR_MIN_OUTPUT_TOKENS, airMinOutputTokens, chatJSON } from "../../netlify/lib/ai.mts"
 import { resetRateLimit } from "../../netlify/lib/http.mts"
 
@@ -21,7 +20,6 @@ const completion = (content: string, finish = "stop", usage: Record<string, unkn
   new Response(JSON.stringify({ model: "muse-glimmer-30b", choices: [{ finish_reason: finish, message: { content } }], usage }))
 const bodies = (send: { mock: { calls: unknown[][] } }) => send.mock.calls.map(c => JSON.parse(String((c[1] as RequestInit).body)))
 const usageLines = (log: { mock: { calls: unknown[][] } }) => log.mock.calls.map(c => String(c[0])).filter(t => t.includes('"ai_usage"'))
-const post = (body: unknown) => new Request("https://example.org/api/nudge/draft", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) })
 
 let log: ReturnType<typeof vi.spyOn>
 beforeEach(() => { resetRateLimit(); log = vi.spyOn(console, "log").mockImplementation(() => {}) })
@@ -144,17 +142,5 @@ describe("FB-1 · output allowance", () => {
     expect(row.maxTokens).toBe(1024)
     expect(row).not.toHaveProperty("retry")
     expect(row).not.toHaveProperty("reasoningTokens")
-  })
-
-  it("/api/nudge/draft: the production failure (cut off at the small allowance) now ends in the AI line", async () => {
-    configure()
-    const send = vi.fn()
-      .mockResolvedValueOnce(completion('{"whyItMatters":"We', "length"))
-      .mockResolvedValueOnce(completion('{"whyItMatters":"We help founders meet each other."}'))
-    vi.stubGlobal("fetch", send)
-    const res = await nudgeFn(post({ node: { id: "t-flyer", title: "Design the save-the-date" }, mission: "Help founders meet", today: "2026-10-22" }))
-    expect(res.status).toBe(200)
-    expect(await res.json()).toMatchObject({ whyItMatters: "We help founders meet each other." })
-    expect(bodies(send).map(b => b.max_tokens)).toEqual([1024, 2048])
   })
 })

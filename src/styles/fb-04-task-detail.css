@@ -16,9 +16,8 @@
 .td-zone h3 { margin: 0; font-size: var(--fs-base); }
 .td-zone .task-quick-links { padding-top: 0; border-top: 0; }
 .td-primary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s4) var(--s5); }
-.td-primary .btn-primary { min-height: 40px; padding-inline: var(--s6); font-weight: 600; }
+.td-primary .btn-primary { font-weight: 600; }
 .td-secondary { display: flex; flex-wrap: wrap; gap: var(--s4); }
-.td-secondary .btn { padding-inline: var(--s4); }
 .td-secondary .btn.is-suggested { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
 
 /* 3. Notices only when there are any (the shared .issues list). */
@@ -35,4 +34,4 @@
 
 /* Link buttons in "Where to submit": DX-04's touch rule for `a.small` (inline-block, negative margin) would leave their text at
    the top of a 44px box and let wrapped rows touch. Keep them flex-centred like every other button. */
-.td-zone .task-quick-links a.btn { display: inline-flex; margin-block: 0; padding-block: var(--s3); }
+.td-zone .task-quick-links a.btn { display: inline-flex; margin-block: 0; }

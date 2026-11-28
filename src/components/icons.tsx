@@ -1,6 +1,8 @@
 /** Line icons (24px grid, stroke = currentColor). */
 const P = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const }
 const svg = (d: JSX.Element) => <svg viewBox="0 0 24 24" aria-hidden="true" {...P}>{d}</svg>
+/** A one-path icon: the cheapest form in the entry bundle, so new icons use one short path. */
+const p = (d: string) => svg(<path d={d} />)
 
 export const Icons = {
   // FB-8: the reminder centre (an alarm clock, so it is not mistaken for the notification bell) and the "More" group.
@@ -11,11 +13,19 @@ export const Icons = {
   tasks: svg(<><rect x="4" y="4" width="16" height="16" rx="3" /><path d="M8 12l3 3 5-6" /></>),
   team: svg(<><circle cx="9" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M15 20c0-2 1-4 4-4 1.5 0 2 .4 2 .4" /></>),
   funding: svg(<><rect x="3" y="6" width="18" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /><path d="M6 9v.01M18 15v.01" /></>),
+  playbook: svg(<><path d="M5 4h11a3 3 0 013 3v13H8a3 3 0 01-3-3z" /><path d="M5 17a3 3 0 013-3h11" /><path d="M9 8h6" /></>),
   handoff: svg(<><path d="M4 12h11" /><path d="M11 7l5 5-5 5" /><path d="M20 4v16" /></>),
   partners: svg(<><path d="M8 12l-2 2a2.8 2.8 0 104 4l2-2" /><path d="M16 12l2-2a2.8 2.8 0 10-4-4l-2 2" /><path d="M9 15l6-6" /></>),
   rules: svg(<><path d="M6 3h9l3 3v15H6z" /><path d="M9 10h6M9 14h6M9 18h4" /></>),
   settings: svg(<><circle cx="12" cy="12" r="3" /><path d="M19 12a7 7 0 00-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 00-2.1-1.2L14 3h-4l-.5 2.7a7 7 0 00-2.1 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 005 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 002.1 1.2L10 21h4l.5-2.7a7 7 0 002.1-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z" /></>),
   help: svg(<><circle cx="12" cy="12" r="9" /><path d="M9.5 9.5a2.5 2.5 0 114 2c-1 .6-1.5 1.2-1.5 2.5M12 17v.01" /></>),
+  // The reminder page (2026-11-28): today's emails, Fix first, its problems, and a sent email. Always beside a text label.
+  mail: p("M4 5h16v14H4zM4 7l8 6 8-6"),
+  alert: p("M12 3l10 18H2zM12 10v4M12 17v.01"),
+  wait: p("M6 3h12M6 21h12M7 3l5 9-5 9M17 3l-5 9 5 9"),
+  stuck: p("M12 3a9 9 0 110 18 9 9 0 010-18zM6 6l12 12"),
+  person: p("M8 7a4 4 0 108 0 4 4 0 00-8 0M4 21a8 8 0 0116 0"),
+  check: p("M5 12l5 5 9-10"),
 }
 
 export function Logo() {

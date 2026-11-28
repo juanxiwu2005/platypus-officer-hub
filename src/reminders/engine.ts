@@ -1,5 +1,5 @@
 import { addDays, daysBetween } from "../lib/dates"
-import { allowedReminderVia, compareReminders, deliveryEmailKey, DIGEST_TASK_CAP, expectedInputOn, FOLLOWUP_DAYS, importantDelivery, importantReminder, isMilestone } from "./policy"
+import { allowedReminderVia, compareReminders, deliveryEmailKey, DIGEST_TASK_CAP, expectedInputOn, FOLLOWUP_DAYS, importantDelivery, importantReminder, isMilestone, PERSON_WEEKLY_EMAIL_LIMIT } from "./policy"
 import type { ReminderMailSnapshot } from "./accessContracts"
 import type {
   BlockedReminder, ReminderCandidate, ReminderDelivery, ReminderInput, ReminderPerson, ReminderPlan,
@@ -133,7 +133,7 @@ function emailLimitReason(input: ReminderInput, recipientId: string, important: 
     emails.set(key, { important: !!prior?.important || importantDelivery(delivery), today: !!prior?.today || delivery.sentOn === input.today })
   }
   const week = [...emails.values()]
-  if (week.length >= 6) return "weekly_limit"
+  if (week.length >= PERSON_WEEKLY_EMAIL_LIMIT) return "weekly_limit"
   if (!important && week.filter(email => !email.important).length >= 4) return "weekly_reserved"
   const day = week.filter(email => email.today)
   if (day.length >= 2) return "daily_limit"

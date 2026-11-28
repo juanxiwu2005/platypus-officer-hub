@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type MutableRefObject, type ReactNode } from "react"
+import { useCallback, useEffect, useRef, useState, type MutableRefObject } from "react"
 import { useStore } from "../../data/store"
 import type { StepTemplate, WorkflowBranch, WorkflowTemplate, WorkflowTemplateDraft, WorkflowMilestoneGraph, DemoState } from "../../data/types"
 import { getWorkflowTemplates, originalWorkflowPreset, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplatePublishError } from "../../data/workflowTemplates"
@@ -6,7 +6,6 @@ import { WorkflowBuilder } from "../workflowBuilder/WorkflowBuilder"
 import { createWorkflowMilestoneGraph } from "../../engine/workflowMilestones"
 import { presetWorkflowStepTeams } from "../../data/workflowTeamDefaults"
 import { useRail } from "../rail/RailContext"
-import { WorkflowTeams } from "./WorkflowTeams"
 import { MenuButton } from "./MenuButton"
 import { ConfirmDialog } from "./ConfirmDialog"
 import "./workflowLibrary.css"
@@ -17,7 +16,8 @@ const rawDraftOf = (template: WorkflowTemplate): WorkflowTemplateDraft => {
   return { name: version.name, description: version.description, kind: version.kind, teamExecution: version.teamExecution, steps: structuredClone(version.steps), branches: structuredClone(version.branches), teamMap: structuredClone(version.teamMap), milestoneGraph: structuredClone(version.milestoneGraph), baseVersion: version.version }
 }
 
-const draftOf = (template: WorkflowTemplate, state: DemoState): WorkflowTemplateDraft => {
+/** What Settings edits and draws for a template; the template-run chart test compares activities with it. */
+export const draftOf = (template: WorkflowTemplate, state: DemoState): WorkflowTemplateDraft => {
   const draft = rawDraftOf(template)
   const stepTeams = draft.kind === "standard" ? presetWorkflowStepTeams(state, draft.steps, draft.teamMap?.stepTeams) : draft.teamMap?.stepTeams ?? {}
   return { ...draft, teamExecution: "dependencies", steps: draft.steps, milestoneGraph: draft.milestoneGraph ?? createWorkflowMilestoneGraph(draft.steps, stepTeams), teamMap: { version: 1, workflowId: template.id, stepTeams } }
@@ -34,7 +34,6 @@ export default function WorkflowLibrary() {
   useEffect(() => { if (rail.tab === "ask") rail.setOpen(false) }, [])
   const [selected, setSelected] = useState(state.org.defaultWorkflowTemplateId ?? STANDARD_WORKFLOW_TEMPLATE_ID)
   const flush = useRef<() => boolean>(() => true)
-  const [teamsOpen, setTeamsOpen] = useState(false)
   const [error, setError] = useState("")
   const template = templates.find(item => item.id === selected) ?? templates[0]
   const preset = templates.find(item => item.id === STANDARD_WORKFLOW_TEMPLATE_ID)
@@ -71,15 +70,17 @@ export default function WorkflowLibrary() {
       <div className="wfl-header-end"><MenuButton label="New workflow" items={[{ label: "Blank workflow", onSelect: create }, { label: "Copy of preset", onSelect: copyPreset, disabled: !preset }]} /></div>
     </header>
     {error && <p role="alert">{error}</p>}
-    {template && <TemplateEditor key={template.id} template={template} flush={flush} onDuplicate={id => setSelected(id)} teamsOpen={teamsOpen} onTeams={() => setTeamsOpen(!teamsOpen)} teams={teamsOpen && <WorkflowTeams onClose={() => setTeamsOpen(false)} />} />}
+    {template && <TemplateEditor key={template.id} template={template} flush={flush} onDuplicate={id => setSelected(id)} />}
   </section>
 }
 
-function TemplateEditor({ template, onDuplicate, flush, teamsOpen, onTeams, teams }: { template: WorkflowTemplate; onDuplicate: (id: string) => void; flush: MutableRefObject<() => boolean>; teamsOpen: boolean; onTeams: () => void; teams: ReactNode }) {
+function TemplateEditor({ template, onDuplicate, flush }: { template: WorkflowTemplate; onDuplicate: (id: string) => void; flush: MutableRefObject<() => boolean> }) {
   const { state, tryDispatch, persistenceFailed, getState } = useStore()
   const [draft, setDraft] = useState(() => draftOf(template, state))
   const [status, setStatus] = useState("")
   const [error, setError] = useState("")
+  // A failed autosave offers Retry saving next to the message (drafts save themselves; there is no Save draft button).
+  const [saveFailed, setSaveFailed] = useState(false)
   // Bumped when the draft is reloaded from the store, so the builder starts with a fresh Undo history.
   const [revision, setRevision] = useState(0)
   const [confirming, setConfirming] = useState<"discard" | "restore" | null>(null)
@@ -92,9 +93,9 @@ function TemplateEditor({ template, onDuplicate, flush, teamsOpen, onTeams, team
     const fresh = getWorkflowTemplates(getState()).find(item => item.id === template.id)
     if (fresh && JSON.stringify(value) === JSON.stringify(rawDraftOf(fresh))) return true
     if (reloaded.current !== null && JSON.stringify(value) === reloaded.current) return true
-    if (!tryDispatch({ type: "saveWorkflowTemplateDraft", id: template.id, draft: value })) { setError("Could not save. Your draft is kept here. Try Save draft."); return false }
+    if (!tryDispatch({ type: "saveWorkflowTemplateDraft", id: template.id, draft: value })) { setError("Could not save. Your draft is kept here."); setSaveFailed(true); return false }
     reloaded.current = null
-    setStatus("Draft saved"); setError(""); return true
+    setStatus("Draft saved"); setError(""); setSaveFailed(false); return true
   }
   flush.current = save
   const lastSave = useRef(save)
@@ -106,7 +107,7 @@ function TemplateEditor({ template, onDuplicate, flush, teamsOpen, onTeams, team
     return () => clearTimeout(timer)
   }, [JSON.stringify(draft), pending])
   // Save the latest controlled draft before switching templates or leaving Settings.
-  // A failed save stays visible; the explicit Save draft action can retry.
+  // A failed save stays visible, with Retry saving.
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => { if (pending || persistenceFailed) { event.preventDefault(); event.returnValue = "" } }
     window.addEventListener("beforeunload", warn)
@@ -181,20 +182,18 @@ function TemplateEditor({ template, onDuplicate, flush, teamsOpen, onTeams, team
       <label className="wfl-name"><span className="sr-only">Workflow name</span><input value={draft.name} placeholder="Untitled workflow" maxLength={80} onChange={e => setDraft({ ...draft, name: e.target.value })} /></label>
       <p className="small muted wfl-autosave" role="status">{persistenceFailed ? "Saving failed. Keep this page open and retry." : pending ? "Saving draft…" : status}</p>
       <div className="wfl-actions">
-        <button type="button" className="btn small" onClick={() => save()}>Save draft</button>
         <button type="button" className="btn small btn-primary" onClick={saveVersion}>Save version</button>
-        <MenuButton label="More" items={[
+        {/* Version and template controls, behind one menu. Save version (publishing) stays a button. */}
+        <MenuButton label="Versions" items={[
           { label: "Duplicate workflow", onSelect: duplicate },
           { label: "Use by default", onSelect: useByDefault, disabled: !latest || isDefault, hint: !latest ? "Save a version first." : isDefault ? "Already the default." : undefined },
           ...(state.org.workflowTeams?.length ? [{ label: "Apply role teams", onSelect: groupRoles }] : []),
-          { label: teamsOpen ? "Hide teams" : "Teams", onSelect: onTeams },
           { label: "Discard draft", onSelect: () => setConfirming("discard"), disabled: !canDiscard, hint: !latest ? "Save a version first." : !canDiscard ? "There is no draft to discard." : `Go back to Version ${latest.version}.` },
           ...(template.id === STANDARD_WORKFLOW_TEMPLATE_ID ? [{ label: "Restore Platypus preset", onSelect: () => setConfirming("restore"), hint: "Replace the draft with the original preset." }] : []),
         ]} />
       </div>
     </div>
-    {teams}
-    {error && <p role="alert">{error}</p>}
+    {error && <p role="alert">{error}{saveFailed && <> <button type="button" className="link" onClick={() => save()}>Retry saving</button></>}</p>}
     {confirming === "discard" && latest && <ConfirmDialog title="Discard draft" message={`Discard this draft? The editor goes back to Version ${latest.version}. Saved versions and activities are not changed.`} confirmLabel="Discard draft" onConfirm={discardDraft} onCancel={() => setConfirming(null)} />}
     {confirming === "restore" && <ConfirmDialog title="Restore preset" message="Restore the original Platypus preset? This replaces the current draft. Saved versions and activities are not changed. Save version to keep it." confirmLabel="Restore preset" onConfirm={restorePreset} onCancel={() => setConfirming(null)} />}
     <WorkflowBuilder key={revision} state={state} steps={draft.steps} branches={draft.branches} stepTeams={draft.teamMap?.stepTeams ?? {}} teams={state.org.workflowTeams ?? []} policy={draft.kind} graph={draft.milestoneGraph} onChange={update} />

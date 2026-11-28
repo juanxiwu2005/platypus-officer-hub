@@ -3,21 +3,17 @@ import { WORKFLOW_DONE, WORKFLOW_START } from "../../engine/workflowMilestones"
 
 export type LaneBranch = WorkflowMilestoneGraph["teamBranches"][number]
 export type LaneSide = "above" | "below"
-export type LanePhaseId = "plan" | "prepare" | "event" | "close"
 export interface LaneStation { id: string; title: string; kind: "endpoint" | "day" | "task"; x: number; y: number; step?: StepTemplate; dayIndex?: number }
 /** `row` is the wrapped dot row inside its lane (0 unless the branch has more than LANE_MAX steps). */
 export interface LanePoint { step: StepTemplate; branchId: string; x: number; y: number; row: number; col: number; index: number }
 export interface Lane { branch: LaneBranch; side: LaneSide; stack: number; x: number; y: number; width: number; height: number; rows: number; points: LanePoint[]; path: string }
-export interface LanePhase { id: LanePhaseId; label: string; x0: number; x1: number }
-export interface LaneLayout { width: number; height: number; mainY: number; stations: LaneStation[]; lanes: Lane[]; points: LanePoint[]; phases: LanePhase[]; unplaced: StepTemplate[] }
+export interface LaneLayout { width: number; height: number; mainY: number; stations: LaneStation[]; lanes: Lane[]; points: LanePoint[]; unplaced: StepTemplate[] }
 export interface LaneDropTarget { branchId: string; targetId?: string; before?: boolean }
 
 /** A branch stays on one horizontal row up to this many steps; only longer branches wrap. */
 export const LANE_MAX = 10
 export const COL = 108
 export const EDGE = 44
-/** Height reserved at the top of the layout for the sticky phase header. */
-export const PHASE_HEADER = 40
 export const LANE_HEIGHT = 112
 export const LANE_GAP = 16
 /** Distance from a lane card's top to its first dot centre, and between wrapped dot rows. */
@@ -84,7 +80,7 @@ export function buildLaneLayout(steps: readonly StepTemplate[], graph: WorkflowM
     return { ...item, rows, height, side, stack: index }
   })
   const aboveHeight = stackHeight(sides.above), belowHeight = stackHeight(sides.below)
-  const mainY = PHASE_HEADER + TOP_PAD + aboveHeight + ABOVE_CLEARANCE
+  const mainY = TOP_PAD + aboveHeight + ABOVE_CLEARANCE
   const height = mainY + BELOW_CLEARANCE + belowHeight + BOTTOM_PAD
 
   const stations: LaneStation[] = graph.spine.flatMap(id => {
@@ -107,7 +103,7 @@ export function buildLaneLayout(steps: readonly StepTemplate[], graph: WorkflowM
     return { branch, side, stack, x: round(x), y, width: round(laneWidth), height: own, rows, points, path: lanePath(from, to, mainY, y + LANE_DOT_Y, rows, round(x + CURVE_IN), round(x + laneWidth - CURVE_IN)) }
   })
   const points = lanes.flatMap(lane => lane.points)
-  return { width, height, mainY, stations, lanes, points, phases: lanePhases(graph, positions, lanes, width), unplaced: steps.filter(step => !placed.has(step.key)) }
+  return { width, height, mainY, stations, lanes, points, unplaced: steps.filter(step => !placed.has(step.key)) }
 }
 
 /** Horizontal tangents at both ends make each branch leave and rejoin the main line smoothly. */
@@ -126,30 +122,6 @@ function lanePath(from: number, to: number, mainY: number, rowY: number, rows: n
     exitY = returnY
   }
   return `${path} C${round(right + bend)} ${exitY} ${round(to - bend)} ${mainY} ${to} ${mainY}`
-}
-
-function lanePhases(graph: WorkflowMilestoneGraph, positions: Map<string, number>, lanes: Lane[], width: number): LanePhase[] {
-  const spine = graph.spine, x = (index: number) => positions.get(spine[index]) ?? 0
-  const startX = x(0), doneX = x(spine.length - 1)
-  const dayIndices = graph.eventDays.map(day => spine.indexOf(day.id)).filter(index => index >= 0).sort((a, b) => a - b)
-  if (!dayIndices.length) return [{ id: "prepare", label: "Prepare", x0: startX, x1: doneX || width }]
-  const first = dayIndices[0], last = dayIndices.at(-1)!
-  const eventX0 = round((x(first) + x(Math.max(0, first - 1))) / 2), eventX1 = round((x(last) + x(Math.min(spine.length - 1, last + 1))) / 2)
-  const phases: LanePhase[] = []
-  let planEnd = -Infinity
-  for (const lane of lanes) {
-    if (spine.indexOf(lane.branch.toId) > first) continue
-    const leading = lane.points.filter(point => point.row === 0)
-    let lastPlan: LanePoint | undefined
-    for (const point of leading) { if (point.step.phase !== "plan") break; lastPlan = point }
-    if (lastPlan) planEnd = Math.max(planEnd, lastPlan.x + COL / 2)
-  }
-  if (planEnd > startX && planEnd < eventX0) phases.push({ id: "plan", label: "Plan", x0: startX, x1: round(planEnd) })
-  const prepareStart = phases.length ? phases[0].x1 : startX
-  if (eventX0 > prepareStart) phases.push({ id: "prepare", label: "Prepare", x0: prepareStart, x1: eventX0 })
-  phases.push({ id: "event", label: dayIndices.length > 1 ? "Event days" : "Event day", x0: eventX0, x1: eventX1 })
-  if (doneX > eventX1) phases.push({ id: "close", label: "Close", x0: eventX1, x1: doneX })
-  return phases
 }
 
 /** Accept an empty lane as well as a populated one; shared spine nodes stay on the main line. */

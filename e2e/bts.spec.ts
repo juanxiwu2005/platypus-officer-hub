@@ -44,7 +44,7 @@ test("the switch turns on and off, keeps its state after a reload, and removes t
   expect(await setting(page)).toBe("1")
   await closeRail(page)
   await expect(page.locator(".bts").first()).toBeVisible()
-  await expect(page.getByTestId("reminder-centre")).toContainText("Checks use the rule engine's latest start and Task due; a final check is 3 days overdue. One email per person per day.")
+  await expect(page.getByTestId("reminder-centre")).toContainText("Checks use each task's Start by and Due dates; a final check is 3 days overdue. One email per person per day.")
   await page.reload()
   await page.waitForTimeout(300)
   await expect(page.locator(".bts").first()).toBeVisible()
@@ -65,18 +65,13 @@ test("when on: dates show where they come from on Reminders, Events and Tasks", 
   // FB-8: the home page is the reminder centre; its send days and Due come from the rule engine (the Events strip moved off home).
   // Concept F: the people list keeps the rule engine's order, and the page note says which dates the checks use.
   await expect(page.getByTestId("rq-people").locator(".bts")).toContainText("Rule engine")
-  await expect(page.getByTestId("rq-people").locator(".bts")).toContainText("Tasks keep the rule engine's order: overdue, due, past due, then starts and follow-ups.")
-  await expect(page.getByTestId("reminder-centre").locator(".bts").first()).toContainText("latest start and Task due")
+  await expect(page.getByTestId("rq-people").locator(".bts")).toContainText("Order: overdue, due, other late tasks, then starts and follow-ups.")
+  await expect(page.getByTestId("reminder-centre").locator(".bts").first()).toContainText("Start by and Due dates")
   await page.goto("/#/events")
   await expect(page.locator("main .bts").first()).toBeVisible()
-  await page.getByTestId("view-list").click()
-  const list = page.getByTestId("event-list")
-  // FB-4: the List view's notes explain the one Due (with the ASU sentence where a rule sets one) and when the reminder goes out.
-  await expect(list.locator(".bts").filter({ hasText: "Due" }).first()).toBeVisible()
-  await expect(list.locator(".bts").filter({ hasText: "ASU needs this by" }).first()).toBeVisible()
-  await expect(list.locator(".bts").filter({ hasText: "Reminder goes out" }).first()).toBeVisible()
+  // S3 removed the List view, and with it the per-step Due and reminder notes; the event's own notes stay.
+  await expect(page.locator("main .bts").filter({ hasText: "Rule engine" }).first()).toBeVisible()
   await page.goto("/#/tasks")
-  await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.getByTestId("my-tasks").locator(".bts").first()).toBeVisible()
   // Turning it off again leaves the pages as they were.
   await openDemoMenu(page)
@@ -110,8 +105,9 @@ test("when on: the new-task form explains its one date and the plan check says w
   await expect(form.locator(".bts").filter({ hasText: "one date" }).first()).toBeVisible()
   await expect(form.locator(".bts").filter({ hasText: "never supplies a date" })).toBeVisible()
   await ask(page, "Plan Founders Welcome Dinner on Nov 19, 30 people, outside caterer, USG funding")
-  await page.getByTestId("plan-form").getByRole("button", { name: "Continue" }).click()
-  await page.getByTestId("change-item").getByRole("button", { name: "Apply this change" }).click()
+  await page.getByTestId("plan-form").getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect(page.getByTestId("flow-chart")).toBeVisible()
   await openAsk(page) // Navigation closes the side panel on phones; reopen it to read the plan check.
   const review = page.getByTestId("event-review")
@@ -123,7 +119,6 @@ for (const path of ["/", "/events", "/tasks"]) test(`no accessibility violations
   await page.goto(`/#${path}`)
   await page.waitForTimeout(400)
   await closeRail(page)
-  if (path === "/tasks") await page.getByRole("button", { name: "Table", exact: true }).click()
   await expect(page.locator(".bts").first()).toBeVisible()
   const res = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze()
   expect(res.violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).slice(0, 3).join(" ; ")}`)).toEqual([])

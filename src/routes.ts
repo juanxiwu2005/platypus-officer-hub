@@ -4,37 +4,53 @@ export interface PageDef {
   path: string
   /** The navigation label. */
   label: string
-  /** The page head, when it differs from the label (FB-8: the Plan item opens the Events page). */
+  /** The page head, when it differs from the label (FB-8: Plan's Events half is headed "Events"). */
   title?: string
   icon: keyof typeof Icons
   /** The one question the page answers (plan §6). */
   question: string
   /**
-   * main = the side navigation; more = inside the collapsible "More" (FB-8); footer = Settings and Help at the bottom;
+   * main = the side navigation; more = inside the collapsible "More" (FB-8); footer = Settings at the bottom;
    * plan = reached from Plan's "Events | Tasks" switch, not a navigation item of its own.
+   * sub = reached from another page (the handoff workspace is opened from Playbook during Playbook phase 1).
    */
-  group: "main" | "more" | "footer" | "plan"
+  group: "main" | "more" | "footer" | "plan" | "sub"
   /** Other paths that make this item the current one (FB-8: Plan is current on /tasks too). */
   also?: string[]
 }
 
 /**
  * Navigation (FB-8, docs/feedback-fix/PLAN.md §12.2): the product does two things, reminding officers and handing a role over,
- * Team is a primary item. Partners is temporarily archived (src/archive/partners); Settings and Help stay at the bottom.
+ * Team is a primary item. Partners (src/archive/partners) and Help (src/archive/help) are archived; Settings stays at the bottom.
  */
 export const PAGES: PageDef[] = [
   { path: "/", label: "Reminders", icon: "reminders", question: "Who needs a reminder, and who hasn't answered?", group: "main" },
   { path: "/events", label: "Plan", title: "Events", icon: "events", question: "What has to happen, and who owns it?", group: "main", also: ["/tasks"] },
   { path: "/team", label: "Team", icon: "team", question: "Who is overloaded, who deserves credit, and when can we meet?", group: "main" },
-  { path: "/handoff", label: "Handoff", icon: "handoff", question: "How do we hand over without starting from zero?", group: "main" },
+  { path: "/playbook", label: "Playbook", icon: "playbook", question: "What has this club learned, and what does the school require?", group: "main", also: ["/handoff"] },
+  { path: "/handoff", label: "Handoff", icon: "handoff", question: "How do we hand over without starting from zero?", group: "sub" },
   { path: "/rules", label: "Rules", icon: "rules", question: "What does ASU require?", group: "main" },
   { path: "/tasks", label: "Tasks", icon: "tasks", question: "What has to happen, and who owns it?", group: "plan" },
   { path: "/settings", label: "Settings", icon: "settings", question: "How should Platypus work for this club?", group: "footer" },
-  { path: "/help", label: "Help", icon: "help", question: "How does Platypus work?", group: "footer" },
 ]
 
 /** Plan's two pages, in the order of the "Events | Tasks" switch. */
 export const PLAN_PAGES = [{ path: "/events", label: "Events" }, { path: "/tasks", label: "Tasks" }] as const
+
+const PLAN_VIEW_KEY = "platypus.v1.planView"
+/**
+ * Where the Plan navigation item opens (audit I1): the Tasks table its open-task count describes, unless this tab last
+ * chose Events on the "Events | Tasks" switch. sessionStorage only; blocked storage just means Tasks.
+ */
+export function planEntryPath(): string {
+  try { const last = sessionStorage.getItem(PLAN_VIEW_KEY); if (PLAN_PAGES.some(p => p.path === last)) return last! } catch { /* storage blocked */ }
+  return "/tasks"
+}
+/** Remember the Plan half a person is on, so Plan reopens it in this tab. */
+export function rememberPlanView(pathname: string) {
+  if (!PLAN_PAGES.some(p => p.path === pathname)) return
+  try { sessionStorage.setItem(PLAN_VIEW_KEY, pathname) } catch { /* storage blocked: Plan opens Tasks */ }
+}
 
 /** Is `item` the current navigation item at `pathname`? */
 export const isCurrent = (item: PageDef, pathname: string) => item.path === "/" ? pathname === "/" : [item.path, ...(item.also ?? [])].some(p => pathname === p || pathname.startsWith(`${p}/`))

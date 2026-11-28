@@ -4,7 +4,7 @@ import type { DemoState, Event, Node, StepTemplate, WorkflowMilestoneGraph } fro
 import { addDays } from "../src/lib/dates"
 import { computeSchedule } from "../src/engine/schedule"
 import { noOverflow } from "./helpers"
-import { openMenu } from "./workflowLegacyHelpers"
+import { openMenu, waitForDraftSave } from "./workflowLegacyHelpers"
 
 type Version = { name: string; version: number; steps: StepTemplate[]; milestoneGraph?: WorkflowMilestoneGraph; teamMap?: { stepTeams: Record<string, string> } }
 type Template = { id: string; draft?: Omit<Version, "version">; versions: Version[] }
@@ -70,10 +70,10 @@ async function createEvent(page: Page, name: string, template: Template, version
   await form.getByLabel("Date", { exact: true }).fill(addDays((await read(page)).today, dateOffset))
   const workflowName = template.versions.find(item => item.version === version)!.name
   await form.getByLabel("Workflow template", { exact: true }).selectOption({ label: `${workflowName} · v${version}` })
-  await form.getByRole("button", { name: "Continue", exact: true }).click()
-  const change = page.getByTestId("change-item").last()
-  await expect(change.getByLabel("Workflow template", { exact: true }).locator("option:checked")).toHaveText(`${workflowName} · v${version}`)
-  await change.getByRole("button", { name: "Apply this change", exact: true }).click()
+  await expect(form.getByLabel("Workflow template", { exact: true }).locator("option:checked")).toHaveText(`${workflowName} · v${version}`)
+  await form.getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect.poll(async () => (await read(page)).events.find(event => event.name === name)?.workflowRun?.templateVersion).toBe(version)
   await closeRail(page)
   return (await read(page)).events.find(event => event.name === name)!
@@ -112,7 +112,7 @@ test("five manually entered tasks save, instantiate as Plan dots and reopen afte
   expect(calls).toEqual([])
 })
 
-test("the default standard workflow still shows task dots before an organization configures teams", async ({ page }) => {
+test("the default standard workflow draws its Settings branches and main line as task dots", async ({ page }) => {
   await page.goto("/#/events")
   await closeRail(page)
   expect((await read(page)).org.workflowTeams).toHaveLength(4)
@@ -121,8 +121,9 @@ test("the default standard workflow still shows task dots before an organization
   await form.getByLabel("Event name", { exact: true }).fill("Standard workflow without team setup")
   await form.getByLabel("Date", { exact: true }).fill(addDays((await read(page)).today, 90))
   await expect(form.getByLabel("Workflow template", { exact: true }).locator("option:checked")).toHaveText("Speaker series · v1")
-  await form.getByRole("button", { name: "Continue", exact: true }).click()
-  await page.getByTestId("change-item").last().getByRole("button", { name: "Apply this change", exact: true }).click()
+  await form.getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect.poll(async () => (await read(page)).events.some(event => event.name === "Standard workflow without team setup")).toBe(true)
   await closeRail(page)
   const saved = await read(page)
@@ -131,8 +132,27 @@ test("the default standard workflow still shows task dots before an organization
   expect(tasks.length).toBeGreaterThanOrEqual(31)
   expect(tasks.every(node => node.id === `${event.id}:${node.stepKey}`)).toBe(true)
   await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(tasks.length)
-  await expect(page.getByTestId("team-execution-chart")).toHaveCount(1)
-  await expect(page.getByTestId("team-execution-lane")).toHaveCount(4)
+  // A saved-template run draws its template's Settings graph (November 28, 2026), not one row per team.
+  await expect(page.getByTestId("milestone-execution-chart")).toHaveCount(1)
+  await expect(page.getByTestId("team-execution-chart")).toHaveCount(0)
+  for (const id of ["flow-start", "flow-event-day-1", "flow-done", "flow-node-finalcheck", "flow-node-checkin", "flow-node-headcount"]) await expect(page.getByTestId(id)).toHaveCount(1)
+  await expect(page.getByTestId("milestone-execution-branch").first()).toHaveText(/^(Club leadership|Operations|Marketing|Finance) · \d+ steps?$/)
+  // Edit flow (Juanxi 2026-11-28): the Settings editor opens on this event's own copy of the workflow, every change is
+  // saved to the event, and Done editing shows it on the chart. The saved template is not changed.
+  const templates = JSON.stringify(saved.org.workflowTemplates ?? null)
+  await page.getByTestId("flow-edit-toggle").click()
+  const editor = page.getByTestId("run-flow-editor")
+  await expect(editor.getByTestId("workflow-builder")).toBeVisible()
+  await editor.getByRole("button", { name: "+ Task", exact: true }).click()
+  await expect.poll(async () => (await read(page)).nodes.filter(node => node.eventId === event.id).length).toBe(tasks.length + 1)
+  // The new task's details open in the side panel, as in Settings; on a phone that panel covers the page until closed.
+  await closeRail(page)
+  await page.getByTestId("flow-edit-toggle").click()
+  await expect(page.getByTestId("run-flow-editor")).toHaveCount(0)
+  await expect(page.getByTestId("flow-chart").locator("button.m-dot")).toHaveCount(tasks.length + 1)
+  const edited = await read(page)
+  expect(edited.nodes.filter(node => node.eventId === event.id && tasks.some(task => task.id === node.id))).toHaveLength(tasks.length)
+  expect(JSON.stringify(edited.org.workflowTemplates ?? null)).toBe(templates)
 })
 
 test("a second template version creates independent tasks without rewriting an existing activity", async ({ page }) => {
@@ -184,7 +204,7 @@ test("before and next insertion keep the selected task's team and type; Undo res
   await closeRail(page)
   await expect.poll(async () => (await templateByName(page, "Insertion trial")).draft?.steps.length).toBe(3)
   if ((page.viewportSize()?.width ?? 1280) < 1200) await expect(page.locator('[data-testid="rail"][data-state="open"]')).toHaveCount(0)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   let draft = (await templateByName(page, "Insertion trial")).draft!
   let added = draft.steps.find(step => !original.steps.some(prior => prior.key === step.key))!
   expect(added.stepKind).toBe("situation")
@@ -192,13 +212,13 @@ test("before and next insertion keep the selected task's team and type; Undo res
   expect(draft.teamMap?.stepTeams[added.key]).toBe(original.teamMap?.stepTeams[original.steps[1].key])
   expect(draft.steps.find(step => step.key === original.steps[1].key)?.dependsOn).toContain(added.key)
   await builder.getByRole("button", { name: "Undo edit", exact: true }).click()
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   expect((await templateByName(page, "Insertion trial")).draft?.steps).toHaveLength(2)
   await builder.getByRole("button", { name: `Edit ${names[1]}`, exact: true }).click()
   await expect(page.getByRole("button", { name: "Add parallel", exact: true })).toHaveCount(0)
   await page.getByRole("button", { name: "Add next", exact: true }).click()
   await closeRail(page)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   draft = (await templateByName(page, "Insertion trial")).draft!
   added = draft.steps.find(step => !original.steps.some(prior => prior.key === step.key))!
   const reference = draft.steps.find(step => step.key === original.steps[1].key)!
@@ -221,7 +241,7 @@ test("dependency connections reject loops and double-clicking an arrow leaves th
   await expect(arrow).toHaveCount(1)
   // SVG arrows intentionally have no pointer actions. Dispatch the DOM event to guard against a future delegated handler.
   await arrow.dispatchEvent("dblclick")
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   const saved = await templateByName(page, "Safe connections")
   expect((saved.draft ?? saved.versions.at(-1)!).steps).toEqual(template.versions[0].steps)
   expect(await builder.getByTestId("workflow-branch-track").count()).toBe(1)
@@ -326,7 +346,7 @@ test("changing a target in Details preserves its task identity and dependencies 
     await page.getByRole("button", { name: "Save version", exact: true }).click()
     await expect.poll(async () => (await templateByName(page, "Drag visit timeline")).versions.length).toBe(2)
     await createEvent(page, "Wide company visit", await templateByName(page, "Drag visit timeline"), 2)
-    await expect(page.getByTestId("flow-edit-toggle")).toHaveCount(0)
+    await expect(page.getByTestId("flow-edit-toggle")).toHaveText("Edit flow")
     await page.getByRole("button", { name: "Hide side panel", exact: true }).evaluateAll(buttons => buttons.forEach(button => (button as HTMLButtonElement).click()))
     await page.getByTestId("flow-chart").scrollIntoViewIfNeeded()
     await page.screenshot({ path: info.outputPath("plan-dots-1440.png"), fullPage: false })

@@ -1,5 +1,6 @@
 import type { DemoState, HandbookSource, HandbookEntry } from "../data/types"
 import { dossierOwner, dossierSources, roleTasks, taskText } from "./roleDossier"
+import { ruleSourceName } from "../data/rules"
 /**
  * Everything a handbook may quote, in this order: the outgoing officer's tasks, then the role dossier (deadlines and standing steps,
  * contacts, lessons), then the interview points. The same records for every viewer (leads-only contacts are left out), so a draft made by
@@ -35,7 +36,7 @@ export const WEEK_ONE=[
  {id:"confirm",text:"By day 3: acknowledge the role, join the team channel, confirm a buddy and where contact details belong.",source:"SEO New Officer Onboarding §0"},
  {id:"mission",text:"By day 7: align on mission, personal interests, 1–3 outcomes, available resources, expectations and the reporting rhythm; confirm the one-page trust agreement.",source:"SEO Onboarding §1"},
  {id:"systems",text:"By day 7: set up organization email, calendar and systems; find room booking, event registration, funding guidance and the file archive.",source:"SEO Onboarding §3"},
- {id:"r16",text:"Contact the advisor; complete training; read the handbook and constitution; update Sun Devil Central and bank access; calendar spring re-registration.",source:"ASU R16"},
+ {id:"r16",text:"Contact the advisor; complete training; read the handbook and constitution; update Sun Devil Central and bank access; calendar spring re-registration.",source:ruleSourceName("R16")},
  {id:"leadership",text:"Schedule all six leadership modules within the first month.",source:"SEO Onboarding §2"},
  {id:"followup",text:"Schedule the week-two check and day-30 one-to-one review.",source:"SEO Onboarding §4"},
 ]

@@ -65,8 +65,8 @@ export function WaitingContent({ node, grant, request, token, embedded = false }
     const accepted = tryDispatch({ type: "taskAccessAction", token, update: { kind, ...(kind === "acknowledge" ? { expectedOn } : {}) } })
     const runtime = getState().reminderRuntime
     const saved = isReminderRuntime(runtime) && runtime.waitingRequests.find(r => r.id === grant.waitingRequestId)
-    if (!accepted || !saved || saved.responseBy !== grant.recipientId || saved.response !== (kind === "provided" ? "provided" : "acknowledged")) { setError("Your update was not saved. Please restore browser saving or check for newer changes, then try again."); return }
-    setNotice("Your update is saved. Thank you.")
+    if (!accepted || !saved || saved.responseBy !== grant.recipientId || saved.response !== (kind === "provided" ? "provided" : "acknowledged")) { setError("Update not saved. Try again."); return }
+    setNotice("Saved.")
     heading.current?.focus()
   }
   const title = embedded ? <h2 ref={heading} tabIndex={-1}>{node.title}</h2> : <h1 id="single-task-heading" ref={heading} tabIndex={-1}>{node.title}</h1>

@@ -25,7 +25,7 @@ async function open(page: Page) {
 const dotBranches = (page: Page) => page.getByTestId("workflow-builder").locator(".wfx-task").evaluateAll(elements => Object.fromEntries(elements.map(element => [element.getAttribute("data-testid")!.replace("workflow-task-", ""), element.getAttribute("data-branch-id")!])))
 const laneIds = (page: Page) => page.locator('[data-testid^="workflow-branch-pill-"]').evaluateAll(elements => elements.map(element => element.getAttribute("data-testid")!.replace("workflow-branch-pill-", "")))
 
-test("each team branch is one row, phases run left to right and Fit shows the start station", async ({ page, isMobile }) => {
+test("each team branch is one row, there is no phase strip and Fit shows the start station", async ({ page, isMobile }) => {
   const builder = await open(page)
   const lanes = await laneIds(page)
   expect(lanes.length).toBeGreaterThan(1)
@@ -37,14 +37,8 @@ test("each team branch is one row, phases run left to right and Fit shows the st
     expect(tops[0]).toBeGreaterThan(lane.y)
     expect(tops[0]).toBeLessThan(lane.y + lane.height)
   }
-  const phases = []
-  for (const id of ["plan", "prepare", "event", "close"]) {
-    const phase = builder.getByTestId(`workflow-phase-${id}`)
-    await expect(phase).toBeVisible()
-    phases.push((await phase.boundingBox())!.x)
-  }
-  expect([...phases].sort((a, b) => a - b)).toEqual(phases)
-  expect(new Set(phases).size).toBe(4)
+  // Juanxi 2026-11-28: the Plan · Prepare · Event day · Close strip was removed.
+  await expect(builder.getByRole("list", { name: "Workflow phases" })).toHaveCount(0)
   if (!isMobile) {
     await builder.getByRole("button", { name: "Fit", exact: true }).click()
     const region = (await builder.getByRole("region", { name: "Workflow main line and team branches", exact: true }).boundingBox())!
@@ -125,7 +119,7 @@ test("bulk assignment moves three steps into one branch and a single Undo return
   expect(await facts()).toEqual(before)
 })
 
-test("the header groups saved workflows and the More menu closes with Escape back to its button", async ({ page }) => {
+test("the header groups saved workflows, the Versions menu closes with Escape back to its button, and there is no Save draft or Teams", async ({ page }) => {
   await open(page)
   await openMenu(page, "New workflow", "Blank workflow")
   await expect(page.getByLabel("Workflow name", { exact: true })).toHaveValue("Untitled workflow")
@@ -133,11 +127,12 @@ test("the header groups saved workflows and the More menu closes with Escape bac
   expect(await picker.locator("optgroup").evaluateAll(groups => groups.map(group => group.getAttribute("label")))).toEqual(["Platypus preset", "Your organization"])
   await expect(picker.locator('optgroup[label="Platypus preset"] option')).toHaveText([/^Speaker series( · Draft)?$/])
   await expect(picker.locator('optgroup[label="Your organization"] option')).toContainText(["Untitled workflow · Draft"])
-  const more = menuTrigger(page, "More")
+  await expect(page.getByTestId("workflow-settings").getByRole("button", { name: "Save draft", exact: true })).toHaveCount(0)
+  const more = menuTrigger(page, "Versions")
   await more.click()
   await expect(more).toHaveAttribute("aria-expanded", "true")
   const menu = page.getByTestId("workflow-settings").getByRole("menu")
-  await expect(menu.getByRole("menuitem")).toHaveText(["Duplicate workflow", "Use by default", "Apply role teams", "Teams", "Discard draft"])
+  await expect(menu.getByRole("menuitem")).toHaveText(["Duplicate workflow", "Use by default", "Apply role teams", "Discard draft"])
   await expect(menu.getByRole("menuitem").first()).toBeFocused()
   await page.keyboard.press("Escape")
   await expect(menu).toHaveCount(0)

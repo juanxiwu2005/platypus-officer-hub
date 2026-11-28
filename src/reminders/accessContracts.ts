@@ -31,6 +31,8 @@ export interface ReminderMailInput {
   candidate?: ReminderCandidate | null
   request?: WaitingRequest | null
   requesterName?: string
+  /** Who signs the email: the president or VP preparing it (reminderSenderName); none for automatic sending. */
+  senderName?: string | null
 }
 export interface ReminderMail {
   subject: string

@@ -12,11 +12,14 @@ All values here were read directly from these two files on 2026-10-29. Contrast 
 | --- | --- | --- |
 | `--fs-xs` | 12px | Smallest supporting text: labels, badges, footnotes |
 | `--fs-sm` | 13px | Tables, secondary information, small buttons |
-| `--fs-md` | 14px | Regular body text, inputs (AGENTS.md §7.4: at least 14px is the goal; 12–13 is only for supporting text) |
+| `--fs-md` | 14px | Regular body text, inputs on desktop (AGENTS.md §7.4: at least 14px is the goal; 12–13 is only for supporting text) |
 | `--fs-base` | 15px | Base page font size |
 | `--fs-lg` | 18px | Small headings |
 | `--fs-xl` | 21px | Section headings |
 | `--fs-2xl` | 26px | Large numbers, emphasis |
+| `--fs-input` | 16px | Text fields, selects and text areas **on touch screens only** (`@media (pointer: coarse)` in `src/styles.css`). iPhone Safari zooms the page when it focuses a field under 16px; desktop keeps the component sizes (14–15px). Batch 1, audit V4 |
+
+The touch-screen field rule lifts its specificity with `:not(#fs-input-guard, …)` (one id) so it beats every class-based component rule without `!important`; fields already larger than 16px (the workflow name field, `--fs-xl`) are excluded. `src/test/controlContrast.test.ts` fails if a component rule would win.
 
 Page titles `h1` use a fixed `var(--fs-2xl)` (26px); on mobile, `.page-head h1` uses `var(--fs-xl)`. **They no longer scale continuously with viewport width** (the previously documented `clamp(26px, 3.2vw, 34px)` has long differed from the code; DX-27 corrected the documentation to match. A clamp version requires a separate decision from Juanxi). Sizes in `font:` shorthands (`15px/1.55` on `body`, `600 13.5px/1.3` on `.board-col > header h2`) have not been tokenized and are known exceptions.
 
@@ -25,8 +28,8 @@ Page titles `h1` use a fixed `var(--fs-2xl)` (26px); on mobile, `.page-head h1` 
 | Token | Value | Elements |
 | --- | --- | --- |
 | `--r-xs` | 4px | Very small blocks: Gantt bars, sharp corners of chat bubbles, small tags |
-| `--r-sm` | 8px | Inputs, small tags, color swatches, menu items, focus outlines |
-| `--r-md` | 12px | Buttons, navigation items, cards (task, Board, hover, flowchart), notification bars |
+| `--r-sm` | 8px | Small and medium controls (buttons, fields, selects) through `--control-r`, small tags, color swatches, menu items, focus outlines |
+| `--r-md` | 12px | Large controls through `--control-r`, navigation items, cards (task, Board, hover, flowchart), notification bars |
 | `--r-lg` | 14px | Largest panels; equivalent to the old `--radius` variable (retain it; do not delete) |
 | `--r-pill` | 999px | Pill shapes |
 | `--r-circle` | 50% | Circles (dots, avatars) |
@@ -76,7 +79,8 @@ Lowest to highest:
 | `--lane` | #f6f4ef | #141918 | Swimlane/track background |
 | `--ink` | #1b1f1d | #eceeed | Body text |
 | `--muted` | #5b625e | #a2aaa6 | Secondary text |
-| `--line` | #e5e2da | #2a312f | 1px border (intentionally subtle; **do not darken**) |
+| `--line` | #e5e2da | #2a312f | 1px border of cards and dividers (intentionally subtle; **do not darken**; never a form-control border) |
+| `--control-line` | #848b87 | #6b7571 | Border of inputs, selects, text areas and other form controls, the hover border of borderless table cells, and the off track of `.switch` (Batch 1, audit V5/V6). Must stay ≥ 3:1 on every background (WCAG 1.4.11) |
 | `--accent` | #0f766e | #3fb8a8 | Brand color |
 | `--accent-ink` | #0b5a54 | #7fd6ca | Brand-colored text |
 | `--accent-soft` | #e4f1ef | #14302c | Soft brand background |
@@ -104,6 +108,18 @@ Contrast (text pairs, light / dark):
 | `--good` on `--good-soft` | 4.56 | 7.45 |
 | `--on-accent` on `--accent` | 5.47 (white) | 7.01 |
 
+Form controls (Batch 1; graphics, required 3:1; minimum across `--bg`, `--surface`, `--surface-2`, `--lane`):
+
+| Item | Light | Dark |
+| --- | --- | --- |
+| `--line` as a control border (before) | 1.29 on surface | 1.30 on surface |
+| `--control-line` | **3.09** (bg 3.34, surface 3.49, surface-2 3.09, lane 3.17) | **3.35** (bg 3.93, surface 3.62, surface-2 3.35, lane 3.73) |
+| `.switch` thumb (`--surface`) on its off track (`--control-line`) | 3.49 | 3.62 |
+| Focus halo `--accent-soft` alone (before) | 1.16 on surface | 1.22 on surface |
+| Focus ring `--accent` (`--focus-ring`, and the inner ring of borderless cells) | **4.85** on surface-2, 4.72 on its halo | **6.56** on surface-2, 5.80 on its halo |
+
+`--focus-ring` (`0 0 0 1px var(--accent), 0 0 0 4px var(--accent-soft)`) is the box-shadow of a focused text field: together with the field's `--accent` border it draws a solid 2px accent ring inside the soft halo. Borderless fields inside a clipping box (Settings › Roles & teams cells, the reminder email draft) use an inner `inset 0 0 0 2px var(--accent)` ring instead, because an outer ring would be clipped. `src/test/controlContrast.test.ts` recomputes these ratios from `src/styles.css` and fails if a form-control rule draws its border with `--line`.
+
 Graphic contrast (after N5; minimum across the `--bg`, `--surface`, and `--lane` backgrounds; required ratio 3:1):
 
 | Item | Light before → after | Dark (unchanged) |
@@ -117,7 +133,7 @@ Yellow and the main line intentionally retain their original dark-theme values: 
 
 ### 5.2 The 6 status colors (in `statusDefaults.ts`, not styles.css)
 
-These are the **defaults** users can rename and recolor in Settings → Board. Each status color carries white text, with no dark variant (it is user data and does not change with the theme).
+These six names and colors are **fixed (S3, 2026-11-23)**; they can no longer be renamed or recolored. Renamed statuses in an old save stay in its data but are not shown. Each status color carries white text, with no dark variant (it does not change with the theme).
 
 | Status (UI label) | Default color | White text on it | As text on `--bg` | As text on `--surface` |
 | --- | --- | --- | --- | --- |
@@ -156,8 +172,8 @@ These levels were **derived from the existing interface, rather than designed fr
 1. **New styles must use tokens.** This applies to colors, font sizes, radii, layers, and spacing.
 2. **If a new value is truly needed, first add a token in `:root` (deciding whether to override it in both dark-theme blocks), then use it; do not hardcode it.**
 3. Calculate contrast before adding color tokens: text ≥ 4.5:1, graphics ≥ 3:1. Calculate light and dark separately; check all three light backgrounds (`--bg`, `--surface`, `--lane`) and use the minimum.
-4. Do not darken `--line`, merge the two color systems in 5.3, or give `--info` a user-status meaning.
-5. **Dark mode:** currently follows the system (`prefers-color-scheme: dark`). CSS already supports forced overrides with `data-theme="light"` / `data-theme="dark"`, but **there is no UI toggle yet**. When adding tokens, update both dark blocks together (the `@media` block and `:root[data-theme="dark"]`).
+4. Do not darken `--line` (use `--control-line` for form-control borders), merge the two color systems in 5.3, or give `--info` a user-status meaning.
+5. **Dark mode:** follows the system (`prefers-color-scheme: dark`) unless the viewer picks Always light or Always dark in Settings (section 14). When adding tokens, update both dark blocks together (the `@media` block and `:root[data-theme="dark"]`).
 6. After changes, run `npm run check` as directed by AGENTS.md.
 
 ## 8. Automated guardrails (S6, since 2026-10-29)
@@ -169,6 +185,7 @@ These rules are now checked automatically by both `npm run check` and GitHub CI;
 | Stylelint | `npm run lint:css` (covers `src/styles.css` and `src/styles/*.css`) | `font-size` must be `var(--fs-*)` (or `inherit`); `border-radius` must be `0`, `inherit`, `var(--radius)`, or `var(--r-*)`; `z-index` must be `var(--z-*)`; **no hex colors** outside the three `:root` theme blocks; **no duplicate selectors**; only 3 `font:` shorthand forms allowed (see below) |
 | ESLint | `npm run lint:js` (ts/tsx under `src/`) | Inline `style={{...}}` may contain only CSS variables (`--xxx`) and data-derived `left/top/width/height`; everything else must use a class in `styles.css` |
 | Word count | `npm run words` | Only **reports** actual words per page (including hover cards and collapsed content); does not fail for exceeding a limit or require deleting words. Enable `--enforce` after Juanxi decides the limits. |
+| Control sizing | `src/test/controlSizing.test.ts` (unit tests) | A rule that gives a button, text field or select its own padding, height, min-height, radius or line-height, or uses the `background` shorthand on a select, outside the reasoned allowlist in the test (section 12) |
 | Accessibility | `e2e/a11y.spec.ts` (desktop + mobile) | WCAG 2.0/2.1/2.2 A/AA, including 24×24 touch targets; right-rail focus management |
 
 **Intentional exceptions (with individual reasons):**
@@ -221,4 +238,90 @@ Choose among these three levels for new shadows. If they are insufficient, add a
 - Small files must pass `npm run lint:css` like `styles.css` (`font-size`/radius/layer/hex rules). Files after `dx-01` also prohibit `transition: all`, hardcoded durations, transitions on layout properties, and **`!important`**. Desktop `.hover-card` must have no delay (`src/test/dxStyleGuard.test.ts` contains intentionally invalid samples proving these guards fail as expected).
 - `dx-00-tokens.css` is the exception: it defines tokens, so explicit durations are allowed.
 - Package changes and rollback instructions: `docs/design-upgrade/README.md` and `docs/design-upgrade/ROLLBACK_LOG.md`.
+- **Exception (CT-01, 2026-11-27):** the control-sizing pass in section 12 removed one-off control sizes from many package files in place (`fb-04`, `fb-05`, `ob-05`, `ob-06`, `ob-07`, `ch-01`) so that every control follows one rule. Each removed line is listed in `docs/PROGRESS.md`; rolling back one package's file does not restore its old sizes.
 - Merging these small files back into `styles.css` is step 3 of DX-27, **requires Juanxi's explicit agreement**, and **has not been done**. R1 quick disable will no longer work after consolidation.
+
+## 12. Controls: size tiers, rows, radius, selects, spacing (CT-01, since 2026-11-27)
+
+Buttons, text fields and selects come in three sizes. A page never sizes one control by hand: it puts its controls in a container and, if it needs a size other than the default, sets the tier on that container. The base rules in `src/styles.css` (the "Controls" block) own every control's height, inline padding, border, radius and colors.
+
+### 12.1 Tokens
+
+| Token | Desktop | Touch (`pointer: coarse`) | Use |
+| --- | --- | --- | --- |
+| `--control-h-sm` | 28px | 32px | Small tier: tables, small cards, dense toolbars, the demo strip |
+| `--control-h-md` | 36px | 44px | Medium tier, the default: pages, forms, panels, Task Details |
+| `--control-h-lg` | 44px | 44px | Large tier: onboarding, the member walkthrough, the emailed one-task page |
+| `--control-h` | md | md | The current tier's height; every button, field and select reads it |
+| `--control-px` | `--s5` (md) | | Inline padding of a button (sm `--s4`, lg `--s6`) |
+| `--field-px` | `--s4` (md) | | Inline padding of a text field or select (sm `--s3`, lg `--s5`) |
+| `--control-r` | `--r-sm` | | One radius for every control of a tier (sm and md `--r-sm`, lg `--r-md`) |
+| `--control-gap` | `--s4` (8px) | | Gap between controls in one row |
+| `--select-arrow-w` | 28px | | Room on the right of a select for its drawn arrow |
+
+Set a tier with a class (`.ctl-sm`, `.ctl-md`, `.ctl-lg`) or, in a package file, by setting the same four custom properties on the container: `--control-h: var(--control-h-lg); --control-px: var(--s6); --field-px: var(--s5); --control-r: var(--r-md);`. `.tbl`, `.mini-card`, `.crm-card` and `.task-card` are small-tier containers already.
+
+### 12.2 Rules
+
+1. **One tier per row and per pane.** Controls that sit next to each other have the same height. A select beside a button is the same height as the button; a field beside a field matches it. Mixing tiers in one row is the inconsistency this section exists to remove.
+2. **The container sets the tier; the control does not.** A page rule may set layout (`width`, `flex`, `max-width`, grid placement) on a control. It may not set `padding`, `height`, `min-height`, `border-radius` or `line-height` on a button, field or select (the guard test fails). Use the tier instead.
+3. **Fields and buttons share one height and one radius per tier.** Height comes from `--control-h`, radius from `--control-r`.
+4. **Radius by size, and nested radius.** Small and medium controls use `--r-sm` (8px); large controls use `--r-md` (12px). A control is always less round than the card it sits in (cards use 12-14px), so a control's corner reads as inside the card's corner.
+5. **Selects are drawn, not native.** Safari and Chrome on macOS ignore `height` and `padding` on a native `<select>`, so it rendered about 22px tall next to 36px buttons. Every select uses `appearance: none` and a chevron drawn with two `--muted` gradients. Set `background-color`, never the `background` shorthand, on a select: the shorthand erases the arrow. The menu that opens is still the system's own, so keyboard, screen-reader and touch behavior are unchanged.
+6. **Touch.** On a touch screen the medium tier is 44px (Apple's 44pt minimum target) and the small tier 32px, matching the DX-04 touch rules. A desktop page that stays medium therefore needs no separate touch rule.
+7. **Spacing.** Between controls in one row: `--control-gap` (8px). Label to its field: `--s3` or `--s4` (6-8px). Between stacked fields: `--s5`-`--s6` (12-16px). A row of controls is `.ctl-row` (flex, centred, wraps on a narrow screen).
+8. **Optical alignment.** Align a row's items on their centres, not their text baselines, so a button, a select and an avatar line up. A quiet button (`btn-quiet`) at the start or end of a row may use a small negative margin so its text, not its invisible box, lines up with the text above. An icon-only button (`.icon-btn`) is a square as wide as the tier's height, with the icon centred.
+9. **Badges, chips and avatars sit one step below the controls around them.** A chip is a pill at the small-tier height; an avatar is 20-26px. Both centre their content with flex or grid and `line-height: 1`, never with a tall line-height. The "no owner" avatar shows a centred person outline in its dashed ring, not a "?" character (a character's line box puts it off centre).
+10. **Primary actions.** At most one primary button per group, as Primer advises; the large tier is for focus flows, used sparingly.
+
+### 12.3 Allowed exceptions
+
+These keep their own size, each for the reason given in `src/test/controlSizing.test.ts`: checkboxes, radios and the toggle switch; the Ask composer text areas (`.command`, `.ask-form`); the inner field of a composite field whose wrapper takes the field size (`.owner-picker`, `.ch-field`); editors inside a table or matrix cell (`.ck-table`); the invisible menu over a status chip (`.ck-select`); the workflow title edited at heading size (`.wfl-name`); the DX-04 touch floors. A text area may set its own `min-height` (its height is about how much text it holds). Add a new exception to the test's allowlist with a reason, and list it here.
+
+### 12.4 Sources
+
+- Apple, UI Design Dos and Don'ts (developer.apple.com/design/tips): "Create controls that measure at least 44 points x 44 points".
+- Apple, SwiftUI `controlSize(_:)`: sets the control size for "controls in this view", which is the model for setting a tier on a container.
+- Mario Guzman, a third-party summary of Apple's macOS layout guidelines (marioaguzman.github.io/design/layoutguidelines): "Avoid mixing different sizes of controls in the same window or pane"; similar controls have consistent widths; at least 6pt between stacked regular controls.
+- Radix Themes, Text Field: "Use matching component sizes when composing Text Field with buttons"; ghost buttons use a negative margin "to optically align themselves against their siblings".
+- Primer, Button: three sizes (small, medium as the default, large used sparingly) and at most one primary button per group.
+
+The pixel heights above are Platypus's own choice; none of these pages gives pixel heights for its tiers or rules for focus rings. Material's pages could not be read (they load only with JavaScript) and are not cited.
+
+### 12.5 Toggle chips (since 2026-11-28)
+
+A short set of yes/no choices that most people scan at a glance (the New event form's "This event has…") may show as toggle chips instead of a checkbox list. Each chip is a `<label class="check-chip">` around a native checkbox, so the checkbox keeps its accessible name (the label text), keyboard behavior and the global focus ring; the group is a `<fieldset>` with a visible `<legend>`. The chip is a pill at the small-tier height (`--control-h-sm`, `--r-pill`, `--control-line` border, `--surface` background); a ticked chip takes `--accent-soft` with an `--accent` border and `--accent-ink` text, which work in both themes. The checkbox stays visible inside the chip (16px), so the state never depends on color alone. Keep chips to about six; longer lists stay checkbox rows, folded in a `<details>` whose summary gives the count and how many are ticked, and which opens when any of its items is ticked. Rules: `src/styles/fb-05-create.css`.
+
+## 13. Icons (since 2026-11-28)
+
+- **Source.** Every interface icon is a line icon in `src/components/icons.tsx`: a 24px grid, `fill: none`, `stroke: currentColor`, `strokeWidth` 1.8, round caps and joins, `aria-hidden="true"`. Add a new icon there in the same style, as one short path (`p("...")`) where possible, because the file ships in the entry bundle (budget: `e2e/bundle-performance.spec.ts`). Do not use emoji or a second icon set; reuse an existing icon before drawing a new one.
+- **Size.** Inside a control or a row, the glyph follows the tier: 16px in the small tier and in chips (14px in a pill such as "Sent"), 18px in the medium tier, navigation and list rows, 20px in the large tier. A section icon beside a card heading is a 32px tile (the avatar size) with the glyph centred by `--s3` padding and `--r-sm` corners.
+- **Colour.** The glyph is `currentColor`, so it takes the text colour around it, or a muted token (`--muted`) for a row icon. A tile pairs a soft background with its ink: `--accent-soft` / `--accent-ink` for ordinary sections, `--warn-soft` / `--warn` for a section that asks for attention (the reminder page's Fix first). Never a status colour for something that is not that status (section 5.3), and never a hex value.
+- **Always with a label.** An icon is never the only signal: it sits beside visible text that says the same thing (a heading, a chip, a button label). An icon-only button (`.icon-btn`) has an accessible name instead.
+- **Decorative.** Icons are `aria-hidden`; they never change an accessible name or a visible label. A heading's name stays its text (or its `aria-label`).
+- **Where they are used on the reminder page.** Summary card: `mail`; Emails by person: `team`; Fix first: `alert` (warn tile); Fix first rows: `wait` (Waiting on whom?), `stuck` (Stuck), `person` (Not claimed), `mail` (No valid email), `alert` (anything else), chosen by `problemIcon` in `src/reminders/ReasonChip.tsx`; the "Sent" pill: `check`.
+
+## 14. Appearance: light, dark and follow system (since 2026-11-28)
+
+- **The setting.** Settings › My preferences › Appearance has three radios: **Follow system** (the default), **Always light** and **Always dark**. A choice applies at once, without a reload. Code: `src/lib/appearance.ts` and `src/components/settings/AppearanceSetting.tsx`, both loaded only with the Settings page, so the entry bundle does not grow.
+- **Storage.** A per-browser viewer preference, not club data: localStorage key `platypus.v1.appearance` holds `light` or `dark`; Follow system removes the key. It is outside the demo state (`platypus.v1.demo`), so Export my data does not include it and the Demo menu's reset keeps it. The error page's Reset demo data clears every `platypus.*` key, so it returns to Follow system. Every read and write is wrapped in try/catch; with storage blocked the choice lasts until reload and Settings says so.
+- **Before first paint.** A small classic inline script in the `<head>` of `index.html` (after the theme-color metas, before the app's module script) reads the key and, for `light` or `dark`, sets `data-theme` on `<html>`, sets the `color-scheme` meta to that scheme, and points the browser's chrome at the matching `theme-color` meta (each carries `data-scheme`; the chosen one gets `media="all"`, the other `media="not all"`). Nothing stored changes nothing. `applyAppearance()` does the same for later changes, and Follow system puts every meta back to its media query, so live OS changes take over again. `netlify.toml` sets no Content-Security-Policy, so the inline script runs; adding a CSP later needs a hash or nonce for it.
+- **Rule for CSS.** Every dark rule exists twice: once as `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) ... }` and once as a top-level `:root[data-theme="dark"] ...` with the same declarations. Then Always light wins on a dark OS and Always dark wins on a light OS. A light-scheme media rule, if ever added, mirrors this (`:root:not([data-theme="dark"])` and `:root[data-theme="light"]`). Scripts do not read `prefers-color-scheme` themselves; style through tokens instead.
+- **Guards.** `src/test/appearance.test.ts` checks the stored value (including broken storage), runs the inline script from `index.html` for all three values and compares it with `applyAppearance()`, fails if any `prefers-color-scheme` block in `src/**/*.css` is unguarded or lacks its forced twin, and fails if a script outside `src/lib/appearance.ts` reads the OS scheme. `src/test/dx-07-meta.test.ts` and `src/test/controlContrast.test.ts` keep checking the theme-color values and both dark blocks.
+
+## 15. Stable page frame: sub-navigation and tabs (since 2026-11-28)
+
+Juanxi (2026-11-28): in Settings the title and the section list jumped about 200px sideways when he switched from Workflow to Roles & teams, which felt dizzying, and he asked for the same fix everywhere. The cause was the page column: `main` was a centred 1180px column, and two rules widened it to 1600px and moved it against the navigation only while a wide view was on screen (`main:has(.wfl-root)` for the workflow chart, `main:has(> .events-layout)` for Events). So the frame depended on the open tab. Plan had the same fault between Events and Tasks, and its title also sat to the right of the event list on Events but at the left edge on Tasks.
+
+**Rule: a page's frame (its title, its second-level navigation and the start of its content) never depends on which tab is open or how wide that tab's content is.** For one window width and one side-panel state, these are at the same place on every tab, and on every page of the app shell. Wide content (the workflow chart, flow charts, wide tables) scrolls or fits inside its own area and never moves the frame. Roles & teams, Workflow and Onboarding still hide the Ask panel when they open, as before; the column then widens to the right, but its left edge, the title, the sections and the content start stay put.
+
+1. **One page column.** Every page in the shell uses `.shell:not(.single) > main`: full width of its grid column up to the cap (`width: 100%`; without it `justify-self: start` would let a wide tab such as the Roles & teams chart widen the column), next to the navigation (`justify-self: start`, as Juanxi asked on 2026-11-01 for Events: no empty strip beside the navigation) and at most `--page-max` (1600px) wide. Full width was chosen over one narrower centred width because the workflow and flow charts need the room, and a narrow tab then leaves no empty band between the navigation and the page. Below about 1430px with the side panel closed (1840px with it open) the column is narrower than 1180px anyway, so nothing changed there. The plain `main` rule (1180px, centred) is only for the few pages outside the shell: the error page and the single task opened from an email.
+2. **Never size or place a frame by its content.** Do not write `main:has(...)`, `.settings:has(...)`, `.events-layout:has(...)` or similar to change a frame's width, max-width, margins, anchor or columns. A page that needs room gives its wide part its own scroll area (`overflow-x: auto`, `min-width: 0` on its grid or flex parents).
+3. **Head, then sub-navigation, then content.** The page head comes first and spans the page; the second-level navigation (Settings' sections, Plan's event list) has a fixed width beside the content (Settings 170px; the event list 220px, or 176px with the side panel docked below 1500px). A sub-navigation's width may follow the window and the side panel, never the open tab. With a single event there is no event list, and the content takes the whole row on every view.
+4. **Tabs in a row keep their width.** In a horizontal row of tabs or segments (`.seg`, Plan's `.plan-switch`, Playbook's category chips, Settings' sections on a phone) the chosen one changes background, colour and shadow, never its font weight: bold text is wider and would push the tabs after it sideways at every switch (same rule as Playbook's chips, Juanxi 2026-11-26). A vertical list (Settings' sections on a computer, the event list) may bold the current item, because nothing sits beside it.
+5. **A title next to a switch keeps the longest title's width.** Plan's heading reserves the width of "Events" (an invisible, unread copy under it), so the Events | Tasks switch stays put on both halves. Keep that word in step with the longest label in `PLAN_PAGES`.
+6. **Scroll bar.** On windows 1024px and wider, `html { scrollbar-gutter: stable; }` keeps room for a classic scroll bar, so a tab that is longer than the window does not make the page narrower than a short tab. Narrower windows (phones, tablets) keep their full width, so their pages never lose 15px to an empty gutter.
+
+Checks: `e2e/stable-page-frame.spec.ts` (Settings at 1440px and 1780px with the side panel open and closed, every tab twice; Plan's event list, Flow and Budget, and Events against Tasks; the same column on every page; Rules' category row; Roles & teams' Chart and Contact list; Settings on a phone) and `src/test/stablePageFrame.test.ts` (no rule sizes the page column but the two above, no `:has()` rule sizes the Settings or Events frame, no chosen tab in a row turns bold, and the Plan heading reserves the longest label).
+
+Checked and already stable: Reminders (one page, its Fix first column only adds a column on the right), Team, Rules (beyond rule 4), Playbook and Handoff (one column each), Settings → Roles & teams (the chart card keeps its left edge in Chart and Contact list; since its card is wider in Contact list, where no inspector sits beside it, the view switch and the add buttons follow the title instead of the card's right edge), Settings → Workflow's Flow | Quick entry and Onboarding (inside the content column). The onboarding walkthrough has no tabs: its progress header is a fixed 960px centred row; the Team screen's card is 720px wide where the others are 640px.

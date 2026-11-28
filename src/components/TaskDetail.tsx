@@ -6,16 +6,17 @@ import { fmtShort } from "../lib/dates"
 import { Avatar } from "./ui"
 import { canLead, isOfficer } from "../data/permissions"
 import { dueOf, isLate } from "../lib/taskDue"
-import { buildReminderFacts } from "../reminders/facts"
+import { buildReminderFacts, taskDescription } from "../reminders/facts"
 import { taskLinks } from "../taskDetails/links"
 import { TaskSubmission } from "../taskDetails/TaskSubmission"
 import { TaskProgress } from "../taskDetails/TaskProgress"
 import { TaskEditPanel } from "../taskDetails/TaskEditPanel"
 import type { TaskAuthorization } from "../taskDetails/contracts"
+import { ThankPrompt } from "./cheers/ThankPrompt"
 import "../taskDetails/detail.css"
 
 /** One task surface for every real node and email entry; templates never render this component. */
-export function TaskDetail({ node, actorId, token, accessToken, standalone = false, initialReply, readOnly = false }: { node: Node; actorId: string; token?: string; accessToken?: string; standalone?: boolean; initialReply?: string | null; readOnly?: boolean }) {
+export function TaskDetail({ node, actorId, token, accessToken, standalone = false, initialReply, readOnly = false, eventLink = true }: { node: Node; actorId: string; token?: string; accessToken?: string; standalone?: boolean; initialReply?: string | null; readOnly?: boolean; /** False where the panel already has its own way back to the event (Plan task panel). */ eventLink?: boolean }) {
   const { state } = useStore()
   const heading = useRef<HTMLHeadingElement>(null)
   useEffect(() => { heading.current?.focus() }, [node.id])
@@ -30,7 +31,7 @@ export function TaskDetail({ node, actorId, token, accessToken, standalone = fal
   const title = standalone ? <h1 id="single-task-heading" ref={heading} tabIndex={-1}>{node.title}</h1> : <h2 ref={heading} tabIndex={-1}>{node.title}</h2>
   return <section className={`task-detail task-detail-universal${standalone ? " task-detail-standalone" : ""}`} aria-label="Linked task" data-testid="task-detail">
     <header className="td-head">
-      <p className="td-event small">{event ? <Link to={`/events?event=${encodeURIComponent(event.id)}`}>← {event.name}</Link> : "Club task"}</p>
+      {event ? eventLink && <p className="td-event small"><Link to={`/events?event=${encodeURIComponent(event.id)}`}>{node.clubTask ? "Club task · linked to " : "← "}{event.name}</Link></p> : <p className="td-event small">Club task</p>}
       <div className="task-title-row">{title}{canEdit && <button type="button" className="btn small task-edit-trigger" onClick={() => setEditing(true)}><span aria-hidden="true">✎</span> Edit</button>}</div>
       <div className="task-identity">
         <span className={`task-compact-due${isLate(node, due, state.today) ? " late-text" : ""}`} data-testid={standalone ? "single-task-due" : "task-due"}>Due <strong>{due ? fmtShort(due) : "Not set"}</strong></span>
@@ -38,8 +39,10 @@ export function TaskDetail({ node, actorId, token, accessToken, standalone = fal
         <TaskProgress key={`${node.id}:${actorId}:${node.ownerVersion ?? 0}:${accessToken ?? token ?? "viewer"}`} node={node} actorId={actorId} authorization={authorization} initialReply={initialReply} readOnly={readOnly} />
       </div>
     </header>
-    <p className="task-requirement">{facts?.requirement ?? node.instructions ?? node.title}</p>
+    <p className="task-requirement">{facts ? taskDescription(state, node) : node.instructions ?? node.title}</p>
     {links.length > 0 && <nav className="task-external-links" aria-label="External task links">{links.map(link => <a key={`${link.label}:${link.url}`} className="btn small" href={link.url} target="_blank" rel="noreferrer">{link.label} <span aria-hidden="true">↗</span></a>)}</nav>}
+    {/* Cheers (R1, F4): only in the app, as the viewer; not on an emailed task link or a read-only view. */}
+    {!standalone && !authorization && !readOnly && actorId === state.viewerId && node.status === "done" && <ThankPrompt nodeId={node.id} />}
     <TaskSubmission key={`${node.id}:${actorId}`} node={node} actorId={actorId} authorization={authorization} readOnly={readOnly} />
     {issues.length > 0 && <details className="task-schedule-notes small"><summary>Schedule notes ({issues.length})</summary><ul>{issues.map(issue => <li key={issue.code}>{issue.text}</li>)}</ul></details>}
     {editing && canEdit && <TaskEditPanel node={node} due={due} onClose={closeEditor} />}

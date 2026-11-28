@@ -1,3 +1,4 @@
+import { enableUpdatedReminders } from "./reminderHelpers"
 import { expect, test } from "@playwright/test"
 
 // DX-06: tracking follows size, numbers line up, and the small phone labels are readable.
@@ -7,6 +8,7 @@ test("headings get tighter as they get bigger", async ({ page }) => {
   await page.goto("/#/")
   await page.evaluate(() => window.localStorage.clear())
   await page.reload()
+  await enableUpdatedReminders(page)   // S2: the home page's h2 headings belong to the updated reminder plan
   const t = await page.evaluate(() => {
     const read = (sel: string) => { const e = document.querySelector(sel)!; const c = getComputedStyle(e); return { ls: c.letterSpacing, fs: c.fontSize } }
     return { h1: read("h1"), h2: read("h2") }
@@ -27,15 +29,11 @@ test("dates and counts use equal-width digits", async ({ page }) => {
   await page.goto("/#/")
   await page.evaluate(() => window.localStorage.clear())
   await page.reload()
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
-  // Concept F: the reminder centre's counts (Fix first) and the Due dates in a person's email panel.
+  await enableUpdatedReminders(page)   // S2: already on the current reminder plan; this only checks it (no "Enable updated reminders" card)
+  // Concept F: the reminder centre's counts (Fix first). S2: the email opens in place; the rail's due-date column is no longer on this path.
   const count = page.getByTestId("rq-fix").locator(".rq-n")
   await expect(count).toBeVisible()
   expect(await count.evaluate(el => getComputedStyle(el).fontVariantNumeric)).toContain("tabular-nums")
-  await page.getByTestId("rq-person").first().locator(".dg-person-head").click()
-  const due = page.getByTestId("digest-panel").locator(".dg-due").first()
-  await expect(due).toBeVisible()
-  expect(await due.evaluate(el => getComputedStyle(el).fontVariantNumeric)).toContain("tabular-nums")
   expect(await page.locator(".sidenav .count").first().evaluate(el => getComputedStyle(el).fontVariantNumeric)).toContain("tabular-nums")
 })
 

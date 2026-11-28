@@ -12,3 +12,12 @@ export const EVENT_CHECKLIST: readonly { key: EventCheck; label: string }[] = [
   { key: "alcohol", label: "Alcohol" }, { key: "drone", label: "Drone or model aircraft" }, { key: "media", label: "Music, livestream, recording, or media use" }, { key: "prize", label: "Prize, raffle, fundraising, ticket, or donation activity" },
   { key: "schoolApproval", label: "School or college-specific approval" }, { key: "rsvp", label: "RSVP registration needed" },
 ]
+
+/**
+ * The New event form's "This event has…" chips (Option A, Juanxi 2026-11-28), in display order. `speaker` shows as "Guest
+ * speaker or performer" and also sets the event's `speaker` field. Food has its own Yes/No select; every other item sits
+ * under "Other checklists".
+ */
+export const COMMON_EVENT_CHECKS: readonly EventCheck[] = ["speaker", "funding", "externalFood", "partner", "advisor", "rsvp"]
+/** The checklist items the form folds under "Other checklists": everything except food and the common chips. */
+export const OTHER_EVENT_CHECKLIST = EVENT_CHECKLIST.filter(item => item.key !== "food" && !COMMON_EVENT_CHECKS.includes(item.key))

@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test"
-import { closeRail, noOverflow, resetDemo } from "./helpers"
+import { closeRail, noOverflow, resetDemo, viewAs } from "./helpers"
 import { savedTask } from "./taskHelpers"
-import { fmtShort } from "../src/lib/dates"
+import { fmtLong, fmtShort } from "../src/lib/dates"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
@@ -73,11 +73,14 @@ test("a pointer hovers a step; touch opens its details with the same Due", async
 test("moving an upstream due date later reschedules its dependants and flags the rule break in red", async ({ page }) => {
   await page.getByLabel("Event date", { exact: true }).fill("2026-11-19")
   await page.goto("/#/tasks")
-  await page.getByRole("button", { name: "Table", exact: true }).click()
   await page.getByLabel("Task scope").selectOption("team")
   // FB-6: a link between calibrated steps means finish order, so Purchase Request moves to Budget Approval's new date. Thu Nov 5 is
-  // after the R09 deadline (Wed Nov 4), so the rule break is red. FB-4: the label is "Due for …" and the one date shown is Due.
-  await page.getByLabel("Due for Budget Approval", { exact: true }).fill("2026-11-05")
+  // after the R09 deadline (Wed Nov 4), so the rule break is red. S3: the table is read-only; Task Details' Edit changes Due.
+  await page.getByTestId("my-tasks").getByRole("button", { name: /Budget Approval$/ }).click()
+  await page.getByTestId("task-detail").getByRole("button", { name: "Edit", exact: true }).click()
+  await page.getByRole("dialog", { name: "Edit task" }).getByTestId("due-input").fill("2026-11-05")
+  await page.getByRole("dialog", { name: "Edit task" }).getByRole("button", { name: "Save changes", exact: true }).click()
+  await expect(page.getByRole("dialog", { name: "Edit task" })).toHaveCount(0)
   await page.goto("/#/events?event=e-night")
   await page.getByTestId("flow-node-purchaseRequest").click()
   const panel = page.getByTestId("task-detail")
@@ -91,9 +94,30 @@ test("moving an upstream due date later reschedules its dependants and flags the
   await expect(page.getByTestId("flow-node-purchaseRequest")).not.toHaveClass(/has-error/)
 })
 
-test("changing the event date recomputes the plan and warnings in Flow and List", async ({ page }) => {
+test("only officers who may create events can change the event date", async ({ page }) => {
+  const head = page.locator("section.event-head")
+  const savedDate = () => page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).events.find((e: { id: string }) => e.id === "e-night").date)
+  // The president sees the date input and can move the event.
+  await head.getByTestId("event-date").fill("2026-12-03")
+  await expect(head.getByTestId("event-date")).toHaveValue("2026-12-03")
+  expect(await savedDate()).toBe("2026-12-03")
+  await expect(head.getByTestId("event-date-text")).toHaveCount(0)
+  // A treasurer (not a lead, default "leads" setting) sees the date as text only.
+  await viewAs(page, "maya")
+  await closeRail(page)
+  await expect(head.getByTestId("event-date")).toHaveCount(0)
+  await expect(head.getByTestId("event-date-text")).toHaveText(fmtLong("2026-12-03"))
+  await expect(head.getByTestId("event-date-text")).toHaveAttribute("datetime", "2026-12-03")
+  expect(await savedDate()).toBe("2026-12-03")
+  await viewAs(page, "alex")
+  await closeRail(page)
+  await expect(head.getByTestId("event-date")).toHaveValue("2026-12-03")
+})
+
+test("changing the event date recomputes the plan and warnings in the Flow", async ({ page }) => {
   await page.getByTestId("event-date").fill("2026-12-09")
-  await expect(page.getByTestId("event-issues")).toContainText("R13")
+  await expect(page.getByTestId("event-issues")).toContainText("Student Organization Handbook 2025–26")
+  await expect(page.getByTestId("event-issues")).not.toContainText("R13")
   await page.getByTestId("event-date").fill("2026-12-03")
   await page.getByTestId("flow-node-purchaseRequest").click()
   const replanned = await savedTask(page, "e-night:purchaseRequest")
@@ -101,20 +125,20 @@ test("changing the event date recomputes the plan and warnings in Flow and List"
   await expect(detail.getByTestId("task-due").locator("strong")).toHaveText(fmtShort(replanned.clubDeadline!))
   expect(replanned.officialDeadline).not.toBeNull()
   await closeRail(page)
-  await page.getByTestId("view-list").click()
-  const row = page.getByTestId("event-step-e-night:purchaseRequest").locator("xpath=ancestor::tr")
-  await expect(row).toContainText(fmtShort(replanned.clubDeadline!))
-  await row.getByTestId("event-step-e-night:purchaseRequest").click()
+  // The List view is gone (S3): the flow dot carries the same rule-engine Due and opens the same details.
+  const dot = page.getByTestId("flow-node-purchaseRequest")
+  await expect(dot).toHaveAttribute("aria-label", new RegExp(`Due ${fmtShort(replanned.clubDeadline!)}\\.`))
+  await dot.click()
   await expect(page.getByTestId("task-detail").getByTestId("task-due").locator("strong")).toHaveText(fmtShort(replanned.clubDeadline!))
 })
 
-test("the list view opens every step from the same event as the Flow", async ({ page }) => {
-  const count = await page.getByTestId("flow-chart").locator("button.m-dot").count()
-  await page.getByTestId("view-list").click()
-  const steps = page.getByTestId("event-list").getByRole("button")
-  await expect(steps).toHaveCount(count)
+test("the flow opens every step of the event", async ({ page }) => {
+  await closeRail(page)
+  const steps = page.getByTestId("flow-chart").locator("button.m-dot")
+  const count = await steps.count()
+  expect(count).toBeGreaterThan(5)
   for (let index = 0; index < count; index++) {
-    const title = (await steps.nth(index).locator("span").last().innerText()).trim()
+    const title = (await steps.nth(index).getAttribute("aria-label"))!.split(". ")[0]
     await steps.nth(index).click()
     // The details take focus once they are ready for keys; pressing Escape before that would race their first render.
     const heading = page.getByTestId("task-detail").getByRole("heading", { name: title, exact: true })
@@ -168,11 +192,10 @@ test("every step in the second event opens", async ({ page }, info) => {
   if (info.project.name === "mobile") await page.getByLabel("Choose an event", { exact: true }).selectOption("e-speaker")
   else await page.getByRole("navigation", { name: "Events", exact: true }).getByRole("button", { name: "Spring Speaker Night", exact: true }).click()
   await closeRail(page)
-  await page.getByTestId("view-list").click()
-  const steps = page.getByTestId("event-list").getByRole("button")
-  await expect(page.getByTestId("event-list")).toContainText("Speaker SAP Headshot")
+  const steps = page.getByTestId("flow-chart").locator('[data-testid^="flow-node-"]')
+  await expect(page.getByTestId("flow-chart").locator('[aria-label^="Speaker SAP Headshot."]')).toHaveCount(1)
   for (let index = 0; index < await steps.count(); index++) {
-    const title = (await steps.nth(index).locator("span").last().innerText()).trim()
+    const title = (await steps.nth(index).getAttribute("aria-label"))!.split(". ")[0]
     await steps.nth(index).click()
     // The details take focus once they are ready for keys; pressing Escape before that would race their first render.
     const heading = page.getByTestId("task-detail").getByRole("heading", { name: title, exact: true })

@@ -30,7 +30,12 @@
 .plan-switch { display: inline-flex; gap: var(--s2); padding: var(--s1); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md); }
 .plan-switch a { padding: var(--s3) var(--s5); border-radius: var(--r-sm); color: var(--muted); font-size: var(--fs-md); text-decoration: none; }
 .plan-switch a:hover { color: var(--ink); }
-.plan-switch a[aria-current="page"] { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+/* Not bold when current: bold is wider and would move "Tasks" whenever the page changes (DESIGN_TOKENS §15). */
+.plan-switch a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .08); }
+/* "Events" is wider than "Tasks": the heading keeps the longer word's width (an invisible copy under it, not read out) so the
+   switch beside it stays put on both halves of Plan. Keep the word in step with the longest label in PLAN_PAGES (src/routes.ts);
+   src/test/stablePageFrame.test.ts checks it. */
+.page-title:has(> .plan-switch) > h1::after { content: "Events"; display: block; height: 0; overflow: hidden; visibility: hidden; }
 @media (pointer: coarse) {
   .plan-switch a { min-height: 44px; display: inline-flex; align-items: center; }
 }

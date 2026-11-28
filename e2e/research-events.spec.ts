@@ -34,8 +34,7 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   await page.goto("/#/")
   await expect(page.locator("main h1")).toHaveText("Reminders")
   await closeRail(page)
-  // The sample is a legacy save: explicitly enable its reminder rows before the study session starts.
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
   await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
   const pill = page.getByTestId("demo-menu")
 
@@ -51,21 +50,24 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   // 2. Edit a field: type into the sources search on Rules, then leave it.
   await nav(page, "Rules")
   await expect(page.locator("main h1")).toHaveText("Rules")
-  const search = page.getByLabel("Search sources")
+  const search = page.getByLabel("Search rules")
   await search.fill(TYPED)
   await search.press("Tab")
 
   // 3. A hover card read for about a second (a tap opens it on a phone, a tap elsewhere closes it).
-  await nav(page, /^Reminders/)
-  await expect(page.locator("main h1")).toHaveText("Reminders")
+  // R-S0 W2: the reminder page shows risk as the text "At risk" (no risk mark, so no hover card there); the card read here is
+  // Team's workload meter, a Hover card like the others. Then back to Reminders for the rest of the session.
+  await nav(page, "Team")
+  await expect(page.locator("main h1")).toHaveText("Team")
   await closeRail(page)
-  // FB-8: the home page is the reminder centre; its hover cards are the risk marks (the "Needs a nudge" card and its ⓘ are gone).
-  // Concept F: the marks sit on the task lines of each person's email.
-  const info = page.getByTestId("rq-people").getByTestId("rq-person-task").getByTestId("forecast").first().getByRole("button")
+  const info = page.getByTestId("officers").getByRole("img", { name: /^Workload: / }).first()
   if (phone(page)) { await info.tap(); await page.waitForTimeout(900); await page.locator("main h1").tap() }
   else { await info.hover(); await page.waitForTimeout(900); await page.mouse.move(2, 400) }
   // ...and a mouse pass that is too short to count.
   if (!phone(page)) { await info.hover(); await page.mouse.move(2, 400) }
+  await nav(page, /^Reminders/)
+  await expect(page.locator("main h1")).toHaveText("Reminders")
+  await closeRail(page)
 
   // 4. Away from the page: a flicker (nothing written), then two seconds in another tab.
   await away(page, 150)
@@ -77,7 +79,7 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   await expect(page.getByTestId("demo-task")).toHaveText("· Task 2")
   await pill.focus()
   await page.keyboard.press("Enter")
-  for (let i = 0; i < 7; i++) await page.keyboard.press("Tab")        // 1 … 6, then Done
+  for (let i = 0; i < 9; i++) await page.keyboard.press("Tab")        // View as, AI features, 1 … 6, then Done
   await expect(tasks.getByRole("button", { name: "Task done" })).toBeFocused()
   await page.keyboard.press("Enter")
   await expect(pill).toBeFocused()
@@ -93,11 +95,13 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   if (process.env.SHOW_TIMELINE) console.info(file.timeline.map((r: { seq: number; type: string; desc: string }) => `${String(r.seq).padStart(3)} ${r.type.padEnd(16)} ${r.desc}`).join("\n"))
 
   const p = (e: Entry) => e.payload
-  const mine = log.filter(e => ["ui.task", "ui.visibility", "ui.edit"].includes(e.type)).map(e => ({ type: e.type, ...p(e) }))
+  // S2: until saves upgrade on load, the explicit reminder upgrade reloads the page before the session; that page close is not part of it.
+  const session = log.slice(log.findIndex(e => e.type === "ui.task"))
+  const mine = session.filter(e => ["ui.task", "ui.visibility", "ui.edit"].includes(e.type)).map(e => ({ type: e.type, ...p(e) }))
   expect(mine).toEqual([
     { type: "ui.task", task: 1, event: "start", route: "/" },
-    { type: "ui.edit", route: "/rules", field: "Search sources", kind: "search", area: "main", event: "start" },
-    { type: "ui.edit", route: "/rules", field: "Search sources", kind: "search", area: "main", event: "end", ms: expect.any(Number) },
+    { type: "ui.edit", route: "/rules", field: "Search rules", kind: "search", area: "main", event: "start" },
+    { type: "ui.edit", route: "/rules", field: "Search rules", kind: "search", area: "main", event: "end", ms: expect.any(Number) },
     { type: "ui.visibility", state: "hidden", via: "tab", route: "/" },
     { type: "ui.visibility", state: "visible", via: "tab", awayMs: expect.any(Number), route: "/" },
     { type: "ui.task", task: 1, event: "done", implicit: true, ms: expect.any(Number), route: "/" },
@@ -108,10 +112,10 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   expect(p(visible).awayMs as number).toBeGreaterThanOrEqual(1900)
 
   // the hover card: one entry of at least half a second, named by its trigger and the heading it sits under; the short pass is not there
-  // A risk mark's trigger has its own name ("At risk: …"), so no `near` heading is added.
-  const hovers = log.filter(e => e.type === "ui.hover" && /^At risk: /.test(String(p(e).name)))
+  // The workload meter's trigger has its own name ("Workload: <band>").
+  const hovers = log.filter(e => e.type === "ui.hover" && /^Workload: /.test(String(p(e).name)))
   expect(hovers).toHaveLength(1)
-  expect(p(hovers[0])).toMatchObject({ route: "/", via: phone(page) ? "tap" : "mouse" })
+  expect(p(hovers[0])).toMatchObject({ route: "/team", via: phone(page) ? "tap" : "mouse" })
   expect(p(hovers[0]).ms as number).toBeGreaterThanOrEqual(800)
   expect(log.every(e => e.type !== "ui.hover" || (p(e).ms as number) >= 500)).toBe(true)
 
@@ -121,7 +125,7 @@ test("task markers, a field edit, a hover card and time away are exported in ord
     at(e => e.type === "ui.task" && p(e).event === "start" && p(e).task === 1),
     at(e => e.type === "ui.edit" && p(e).event === "end"),
     at(e => e === hovers[0]),
-    at(e => e.type === "ui.visibility" && p(e).state === "hidden"),
+    at(e => e.type === "ui.visibility" && p(e).state === "hidden" && p(e).via === "tab"),
     at(e => e.type === "ui.task" && p(e).implicit === true),
     at(e => e.type === "ui.task" && p(e).event === "done" && p(e).task === 2),
     log.length - 1,
@@ -138,7 +142,7 @@ test("task markers, a field edit, a hover card and time away are exported in ord
   // the timeline reads well
   const descs = (file.timeline as { desc: string }[]).map(r => r.desc)
   expect(descs).toContain("Started study task 1 on /")
-  expect(descs).toContain('Started typing in search field "Search sources" on /rules')
+  expect(descs).toContain('Started typing in search field "Search rules" on /rules')
   expect(descs.some(d => /^Came back after \d+\.\d s away \(another tab or app\) on \/$/.test(d))).toBe(true)
   expect(descs.some(d => /^Ended study task 1 after .* \(next task started\)$/.test(d))).toBe(true)
 })

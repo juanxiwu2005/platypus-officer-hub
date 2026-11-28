@@ -5,9 +5,9 @@
 The browser never receives the API key. It calls this site's `/api/*` Netlify Functions, and those server functions call AIR. Keys and AI settings live only in Netlify environment variables.
 
 ```text
-Browser → /api/chat · /api/ask · /api/command · /api/nudge/draft · /api/handbook/draft
+Browser → /api/chat · /api/ask · /api/command · /api/handbook/draft · /api/setup/constitution
         → netlify/lib/ai.mts (provider adapter; reads AI_* variables)
-        → src/organization/modelPolicy.ts (task routing v3)
+        → src/lib/modelPolicy.ts (task routing v3)
         → ASU AIR: https://openai.rc.asu.edu/v1
 ```
 
@@ -25,7 +25,6 @@ Set these under Netlify → Project configuration → Environment variables. Con
 | `AI_SYNC_BUDGET_MS` | Unset, 26000 | Whole synchronous call budget, including a second format-fallback or truncation request, clamped to 10000–55000 ms. Constitution/workflow calls use one second less. Health reports `syncBudgetMs`; browsers wait this budget plus 4 seconds, or 30 seconds if unavailable, without automatic retry. Ask offers Stop; reminders offer Skip AI line. |
 | `AI_LIMIT_PROBE` | Unset | Only `on` enables `/api/limit-probe`; otherwise it returns 404. Remove after measurement. |
 | `AI_MIN_OUTPUT_TOKENS` | Unset, 1024 | AIR request output allowance is at least this value, clamped to 256–4096. See the bounded retry rule below. |
-| `ORG_SETUP_ENABLED` | Unset | Optional server storage remains hidden; see section 4. |
 
 **Synchronous budget:** November 7 production logs showed Netlify terminating a 55-second `/api/chat` request after 31.2 seconds (approximately 30 seconds), with 504/502 and no usage line. Later Netlify documentation describes 60 seconds. Keep the default 26-second budget until the actual environment is measured. Timeout returns clean 504 JSON and a labelled local fallback. Configuration changes require authorization.
 
@@ -52,14 +51,10 @@ Routing version: `air-task-routing-v3`.
 | `POST /api/chat` | Main application right-side Ask rail | `chat` | Muse, `muse-glimmer-30b` |
 | `POST /api/ask` | Rules questions | `ask` | Muse |
 | `POST /api/command` | Validated natural-language changes | `command` | Muse |
-| `POST /api/nudge/draft` | One sentence in a reminder draft | `nudge_draft` | Muse |
 | `POST /api/handbook/draft` | Select sources for a role handbook | `handbook_draft` | Muse |
 | `/api/setup/constitution` | Read roles, reporting lines, and duties after Continue in setup step 1; no server storage | `constitution_read` | Muse. Send structure and duties requests sequentially; AIR processes one at a time, so parallel requests queue. Each must return within `AI_SYNC_BUDGET_MS` minus 1 second (25 seconds by default); duties batches contain at most 6 items. Gemma took 56 seconds on a real constitution and is not used here. |
-| `/api/setup/workflow` | In setup step 5, compare planning notes/files with the standard workflow; propose edits/conflicts and assign roles by duties; no server storage | `workflow_read` | Muse. Send `changes` and `owners` requests sequentially, each within `AI_SYNC_BUDGET_MS` minus 1 second (25 seconds by default). |
-| `/api/org/ai` | Longer structured Organization Setup tasks; currently hidden | `setup.*` | Gemma, `gemma4-31b-it` |
-| Same endpoint, explicit Deeper review | User-requested stronger review | `setup.*` with deep mode | GLM, `glm-5-3` |
 
-Gemma handles longer structured setup; Muse handles short conversation/editing; GLM is used only for an explicit Deeper review request. There is no automatic upgrade. Only the server selects a model by task; the browser cannot name one.
+Muse handles every live endpoint above. The Gemma and GLM routes in `src/lib/modelPolicy.ts` served the hidden Organization Setup endpoints removed in S1 (November 22, 2026) and are no longer called; GLM remains the choice for an explicit Deeper review if one is added again. There is no automatic upgrade. Only the server selects a model by task; the browser cannot name one.
 
 This division was a DP3 design choice, not a verified performance ranking. Juanxi reported fast responses, but do not claim “proven fastest” without a formal measurement. If configuration or a request fails, the main application labels its keyword/local fallback explicitly rather than presenting it as live AI.
 
@@ -72,7 +67,9 @@ This division was a DP3 design choice, not a verified performance ranking. Juanx
 
 To restore the approved provider after an authorized fallback, unset `AI_PRESET` or restore `asu_air`, then redeploy with approval.
 
-## 4. Optional server storage: `ORG_SETUP_ENABLED`
+## 4. Optional server storage: `ORG_SETUP_ENABLED` (removed November 22, 2026)
+
+> **S1, November 22, 2026:** the hidden Organization Setup/Activity Workspace code, its `/api/org/*` and `/api/workspace*` endpoints, Netlify Blobs storage, the `ORG_SETUP_ENABLED` flag, `/api/nudge/draft` and `/api/setup/workflow` were deleted because no live screen used them. The text below is history. The code remains in git history and on branches `feat/ai-native-phase1` and `feat/organization-setup-ai`. `/api/limit-probe` was kept for the measurement above.
 
 Juanxi's October 27 decision was to hide, rather than delete, the Organization Setup/Activity Workspace server storage introduced by DP3. It uses Netlify Blobs. By default:
 

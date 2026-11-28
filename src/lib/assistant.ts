@@ -5,17 +5,13 @@ import { groundedAnswer, RULE_REFUSAL, type RuleAnswer } from "./ruleAnswers"
 import { aiSnapshot, formSnapshot, knownDates } from "./aiContext"
 import { sanitizeCards, type PlanPrefill, type TaskScope, type WireCard } from "./chatCards"
 import { defaultTaskDue } from "../engine/taskDates"
-import { checkReview, localReview, reviewPayload, type EventReview, type ReviewRisk } from "./eventReview"
+import type { EventReview, ReviewRisk } from "./eventReview"
 import { forecastFor, forecastQueue } from "../engine/forecast"
 import { computeSchedule } from "../engine/schedule"
-import { workload } from "../engine/team"
 import { eventStrip } from "./today"
-import { visibleContacts } from "../data/crm"
-import { checkPreflight, EMPTY_PACKAGE } from "./preflight"
-import { WEEK_ONE } from "./handbook"
-import { daysBetween } from "./dates"
-import { RULES } from "../data/rules"
-import { officers } from "../data/permissions"
+import { RULES, ruleSourceName } from "../data/rules"
+import { canLead } from "../data/permissions"
+import type { PlaybookAskContext } from "./playbookAsk"
 
 interface PolicyAnswer { inScope: boolean; answer: string; citations: string[]; model: string | null; provider?: string }
 
@@ -31,12 +27,20 @@ export type ChatCard =
   | { kind: "tasks"; title: string; nodeIds: string[]; remind?: boolean }
   | { kind: "changes"; changeSetId: string }
   | { kind: "applied"; changeSetId: string }
+  /** The New event form created this event at once (Option A, 2026-11-28): its name, Open and Undo. */
+  | { kind: "created"; changeSetId: string; eventId: string; name: string }
   | { kind: "nudge"; nodeId: string }
   | { kind: "rule"; question: string; answer: string; citations: string[]; inScope: boolean; label: string }
   /** The event review (M2b): risks for one new event; its suggested steps follow as a changes card. */
   | { kind: "review"; eventId: string; risks: ReviewRisk[]; label: string }
 export interface ChatMsg { id: string; role: "user" | "assistant"; text?: string; cards?: ChatCard[]; source?: string }
-export interface Focus { kind: "node" | "event" | "page"; id: string; title: string }
+/**
+ * What Ask is looking at (the "Looking at: …" chip). A Playbook question (Ask AI on its row) also carries its structured context,
+ * sent to /api/chat as `playbookQuestion` (docs/feedback-fix/PLAYBOOK_ASK_INTERFACE.md); `focus` itself stays kind, id and title.
+ */
+export type Focus =
+  | { kind: "node" | "event" | "page"; id: string; title: string }
+  | { kind: "playbook-question"; id: string; title: string; playbookQuestion: PlaybookAskContext }
 /**
  * `refine`: the assistant's reading of the same message, still on its way. The panel shows the reply at once and
  * lets the assistant fill in the form when it answers (ASU AIR can take tens of seconds; Juanxi wants speed).
@@ -113,6 +117,9 @@ const OVERLOAD_RE = /\boverload|\bworkload\b|\btoo much\b|\bbusiest\b|工作量/
 const PARTNER_RE = /\bpartners?\b.*\b(touch|contact|reach)|\bneeds? a touch\b|\bwho should (we|i) (contact|call|email)\b|联系/i
 const REMIND_RE = /^(remind|nudge|ping|chase)\b/i
 const MISSING_RE = /\bwhat'?s missing\b|\bready to submit\b|\bmissing in (this|the) (request|application)\b/i
+const DUE_WEEK_RE = /\bdue this week\b|\bdue in the next (?:7|seven) days\b/i
+const PLAYBOOK_SUMMARY_RE = /\bsummari[sz]e\b.*\banswers?\b/i
+const READ_FIRST_RE = /\bread first\b/i
 const WEEKONE_RE = /\bweek one\b|\bfirst week\b|\bnew officer\b|新干部|交接/i
 const DATES_RE = /\bhow (are|do) (deadlines|dates).*(calculat|work|set)|\bwhy (this|that) date\b/i
 const STEP_RE = /\babout this step\b|\bexplain this (step|task)\b|\bwhat should happen next\b/i
@@ -179,7 +186,7 @@ export function taskList(s: DemoState, viewerId: string, scope: TaskScope, limit
   const forecast = forecastFor(s)
   if (scope === "risk") {
     const pool = focusEventId ? s.nodes.filter(n => n.eventId === focusEventId && n.status !== "done" && (forecast.nodes[n.id]?.probability ?? 1) < .8).sort((a, b) => forecast.nodes[a.id].probability - forecast.nodes[b.id].probability).slice(0, limit) : forecastQueue(s, forecast)
-    return { title: focusEventId ? "At risk in this event" : "Needs a nudge", nodes: pool, remind: true }
+    return { title: focusEventId ? "At risk in this event" : "Needs a reminder", nodes: pool, remind: true }
   }
   if (scope === "stuck") return { title: "Stuck or waiting", nodes: s.nodes.filter(n => n.status === "blocked" || n.status === "waiting").slice(0, limit), remind: true }
   if (scope === "team") return { title: "Team priorities", nodes: s.nodes.filter(n => n.status !== "done").sort((a, b) => (forecast.nodes[a.id]?.probability ?? 1) - (forecast.nodes[b.id]?.probability ?? 1) || (a.latestStart ?? "9999").localeCompare(b.latestStart ?? "9999")).slice(0, limit), remind: true }
@@ -190,8 +197,13 @@ export function taskList(s: DemoState, viewerId: string, scope: TaskScope, limit
 const textCard = (text: string): ChatCard => ({ kind: "text", text })
 const tasksCard = (s: DemoState, viewerId: string, scope: TaskScope, limit: number, focusEventId?: string): ChatCard => {
   const t = taskList(s, viewerId, scope, limit, focusEventId)
-  return { kind: "tasks", title: t.title, nodeIds: t.nodes.map(n => n.id), remind: t.remind && canLeadAs(s, viewerId) }
+  const lead = canLeadAs(s, viewerId)
+  // Only the president or VP prepares reminders, so others see the same at-risk list without the word.
+  return { kind: "tasks", title: !lead && scope === "risk" && !focusEventId ? "At risk" : t.title, nodeIds: t.nodes.map(n => n.id), remind: t.remind && lead }
 }
+
+/** The local answers that load with their first question (assistantLocal.ts), outside the startup bundle. */
+const local = () => import("./assistantLocal")
 
 async function ruleReply(question: string, s: DemoState, signal?: AbortSignal): Promise<Reply> {
   let answer: Pick<RuleAnswer, "inScope" | "answer" | "citations" | "model" | "provider">, label: string
@@ -244,7 +256,7 @@ function fromWire(cards: WireCard[], text: string, s: DemoState, viewerId: strin
   return { cards: out, source, changeSet, autoSet }
 }
 
-const HELP = "I can rank your top tasks, add a task, plan an event, draft a reminder, or check an ASU rule. Try one of the suggestions below."
+const HELP = "I can rank your top tasks, add a task, plan an event, draft a reminder, or check an ASU rule."
 
 /**
  * The browser waits at most aiWaitMs() for an AI answer: the server's budget (26 s by default, /api/health) plus 4 s,
@@ -263,11 +275,13 @@ async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus |
   const data = opts.purpose === "form" ? formSnapshot(snap) : snap
   try {
     const r = await callApi<{ cards: unknown; source: string; model?: string; provider?: string }>("/chat", {
-      message: t, page, focus, context: commandContext(s), data, ...(opts.purpose ? { purpose: opts.purpose } : {}),
+      message: t, page, focus: focus && { kind: focus.kind, id: focus.id, title: focus.title }, context: commandContext(s), data, ...(opts.purpose ? { purpose: opts.purpose } : {}),
+      // The Playbook question's context, as data for the assistant (a future AI harness answers from it; see PLAYBOOK_ASK_INTERFACE.md).
+      ...(focus?.kind === "playbook-question" && opts.purpose !== "form" ? { playbookQuestion: focus.playbookQuestion } : {}),
       history: history.slice(-6).map(m => ({ role: m.role, text: m.text ?? m.cards?.map(c => c.kind === "text" ? c.text : c.kind).join(" ") ?? "" })),
     }, aiWaitMs(), opts.signal)
     const cards = sanitizeCards(r.cards, commandContext(s), knownDates(data))
-    const label = r.source === "ai" ? `AI draft${r.model ? ` · ${r.model}` : ""}` : "Checked command grammar"
+    const label = r.source === "ai" ? `AI draft${r.model ? ` · ${r.model}` : ""}` : "Platypus"
     return cards.length ? fromWire(cards, t, s, viewerId, label, focus ?? null) : null
   } catch (e) {
     if (opts.miss) opts.miss.why = wasStopped(e) ? "stopped" : aiMiss(e)
@@ -279,11 +293,11 @@ async function aiReply(t: string, s: DemoState, viewerId: string, focus: Focus |
 /** The event form from the person's own words, for when the AI could not answer a message that reads like planning. */
 function localPlanReply(t: string, s: DemoState, why: AiMiss | "off" | "stopped"): Reply {
   const { prefill, date } = planDefaults(t, s)
-  if (why === "stopped") return { cards: [textCard("You stopped the AI, so I filled in the event form from your words. If you meant a new event, check it and draft the plan."), { kind: "form", id: uid(), prefill, date }], source: STOPPED_FORM_SOURCE }
+  if (why === "stopped") return { cards: [textCard("You stopped the AI, so I filled in the event form from your words."), { kind: "form", id: uid(), prefill, date }], source: STOPPED_FORM_SOURCE }
   const lead = why === "off" ? "AI is off, so I filled in the event form from your words." : why === "timeout" ? "The AI didn't answer in time, so I filled in the event form from your words." : "The AI is unavailable right now, so I filled in the event form from your words."
   return {
-    cards: [textCard(`${lead} If you meant a new event, check it and draft the plan.`), { kind: "form", id: uid(), prefill, date }],
-    source: why === "off" ? "Local demo grammar · AI off" : why === "timeout" ? "Platypus · AI didn't answer in time, filled from your words" : "Platypus · AI unavailable, filled from your words",
+    cards: [textCard(lead), { kind: "form", id: uid(), prefill, date }],
+    source: why === "off" ? "Platypus · AI off" : why === "timeout" ? "Platypus · AI didn't answer in time, filled from your words" : "Platypus · AI unavailable, filled from your words",
   }
 }
 
@@ -305,21 +319,21 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   if (intent) {
     const refineMiss: { why?: AiMiss | "stopped" } = {}
     const refine = s.aiEnabled && !BARE_EVENT.test(t) && !BARE_TASK.test(t) ? aiReply(t, s, viewerId, focus, page, history, { purpose: "form", miss: refineMiss, signal }) : undefined
-    const source = !s.aiEnabled ? "Local demo grammar · AI off" : refine ? "Platypus · AI is reading your message" : "Platypus"
+    const source = !s.aiEnabled ? "Platypus · AI off" : refine ? "Platypus · AI is reading your message" : "Platypus"
     const extra = refine ? { refine, refineMiss } : {}
     if (intent === "task") {
       const card = { ...taskDefaults(t, s, focus), thinking: !!refine }
-      return { cards: [textCard(card.title ? "Here's the task. Check who owns it and when it's due." : "What's the task? Fill in the name and who owns it."), card], source, ...extra }
+      return { cards: [textCard(card.title ? "Check the owner and due date." : "What's the task, and who owns it?"), card], source, ...extra }
     }
     const { prefill, date } = planDefaults(t, s)
-    return { cards: [textCard("Happy to help. Fill in what's missing and I'll draft the plan from the club playbook."), { kind: "form", id: uid(), prefill, date, thinking: !!refine }], source, ...extra }
+    return { cards: [textCard("Fill in what's missing."), { kind: "form", id: uid(), prefill, date, thinking: !!refine }], source, ...extra }
   }
   // "Move the event to Jan 30 2027": a date the person typed, applied by a person, recomputed by the rule engine.
   const moved = EVENT_DATE_RE.test(t) ? humanEventDate(t, s.today) : ""
   if (moved) {
     const named = s.events.find(e => t.toLowerCase().includes(e.name.toLowerCase()))
     const ev = named ?? focusEvent ?? s.events.at(-1)
-    if (ev) return { cards: [{ kind: "eventdate", eventId: ev.id, date: moved }], source: "Your date · the rule engine redoes the plan" }
+    if (ev) return { cards: [{ kind: "eventdate", eventId: ev.id, date: moved }], source: "Your date" }
   }
   if (STEP_RE.test(t) && focusNode) {
     const p = computeSchedule(s).nodes[focusNode.id]
@@ -327,32 +341,37 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
     const lines = [focusNode.why || "This step supports the club plan.", up.length ? `It waits for: ${up.map(n => n.title).join("; ")}.` : "Nothing upstream is blocking it.", p?.issues.find(i => i.severity !== "info")?.text].filter(Boolean)
     return { cards: [textCard(lines.join(" ")), { kind: "tasks", title: "This step", nodeIds: [focusNode.id], remind: canLeadAs(s, viewerId) && focusNode.status !== "done" }], source: "Platypus" }
   }
+  // Asked from a Playbook question (Ask AI on its row): the message goes to /api/chat first, with the question's context as
+  // `playbookQuestion`, so the assistant sees the club's answers. With AI off, or when the AI has nothing, the usual answers below
+  // apply unchanged (a rule question still gets the rule book's keyword answer).
+  if (focus?.kind === "playbook-question" && s.aiEnabled) {
+    try {
+      const ai = await aiReply(t, s, viewerId, focus, page, history, { rethrow: true, signal })
+      if (ai?.cards.length) return ai
+    } catch (e) {
+      if (wasStopped(e)) return { cards: [textCard(`Stopped. ${HELP}`)], source: STOPPED_SOURCE }
+    }
+  }
   // A policy/source question has precedence over shortcuts. This prevents "top three rules" from
   // incorrectly becoming the user's top-five task table.
   if (POLICY_REFERENCE_RE.test(t)) return ruleReply(t, s, signal)
   if (TOP_TASK_RE.test(t)) return { cards: [tasksCard(s, viewerId, /team|club|everyone/i.test(t) ? "team" : "mine", limit)], source: "Ranked by risk, then start date" }
   if (STUCK_RE.test(t)) return { cards: [tasksCard(s, viewerId, "stuck", limit)], source: "Platypus" }
   if (NUDGE_RE.test(t)) return { cards: [tasksCard(s, viewerId, "risk", 3, focusEvent?.id)], source: "Forecast" }
-  if (NEXT_RE.test(t) && focusEvent) return { cards: [{ kind: "tasks", title: `Next in ${focusEvent.name}`, nodeIds: eventStrip(s.nodes.filter(n => n.eventId === focusEvent.id)).map(n => n.id), remind: canLeadAs(s, viewerId) }], source: "Platypus" }
-  if (OVERLOAD_RE.test(t)) {
-    const rows = officers(s).map(p => ({ p, w: workload(s, p.id) })).sort((a, b) => b.w.load - a.w.load)
-    const needingSupport = rows.filter(r => r.w.band === "Needs support")
-    return { cards: [textCard(needingSupport.length ? `${needingSupport.map(r => r.p.name.split(" ")[0]).join(", ")} ${needingSupport.length > 1 ? "could use" : "could use"} help with the next two weeks. Consider moving a non-critical step, rather than filling anyone's time.` : `No one is flagged as needing support in the next two weeks. ${rows[0].p.name.split(" ")[0]} has the most weighted, time-sensitive work.`)], source: "Workload signals" }
-  }
-  if (PARTNER_RE.test(t)) {
-    const due = visibleContacts(s).filter(c => !c.lastContact || daysBetween(c.lastContact, s.today) >= c.cadenceDays)
-    return { cards: [textCard(due.length ? `Due for a touch: ${due.map(c => c.name).join(", ")}.` : "Every partner is within their contact interval.")], source: "Partners" }
-  }
+  if (DUE_WEEK_RE.test(t)) return { cards: [(await local()).dueThisWeek(s, viewerId)], source: "Rule engine dates" }
+  if (PLAYBOOK_SUMMARY_RE.test(t)) return { cards: [(await local()).playbookSummary(t, s)], source: "Playbook" }
+  if (READ_FIRST_RE.test(t)) return { cards: [(await local()).playbookReadFirst(t, s, viewerId)], source: "Playbook" }
+  // With no event in view, "Who is up next?" reads the next upcoming event (a chip on Events must not end in a refusal).
+  const nextEvent = focusEvent ?? s.events.filter(e => e.date >= s.today).sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))[0]
+  if (NEXT_RE.test(t) && nextEvent) return { cards: [{ kind: "tasks", title: `Next in ${nextEvent.name}`, nodeIds: eventStrip(s.nodes.filter(n => n.eventId === nextEvent.id)).map(n => n.id), remind: canLeadAs(s, viewerId) }], source: "Platypus" }
+  if (OVERLOAD_RE.test(t)) return { cards: [(await local()).overloadAnswer(s)], source: "Workload" }
+  if (PARTNER_RE.test(t)) return { cards: [(await local()).partnersDue(s)], source: "Partners" }
   if (MISSING_RE.test(t)) {
-    const f = s.funding.find(x => x.eventId === focusEvent?.id) ?? s.funding[0]
-    if (f) {
-      const e = s.events.find(x => x.id === f.eventId)
-      const r = checkPreflight({ ...EMPTY_PACKAGE, amount: f.amount, attendees: e?.headcount ?? 0, ...f.application })
-      return { cards: [textCard(r.ready ? `${e?.name}: the checklist is complete. The office still reviews it.` : `${e?.name} still needs: ${r.issues.map(i => `${i.text} [${i.ruleId}]`).join(" ")}`)], source: "Pre-submission check" }
-    }
+    const card = (await local()).fundingMissing(s, focusEvent?.id)
+    if (card) return { cards: [card], source: "Pre-submission check" }
   }
-  if (WEEKONE_RE.test(t)) return { cards: [textCard(WEEK_ONE.map((w, i) => `${i + 1}. ${w.text}`).join("\n"))], source: "SEO onboarding + R16" }
-  if (DATES_RE.test(t)) return { cards: [textCard(`Dates come only from the rule engine: the ASU rule, a ${s.org.settings.clubBufferBusinessDays}-day club buffer, each officer's buffer and busy weeks, and ASU holidays. Open any step to see why it has its date.`)], source: "Rule engine" }
+  if (WEEKONE_RE.test(t)) return { cards: [(await local()).weekOne()], source: `SEO onboarding + ${ruleSourceName("R16")}` }
+  if (DATES_RE.test(t)) return { cards: [textCard(`Dates work back from the ASU deadline: ${s.org.settings.clubBufferBusinessDays} days early for the club, each officer's extra days and busy weeks, and ASU holidays.`)], source: "Rule engine" }
   if (REMIND_RE.test(t)) {
     const lower = t.toLowerCase()
     const person = s.people.find(p => lower.includes(p.name.split(" ")[0].toLowerCase()))
@@ -364,7 +383,7 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
   const ops = parseCommand(t, commandContext(s))
   if (ops.length && ops.every(o => o.op === "answer_question") || RULE_Q_RE.test(t)) return ruleReply(t, s, signal)
   if (ops.length && !ops.some(o => o.op === "answer_question")) {
-    const source = s.aiEnabled ? "Checked command grammar" : "Local demo grammar · AI off"
+    const source = s.aiEnabled ? "Platypus" : "Platypus · AI off"
     return { ...splitChanges(t, ops, source), source }
   }
   if (s.aiEnabled) {
@@ -388,9 +407,11 @@ export async function respond(text: string, s: DemoState, viewerId: string, focu
 
 /**
  * Review a newly approved event (M2b): the assistant reads the playbook's steps plus everything the organizer
- * wrote and suggests risks and extra steps. Without AI, the rule engine's own warnings are shown instead.
+ * wrote and suggests risks; it never adds steps. Without AI, the rule engine's own warnings are shown instead.
  */
 export async function reviewEvent(s: DemoState, eventId: string, signal?: AbortSignal): Promise<Reply> {
+  // The review checks load with the first review, outside the startup bundle.
+  const { checkReview, localReview, reviewPayload } = await import("./eventReview")
   const p = reviewPayload(s, eventId)
   if (!p) return { cards: [textCard("That event is no longer in the plan.")], source: "Platypus" }
   let review: EventReview, label: string
@@ -410,16 +431,27 @@ export async function reviewEvent(s: DemoState, eventId: string, signal?: AbortS
   return { cards, source: label, changeSet }
 }
 
-export const SUGGESTIONS: Record<string, string[]> = {
-  "/": ["What are my top 5 tasks?", "Plan a new event", "Who needs a nudge?"],
-  "/events": ["What is at risk in this event?", "Who is up next?", "Plan a new event"],
-  "/tasks": ["Add a task", "What are my top 5 tasks?", "What is stuck?"],
-  "/team": ["Who is overloaded?", "Who needs a nudge?", "What are my top 5 tasks?"],
-  "/funding": ["What's missing in this request?", "When is the USG food request due?", "Plan a new event"],
-  "/handoff": ["What does a new officer need in week one?", "What are my top 5 tasks?", "Who needs a nudge?"],
-  "/partners": ["Who needs a touch?", "Plan a new event", "What are my top 5 tasks?"],
-  "/rules": ["Can we use an outside caterer?", "Can we run a raffle?", "Does the advisor need to attend?"],
-  "/settings": ["How are deadlines calculated?", "Who is overloaded?", "What are my top 5 tasks?"],
-  "/help": ["What are my top 5 tasks?", "Plan a new event", "Can we serve homemade food?"],
+/**
+ * Suggestion chips for the Ask panel, chosen by page and by role (audit C7). Each one is answered by the app itself
+ * (respond's local shortcuts), so a chip never ends in "I couldn't match that", with AI on or off. Only the president
+ * or vice president can prepare reminders (canLead, as in ReminderComposer), so only they get the reminder chip.
+ */
+const REMINDER_CHIP = "Who needs a reminder?"
+const DUE_CHIP = "What's due this week?"
+const PLAYBOOK_CHIPS = ["Can members bring homemade food?", "Summarize the funding answers", "What should a new treasurer read first?"]
+const PAGE_SUGGESTIONS: Record<string, { lead: string[]; member: string[] }> = {
+  "/": { lead: [REMINDER_CHIP, DUE_CHIP, "Plan a new event"], member: [DUE_CHIP, "What are my top 5 tasks?", "Plan a new event"] },
+  "/events": { lead: ["What is at risk in this event?", "Who is up next?", "Plan a new event"], member: ["What is at risk in this event?", "Who is up next?", "Plan a new event"] },
+  "/tasks": { lead: ["Add a task", "What are my top 5 tasks?", "What is stuck?"], member: ["Add a task", "What are my top 5 tasks?", "What is stuck?"] },
+  "/team": { lead: ["Who is overloaded?", REMINDER_CHIP, "What is stuck?"], member: ["Who is overloaded?", "What is stuck?", DUE_CHIP] },
+  "/playbook": { lead: PLAYBOOK_CHIPS, member: PLAYBOOK_CHIPS },
+  "/handoff": { lead: ["What does a new officer need in week one?", "What should a new treasurer read first?", REMINDER_CHIP], member: ["What does a new officer need in week one?", "What should a new treasurer read first?", DUE_CHIP] },
+  "/rules": { lead: ["Can we use an outside caterer?", "Can we run a raffle?", "Does the advisor need to attend?"], member: ["Can we use an outside caterer?", "Can we run a raffle?", "Does the advisor need to attend?"] },
+  "/settings": { lead: ["How are deadlines calculated?", "Who is overloaded?", "What is stuck?"], member: ["How are deadlines calculated?", "Who is overloaded?", "What is stuck?"] },
+}
+/** The chips for this page and viewer; an unknown page gets the home page's. */
+export function suggestionsFor(page: string, s: DemoState): string[] {
+  const chips = PAGE_SUGGESTIONS[page] ?? PAGE_SUGGESTIONS["/"]
+  return canLead(s) ? chips.lead : chips.member
 }
 export const ruleById = (id: string) => RULES.find(r => r.id === id)

@@ -22,7 +22,7 @@ const doc = (text = SAMPLE_CONSTITUTION, checksum = "sum-1") => ({ fileName: "sa
 let current: OnboardingDraft
 const fresh = (over: Partial<OnboardingDraft> = {}): OnboardingDraft => ({
   club: clubDraft(seedDemo()), doc: doc(), reading: { status: "idle" }, applied: false, structureTouched: false, missionTouched: false,
-  steps: [], workflowTouched: false, buffer: 3, sentence: "", event: null, date: "", source: "", confirmed: false, reminderMode: null, inviteCode: "x", skipped: [], ...over,
+  steps: [], workflowTouched: false, buffer: 3, sentence: "", event: null, date: "", source: "", confirmed: false, inviteCode: "x", skipped: [], ...over,
 })
 let calls: { part?: string; text?: string }[] = []
 function mockFetch(handler: (body: { part?: string }) => { status: number; json: unknown }) {

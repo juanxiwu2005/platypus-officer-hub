@@ -8,6 +8,11 @@ import { StoreProvider, useStore, STORAGE_KEY } from "../data/store"
 import type { DemoState, Node } from "../data/types"
 import { applySchedule } from "../engine/schedule"
 import { fmtShort } from "../lib/dates"
+import { sanitizeOps } from "../lib/commands"
+import { EVENT_CHECKLIST } from "../data/eventChecklist"
+import { ensureWorkflowPresetTeams } from "../data/workflowTeamDefaults"
+import { newObjects, validateReview } from "../data/changeReview"
+import { findWorkflowTemplateVersion, STANDARD_WORKFLOW_TEMPLATE_ID } from "../data/workflowTemplates"
 
 vi.mock("../taskDetails/fileStorage", async original => ({ ...await original<typeof import("../taskDetails/fileStorage")>(), ...await import("../test/taskFileStorageMock") }))
 
@@ -17,6 +22,23 @@ let store: ReturnType<typeof useStore>
 function fixture(patch: Partial<Node> = {}, viewerId = "jordan"): DemoState {
   const s = seedDemo(undefined, "v2"), source = s.nodes.find(n => n.stepKey === "venue")!
   return applySchedule({ ...s, viewerId, today: "2027-03-28", events: s.events.map(e => e.id === source.eventId ? { ...e, name: "Speaker Night", headcount: 40, venue: "campus" } : e), nodes: [{ ...source, id: "details-task", ownerId: "jordan", status: "accepted", dependsOn: [], instructions: "Book an accessible room for 40 attendees.", ...patch }], nudges: [], protocolLog: [], silenceCases: [], notifications: [] })
+}
+// Option A (Juanxi 2026-11-28): an event made from the standard workflow with Jordan as the Operations lead.
+const operationsId = (s: DemoState) => s.org.workflowTeams!.find(team => team.name === "Operations")!.id
+function teamLeadFixture(viewerId: string): DemoState {
+  const base = ensureWorkflowPresetTeams(seedDemo(undefined, "v2"))
+  const version = findWorkflowTemplateVersion(base, STANDARD_WORKFLOW_TEMPLATE_ID)!
+  const checks = Object.fromEntries(EVENT_CHECKLIST.map(item => [item.key, true]))
+  const op = sanitizeOps([{ op: "create_event", name: "Led event", type: "speaker", headcount: 60, venue: "campus", food: "offsite", funding: "usg", speaker: true, checks }], base)[0]
+  const human = { date: "2027-04-15", workflowTemplateId: STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplateVersion: version.version, teamLeads: { [operationsId(base)]: "jordan" } }
+  expect(validateReview(base, op, human)).toBeNull()
+  const created = newObjects(base, op, "led-1", human)
+  return applySchedule({ ...base, viewerId, events: created.events!, nodes: created.nodes!, nudges: [], protocolLog: [], silenceCases: [], notifications: [] })
+}
+function LiveNode({ id }: { id: string }) { store = useStore(); return <TaskDetail node={store.state.nodes.find(n => n.id === id)!} actorId={store.state.viewerId} /> }
+async function showNode(state: DemoState, id: string) {
+  render(<MemoryRouter><StoreProvider initial={state}><LiveNode id={id} /></StoreProvider></MemoryRouter>)
+  await waitFor(() => expect(screen.queryByText("Opening draft…")).toBeNull())
 }
 function Live({ token }: { token?: string }) { store = useStore(); return <TaskDetail node={store.state.nodes[0]} actorId={store.state.viewerId} token={token} /> }
 async function show(state = fixture(), token?: string) {
@@ -38,6 +60,14 @@ describe("the universal task page and edit drawer", () => {
     expect(screen.queryByText("Why it matters:")).toBeNull()
     expect(screen.queryByRole("button", { name: "Edit" })).toBeNull()
   })
+  it("describes a task with no instructions by its purpose, not by repeating its title (item 4)", async () => {
+    await show(fixture({ stepKey: "contentCreation", title: "Content Creation", instructions: "", why: "Create approved copy, graphics, and campaign assets" }))
+    expect(screen.getByText("Create approved copy, graphics, and campaign assets.")).toBeTruthy()
+    expect(screen.queryByText("Content Creation for Speaker Night.", { exact: false })).toBeNull()
+    cleanup()
+    await show(fixture({ stepKey: "contentCreation", title: "Content Creation", instructions: "", why: "" }))
+    expect(screen.getByText("Content Creation for Speaker Night", { exact: false })).toBeTruthy()
+  })
   it("uses the same text-and-files form for custom workflow nodes, without injecting room-specific links", async () => {
     await show(fixture({ stepKey: "fictional-custom", title: "Prepare the demo", externalLinks: [{ label: "Custom platform", url: "https://example.org/work" }] }))
     expect(screen.getByLabelText("Details")).toBeTruthy()
@@ -58,7 +88,7 @@ describe("the universal task page and edit drawer", () => {
     fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Student Union, Room 204" } })
     fireEvent.change(screen.getByLabelText("Attach files"), { target: { files: [new File(["hello"], "booking.txt", { type: "text/plain" }), new File(["plan"], "room.txt", { type: "text/plain" })] } })
     await screen.findByRole("button", { name: "Download booking.txt" })
-    await waitFor(() => expect(screen.getByTestId("task-autosave-status").textContent).toContain("Draft saved automatically"))
+    await waitFor(() => expect(screen.getByTestId("task-autosave-status").textContent).toContain("Draft saved"))
     expect(store.state.nodes[0].status).toBe("accepted")
     expect(store.state.nodes[0].taskWork).toBeUndefined()
     const draft = store.state; cleanup(); await show(draft)
@@ -86,7 +116,7 @@ describe("the universal task page and edit drawer", () => {
     const write = Storage.prototype.setItem
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(function(this: Storage, key, value) { if (key === STORAGE_KEY) throw new Error("Storage full"); write.call(this, key, value) })
     fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
-    await waitFor(() => expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toContain("not saved"))
+    await waitFor(() => expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toBe("Can't save in this browser."))   // the store knows the cause
     expect(store.state.nodes[0].status).toBe("accepted")
     expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toBe("Keep this result")
     expect(screen.getByRole("button", { name: "Download booking.txt" })).toBeTruthy()
@@ -149,7 +179,7 @@ describe("the universal task page and edit drawer", () => {
     const blocked = vi.spyOn(Storage.prototype, "setItem").mockImplementation(function(this: Storage, key, value) { if (key === STORAGE_KEY) throw new Error("Storage unavailable"); write.call(this, key, value) })
     fireEvent.click(undo)
     expect(store.state.nodes[0].status).toBe("done")
-    expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toContain("not reopened")
+    expect(within(screen.getByTestId("task-submission")).getByRole("alert").textContent).toBe("Can't save in this browser.")
     blocked.mockRestore()
     fireEvent.click(undo)
     expect(store.state.nodes[0].status).toBe("accepted")
@@ -163,6 +193,102 @@ describe("the universal task page and edit drawer", () => {
     fireEvent.change(screen.getByRole("combobox", { name: "Task status" }), { target: { value: "blocked" } })
     expect(store.state.nodes[0].status).toBe("blocked")
     expect((screen.getByLabelText("Details") as HTMLTextAreaElement).value).toContain("Room 204")
+  })
+  it("keeps Undo mark done after Task Details is closed and reopened, until a reload or a newer change (S3)", async () => {
+    await show(fixture({ id: "undo-reopen" }))
+    fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room 204" } })
+    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
+    await screen.findByRole("button", { name: "Undo mark done" })
+    const finished = store.state
+    cleanup(); await show({ ...finished, nodes: finished.nodes.map(n => ({ ...n, ownerVersion: (n.ownerVersion ?? 0) + 1 })) })
+    expect(screen.queryByRole("button", { name: "Undo mark done" })).toBeNull()
+    cleanup(); await show(finished)
+    fireEvent.click(await screen.findByRole("button", { name: "Undo mark done" }))
+    expect(store.state.nodes[0].status).toBe("accepted")
+    const reopened = store.state; cleanup(); await show(reopened)
+    expect(screen.queryByRole("button", { name: "Undo mark done" })).toBeNull()
+  })
+  it("needs Details before Submit & mark done, the one completion button, then completes and offers Undo beside the status", async () => {
+    await show()
+    const status = screen.getByTestId("single-task-status")
+    // Juanxi (2026-11-28): no second Mark done beside the status.
+    expect(screen.queryByRole("button", { name: "Mark done" })).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
+    expect((await screen.findByRole("alert")).textContent).toBe("Add the result in Details before you mark this done.")
+    expect(document.activeElement).toBe(screen.getByLabelText("Details"))
+    expect(screen.getByLabelText("Details").getAttribute("aria-invalid")).toBe("true")
+    expect(store.state.nodes[0].status).toBe("accepted")
+    expect(store.state.nodes[0].taskWork?.submissions ?? []).toHaveLength(0)
+    fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room 204 booked" } })
+    expect(screen.queryByRole("alert")).toBeNull()
+    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
+    await waitFor(() => expect(store.state.nodes[0].status).toBe("done"))
+    expect(store.state.nodes[0].taskWork?.submissions).toMatchObject([{ authorId: "jordan", details: "Room 204 booked", attachmentIds: [] }])
+    expect(screen.getByText("Marked done.").getAttribute("role")).toBe("status")
+    const undo = await within(status).findByRole("button", { name: "Undo mark done" })
+    await waitFor(() => expect(document.activeElement).toBe(undo))
+    expect(screen.getAllByRole("button", { name: "Undo mark done" })).toHaveLength(1)
+    fireEvent.click(undo)
+    expect(store.state.nodes[0].status).toBe("accepted")
+  })
+  it("still needs Details to update a Done task's submission", async () => {
+    await show()
+    fireEvent.change(screen.getByLabelText("Details"), { target: { value: "Room 204 booked" } })
+    fireEvent.click(screen.getByRole("button", { name: "Submit & mark done" }))
+    await waitFor(() => expect(store.state.nodes[0].status).toBe("done"))
+    fireEvent.change(screen.getByLabelText("Details"), { target: { value: " " } })
+    fireEvent.click(screen.getByRole("button", { name: "Update submission" }))
+    expect((await screen.findByRole("alert")).textContent).toBe("Add the result in Details before you submit.")
+    expect(store.state.nodes[0].taskWork?.submissions).toHaveLength(1)
+  })
+  it("lets the president take or assign a Not claimed task, and reassign a Stuck one, from Task Details", async () => {
+    await show(fixture({ status: "unclaimed", ownerId: null }, "alex"))
+    const row = screen.getByTestId("task-assign")
+    expect(screen.getByRole("button", { name: "I've got it" })).toBeTruthy()
+    fireEvent.change(within(row).getByRole("combobox", { name: "Assign to" }), { target: { value: "sam" } })
+    expect(store.state.nodes[0]).toMatchObject({ ownerId: "sam", status: "accepted" })
+    expect(screen.getByText("Assigned to Sam.").getAttribute("role")).toBe("status")
+    expect(screen.queryByTestId("task-assign")).toBeNull()   // an assigned To do task needs no assign row
+    cleanup(); await show(fixture({ status: "blocked", ownerId: "jordan" }, "alex"))
+    fireEvent.click(within(screen.getByTestId("task-assign")).getByRole("button", { name: "I've got it" }))
+    expect(store.state.nodes[0]).toMatchObject({ ownerId: "alex", status: "accepted" })
+  })
+  it("lets an event's team lead hand an open team task to a teammate, and nobody else (option A)", async () => {
+    const s = teamLeadFixture("jordan")
+    const node = s.nodes.find(n => n.eventId === "led-1" && n.teamId === operationsId(s) && n.ownerId === "jordan")!
+    await showNode(s, node.id)
+    const row = screen.getByTestId("task-assign")
+    const select = within(row).getByRole("combobox", { name: "Assign to" })
+    const options = within(select).getAllByRole("option").map(o => o.textContent)
+    expect(options).toEqual(["Hand to a teammate…", "Priya Nair"])
+    expect(within(row).queryByRole("button", { name: "I've got it" })).toBeNull()
+    fireEvent.change(select, { target: { value: "priya" } })
+    expect(store.state.nodes.find(n => n.id === node.id)).toMatchObject({ ownerId: "priya", status: "accepted" })
+    expect(screen.getByText("Assigned to Priya.").getAttribute("role")).toBe("status")
+    // A teammate who is not the lead gets no row, and neither does a done task.
+    const handed = store.state; cleanup(); await showNode({ ...handed, viewerId: "priya" }, node.id)
+    expect(screen.queryByTestId("task-assign")).toBeNull()
+    cleanup(); await showNode({ ...s, nodes: s.nodes.map(n => n.id === node.id ? { ...n, status: "done" } : n) }, node.id)
+    expect(screen.queryByTestId("task-assign")).toBeNull()
+  })
+  it("shows no assign row to an officer who is not a lead, or on a task in progress", async () => {
+    await show(fixture({ status: "blocked" }, "jordan"))
+    expect(screen.queryByTestId("task-assign")).toBeNull()
+    cleanup(); await show(fixture({ status: "in_progress" }, "alex"))
+    expect(screen.queryByTestId("task-assign")).toBeNull()
+  })
+  it("offers no completion button to a teammate who may not complete the task or to an unclaimed task, and a budget step submits a result", async () => {
+    await show(fixture({}, "sam"))
+    expect(screen.queryByRole("button", { name: "Submit & mark done" })).toBeNull()
+    cleanup(); await show(fixture({ status: "unclaimed", ownerId: null }))
+    expect(screen.queryByRole("button", { name: "Submit & mark done" })).toBeNull()
+    expect(screen.getByRole("button", { name: "I've got it" })).toBeTruthy()
+    cleanup(); await show(fixture({ stepKey: "budgetRequest" }))
+    expect(screen.queryByRole("button", { name: "Submit & mark done" })).toBeNull()
+    expect(screen.getByRole("button", { name: "Submit result" })).toBeTruthy()
+    cleanup(); await show(fixture({}, "alex"))   // the president may complete any task
+    expect((screen.getByRole("button", { name: "Submit & mark done" }) as HTMLButtonElement).disabled).toBe(false)
+    expect(screen.queryByRole("button", { name: "Mark done" })).toBeNull()
   })
   it("updates a target directly with selected teammates, preserves failed input, and removes the approval step", async () => {
     await show()

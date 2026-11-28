@@ -3,7 +3,8 @@ import { closeRail, viewAs } from "./helpers"
 
 // DX-18: an empty list that was emptied by a search or filter says how to get everything back; the Today stars say what to do.
 async function fresh(page: Page, path: string) {
-  await page.addInitScript(() => window.localStorage.clear())
+  // Clear once per test (not on every reload), so a test can change the saved demo and reload.
+  await page.addInitScript(() => { if (!sessionStorage.getItem("dx18.cleared")) { window.localStorage.clear(); sessionStorage.setItem("dx18.cleared", "1") } })
   await page.goto(`/#${path}`)
   await closeRail(page)
 }
@@ -14,10 +15,10 @@ test("Rules: an empty search offers Clear filters", async ({ page }) => {
   const count = () => page.locator(".rule-row").count()
   const before = await count()
   expect(before).toBeGreaterThan(0)
-  await page.getByLabel("Search sources").fill("zzzz-no-such-source")
+  await page.getByLabel("Search rules").fill("zzzz-no-such-source")
   await expect(page.getByText("No matching source.")).toBeVisible()
   await page.getByRole("button", { name: "Clear filters" }).click()
-  await expect(page.getByLabel("Search sources")).toHaveValue("")
+  await expect(page.getByLabel("Search rules")).toHaveValue("")
   expect(await count()).toBe(before)
 })
 
@@ -27,9 +28,17 @@ test("Reminders: an empty section says so instead of showing nothing", async ({ 
   await fresh(page, "/")
   await viewAs(page, "maya")
   await closeRail(page)
+  // Since S2 the sample club runs the reminder plan, so Maya has a planned reminder. Clear her open tasks to see the empty wording.
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem("platypus.v1.demo")!)
+    s.nodes = s.nodes.map((n: { ownerId?: string | null; status: string }) => n.ownerId === "maya" && n.status !== "done" ? { ...n, ownerId: null } : n)
+    localStorage.setItem("platypus.v1.demo", JSON.stringify(s))
+  })
+  await page.reload()
+  await closeRail(page)
   const yours = page.getByTestId("your-reminders")
   await expect(yours.getByRole("heading", { name: "Coming up", exact: true })).toBeVisible()
-  await expect(yours).toContainText("No reminders coming up for you this week.")
+  await expect(yours).toContainText("Nothing this week.")
   await expect(yours.getByRole("heading", { name: "Recorded for you", exact: true })).toBeVisible()
   await expect(yours).toContainText("No recorded reminders yet.")
 })

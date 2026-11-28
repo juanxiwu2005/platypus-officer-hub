@@ -16,9 +16,9 @@ export type Prepared = { ok: true; event: FirstEvent; date: string; source: stri
  */
 export async function prepareEvent(state: DemoState, club: ClubDraft, sentence: string): Promise<Prepared> {
   const ctx = commandContext({ ...state, people: club.people, roles: club.roles, events: [], nodes: [] })
-  let ops = [] as ReturnType<typeof sanitizeOps>, source = "Local demo grammar · AI off"
+  let ops = [] as ReturnType<typeof sanitizeOps>, source = "Platypus · AI off"
   if (state.aiEnabled) {
-    try { const result = await callApi<{ ops: unknown; source: string }>("/command", { sentence, context: ctx }); ops = sanitizeOps(result.ops, ctx); source = result.source === "ai" ? "AI draft · review below" : "Checked command grammar" }
+    try { const result = await callApi<{ ops: unknown; source: string }>("/command", { sentence, context: ctx }); ops = sanitizeOps(result.ops, ctx); source = result.source === "ai" ? "AI draft · review below" : "Platypus" }
     catch { ops = parseCommand(sentence, ctx); source = "Local demo fallback · server unavailable" }
   } else ops = parseCommand(sentence, ctx)
   if (ops.length !== 1 || ops[0].op !== "create_event") return { ok: false, notice: onboardingCopy.founder.firstEvent.notEvent }

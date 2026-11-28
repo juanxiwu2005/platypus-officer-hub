@@ -167,6 +167,10 @@ describe("setup is recorded on its own, apart from how the attempt ends", () => 
     // The timeline's setup row says it in plain words.
     const done = at([[R, "enter", 0], [R, "leave", 30]], { setupCompletedAt: T + 40, setupChoice: "start-workspace" })
     expect(buildTimeline(log, { attempts: [done] }).find(r => r.type === "onboarding.setup")?.desc).toBe("Setup finished: Start workspace; reminders: review_then_auto")
+    // ob-5 (S2) has no Reminders screen: its attempts have no answer, even with the club's stored default and old ticks in the log.
+    const ob5 = { ...at([[C, "enter", 0]], { setupCompletedAt: T + 40, setupChoice: "start-workspace" }), flowVersion: "ob-5" }
+    expect(reminderModeChoice(ob5, log, "review_then_auto")).toBeNull()
+    expect(buildTimeline(log, { attempts: [ob5] }).find(r => r.type === "onboarding.setup")?.desc).toBe("Setup finished: Start workspace")
   })
 })
 
@@ -179,8 +183,8 @@ describe("the export", () => {
     act(() => { beginWalkthrough() })
     const session = currentSession()!
     const attempt = loadOnboardingRecord().attempts.at(-1)!
-    recordStep(attempt.id, "founder.first-event", "enter")
-    now = T + 1000; recordStep(attempt.id, "founder.first-event", "skip"); recordStep(attempt.id, "founder.first-event", "leave")
+    recordStep(attempt.id, "founder.name", "enter")   // ob-6: the first event is on screen 1
+    now = T + 1000; recordStep(attempt.id, "founder.name", "skip"); recordStep(attempt.id, "founder.name", "leave")
     now = T + 2000; recordSetup("start-workspace")
     now = T + 3000; endWalkthrough("exited")
     click("Now")

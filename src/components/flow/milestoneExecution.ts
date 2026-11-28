@@ -1,5 +1,6 @@
-import type { Event, Node, StepTemplate, WorkflowMilestoneGraph, WorkflowTeam } from "../../data/types"
-import { workflowMilestoneDates, workflowMilestoneGraphError } from "../../engine/workflowMilestones"
+import type { Event, Node, StepTemplate, WorkflowMilestoneGraph, WorkflowRun, WorkflowTeam } from "../../data/types"
+import { createWorkflowMilestoneGraph, workflowMilestoneDates, workflowMilestoneGraphError } from "../../engine/workflowMilestones"
+import { hasTeamExecutionTracks } from "./teamMetro"
 
 export interface MilestoneExecutionProjection {
   graph: WorkflowMilestoneGraph | null
@@ -11,11 +12,35 @@ export interface MilestoneExecutionProjection {
   issues: string[]
 }
 
+/**
+ * The graph Settings draws for this run's template version: the authored graph when the version has one,
+ * otherwise the graph Settings derives from the same steps and team map (the standard preset before it is
+ * edited). Display only: it never adds dependencies to the run's tasks or changes their dates.
+ */
+export function runMilestoneGraph(snapshot: WorkflowRun["snapshot"]): WorkflowMilestoneGraph {
+  return snapshot.milestoneGraph ?? createWorkflowMilestoneGraph(snapshot.steps, snapshot.teamMap?.stepTeams ?? {})
+}
+
+export type FlowChartKind = "template-graph" | "branch-metro"
+
+/**
+ * Plan draws a saved-template run with its template's Settings graph (main line, team branches and joins).
+ * Seeded and older events, and runs whose tasks lack teams, keep the branch metro. A derived graph that does
+ * not validate also keeps the branch metro, so such a run still shows its complete chart.
+ */
+export function flowChartKind(event: Event | undefined, nodes: Node[]): FlowChartKind {
+  const snapshot = event?.workflowRun?.snapshot
+  if (!snapshot || !hasTeamExecutionTracks(event, nodes)) return "branch-metro"
+  if (snapshot.milestoneGraph) return "template-graph"
+  const teams = new Set((snapshot.teams ?? []).map(team => team.id))
+  return workflowMilestoneGraphError(runMilestoneGraph(snapshot), snapshot.steps, teams) ? "branch-metro" : "template-graph"
+}
+
 /** The saved graph supplies structure. Only real Nodes supply task identity, current names and work. */
 export function projectMilestoneExecution(event: Event, nodes: Node[]): MilestoneExecutionProjection {
   const actual = nodes.filter(node => node.eventId === event.id)
   const snapshot = event.workflowRun?.snapshot
-  const graph = snapshot?.milestoneGraph
+  const graph = snapshot ? runMilestoneGraph(snapshot) : undefined
   const empty = (issue: string): MilestoneExecutionProjection => ({ graph: null, steps: [], teams: snapshot?.teams ?? [], nodeByStep: new Map(), dates: {}, unplaced: actual, issues: [issue] })
   if (!snapshot || !graph) return empty("The saved activity has no milestone workflow.")
   const problem = workflowMilestoneGraphError(graph, snapshot.steps, new Set(snapshot.teams.map(team => team.id)))

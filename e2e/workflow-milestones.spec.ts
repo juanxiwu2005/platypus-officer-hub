@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright"
 import type { DemoState, StepTemplate, WorkflowMilestoneGraph, WorkflowTemplate } from "../src/data/types"
 import { getWorkflowTemplates } from "../src/data/workflowTemplates"
 import { noOverflow } from "./helpers"
-import { openBranch, openMenu, setBranchTeam } from "./workflowLegacyHelpers"
+import { openBranch, openMenu, setBranchTeam, waitForDraftSave } from "./workflowLegacyHelpers"
 import { dragToSlot } from "./workflowDrag"
 
 const ID = "milestone-browser-fixture"
@@ -31,7 +31,7 @@ async function current(page: Page) {
 }
 async function save(page: Page) {
   await closeRail(page)
-  await page.getByRole("button", { name: "Save draft", exact: true }).click()
+  await waitForDraftSave(page)
   return (await current(page)).draft!
 }
 async function publish(page: Page, count = 1) {
@@ -73,8 +73,9 @@ async function createEvent(page: Page, template: WorkflowTemplate, name: string,
   await form.getByLabel("Event name", { exact: true }).fill(name)
   await form.getByLabel("Date", { exact: true }).fill("2027-04-16")
   await form.getByRole("combobox", { name: "Workflow template", exact: true }).selectOption({ label: `${template.versions.find(item => item.version === version)!.name} · v${version}` })
-  await form.getByRole("button", { name: "Continue", exact: true }).click()
-  await page.getByTestId("change-item").last().getByRole("button", { name: "Apply this change", exact: true }).click()
+  await form.getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect.poll(async () => (await read(page)).events.some(event => event.name === name)).toBe(true)
   await closeRail(page)
   return (await read(page)).events.find(event => event.name === name)!
@@ -190,7 +191,7 @@ test("cleared branch teams remain unassigned through new tasks and role-team app
   const branch = saved.milestoneGraph!.teamBranches.find(branch => branch.id === "before-day")!
   expect(branch.stepIds).toHaveLength(2)
   expect(branch.stepIds.every(key => !Object.hasOwn(saved.teamMap!.stepTeams, key))).toBe(true)
-  await openMenu(page, "More", "Apply role teams")
+  await openMenu(page, "Versions", "Apply role teams")
   saved = await save(page)
   for (const branch of saved.milestoneGraph!.teamBranches) for (const key of branch.stepIds) {
     if (branch.teamId) expect(saved.teamMap!.stepTeams[key]).toBe(branch.teamId)
@@ -216,7 +217,7 @@ test("saved two-day workflows open actual Plan tasks while day stations remain f
   await page.getByTestId("flow-event-day-2").click()
   const station = page.getByTestId("execution-milestone-details")
   await expect(station).toContainText("fixed date")
-  await expect(station).toContainText("not a task")
+  await expect(station.getByRole("button", { name: /submit|mark done/i })).toHaveCount(0)   // a station is not a task (S3 removed the sentence)
   await expect(station.getByRole("combobox", { name: "Task status", exact: true })).toHaveCount(0)
   await closeRail(page)
   const shared = tasks.find(node => node.stepKey === "shared")!
@@ -254,7 +255,7 @@ test("one/two-day authoring and actual execution remain accessible in both theme
   }
   const template = await publish(page)
   await createEvent(page, template, "Readable two-day execution")
-  const tones = await page.getByTestId("milestone-execution-branch").evaluateAll(branches => branches.map(branch => [...branch.classList].find(name => name.startsWith("wfm-tone-"))))
+  const tones = await page.getByTestId("milestone-execution-branch").evaluateAll(branches => branches.map(branch => [...branch.classList].find(name => name.startsWith("wfx-tone-"))))
   expect(new Set(tones).size).toBe(1)
   const axe = await new AxeBuilder({ page }).include("[data-testid='milestone-execution-chart']").withTags(["wcag2a", "wcag2aa"]).analyze()
   expect(axe.violations.filter(issue => ["serious", "critical"].includes(issue.impact ?? ""))).toEqual([])

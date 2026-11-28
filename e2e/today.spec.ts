@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test"
 import { ask, closeRail, noOverflow, resetDemo, openMore, viewAs } from "./helpers"
-import { savedDemo } from "./demo-contract"
+import { savedDemo, savedEvent } from "./demo-contract"
 import { enableUpdatedReminders } from "./reminderHelpers"
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: false, provider: null, model: null } }))
 })
 
-test("plans an event from one sentence: form, change set, approval, flow chart; persists and resets", async ({ page }) => {
+test("plans an event from one sentence: form, Create event, flow chart; persists and resets", async ({ page }) => {
   let chatCalls = 0
   await page.route("**/api/chat", r => { chatCalls++; return r.fulfill({ status: 503, json: {} }) })
   await page.goto("/#/")
@@ -17,14 +17,14 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
   await expect(form.getByLabel("Event name")).toHaveValue("Founders Welcome Dinner")
   await expect(form.getByLabel("Date")).toHaveValue("2026-11-19")
   // M2b: the form asks only Yes/No for food; the caterer type the person wrote travels with the request.
-  await expect(form.getByLabel("Food", { exact: true })).toHaveValue("yes")
-  await form.getByRole("button", { name: "Continue" }).click()
+  await form.getByLabel("Event name").fill("Founder Dinner Preview")
+  await form.getByLabel("Date").fill("2027-02-18")
+  await form.getByRole("button", { name: "Review event" }).click()
+  // Review option B: the form drafts; Create event in the change list is the approval.
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Create event" }).click()
   await expect(page.getByText("food: outside caterer")).toBeVisible()
-  const card = page.getByTestId("change-item")
-  await expect(card.getByLabel("Event date", { exact: true })).toHaveValue("2026-11-19")
-  await card.getByLabel("Event name").fill("Founder Dinner Preview")
-  await card.getByLabel("Event date", { exact: true }).fill("2027-02-18")
-  await card.getByRole("button", { name: "Apply this change" }).click()
+  await expect(page.getByTestId("change-item")).toHaveCount(0)
+  expect((await savedEvent(page, "Founder Dinner Preview")).date).toBe("2027-02-18")
   await expect(page.locator("main").getByRole("heading", { name: "Founder Dinner Preview" })).toBeVisible()
   await expect(page.getByTestId("flow-chart")).toBeVisible()
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem("platypus.v1.demo")!).changeSets[0].status)).toBe("applied")
@@ -37,12 +37,14 @@ test("plans an event from one sentence: form, change set, approval, flow chart; 
   expect(persisted.events.filter(e => e.name === "Founder Dinner Preview")).toHaveLength(1)
   expect(persisted.events.filter(e => initial.events.some(seed => seed.id === e.id))).toEqual(initial.events)
   const orderedNames = [...persisted.events].sort((a, b) => a.date.localeCompare(b.date) || a.name.localeCompare(b.name)).map(e => e.name)
+  const picker = page.getByRole("combobox", { name: "Choose an event" })
+  // isVisible() does not wait: after the reload, wait until one of the two event switchers has rendered.
+  await expect(eventNav.or(picker).filter({ visible: true }).first()).toBeVisible()
   if (await eventNav.isVisible()) {
     await expect(eventNav.getByRole("button")).toHaveCount(initial.events.length + 1)
     await expect(eventNav.getByRole("button")).toHaveText(orderedNames)
     await eventNav.getByRole("button", { name: "Spring Speaker Night" }).click()
   } else {
-    const picker = page.getByRole("combobox", { name: "Choose an event" })
     await expect(picker).toBeVisible()
     await expect(picker.locator("option")).toHaveCount(initial.events.length + 1)
     await expect(picker.locator("option")).toHaveText(orderedNames)
@@ -61,17 +63,19 @@ test("AI off: a command becomes a labelled change set; owner edits apply and rej
   await openMore(page)
   await page.getByRole("checkbox", { name: "AI features" }).uncheck()
   await ask(page, "Assign Send the October newsletter to Priya")
-  const card = page.getByTestId("change-item")
-  await expect(page.getByTestId("change-set")).toContainText("AI off")
+  // Review option B: one row per change; Edit opens its fields and Apply applies the ticked rows.
+  const card = page.getByTestId("change-set").last()
+  await expect(card).toContainText("AI off")
+  await card.getByRole("button", { name: "Edit" }).click()
   await card.getByLabel("Owner", { exact: true }).selectOption("jordan")
-  await card.getByRole("button", { name: "Apply this change" }).click()
+  await card.getByRole("button", { name: "Apply 1 change" }).click()
   await expect.poll(async () => (await savedDemo(page)).nodes.find(n => n.id === "t-news")?.ownerId).toBe("jordan")
   // Concept F: the reassigned newsletter leaves Fix first and becomes a line of Jordan's email on the reminder centre.
   await expect(page.locator('[data-testid="rq-person"][data-recipient="jordan"]').locator('[data-testid="rq-person-task"][data-node="t-news"]')).toBeVisible()
   await expect(page.getByTestId("rq-fix").locator('[data-node="t-news"]')).toHaveCount(0)
   await ask(page, "Unassign Send the October newsletter")
-  await page.getByTestId("change-item").last().getByRole("button", { name: "Reject", exact: true }).click()
-  await expect(page.getByTestId("change-item").last()).toContainText("Rejected")
+  await page.getByTestId("change-set").last().getByRole("button", { name: "Discard" }).click()
+  await expect(page.getByTestId("review-row").last()).toContainText("Not applied")
   // Small edits apply at once and can be undone (v1.2).
   await ask(page, "Set Send the October newsletter to heavy")
   await expect(page.getByTestId("applied-set").last()).toContainText("Done")
@@ -79,34 +83,39 @@ test("AI off: a command becomes a labelled change set; owner edits apply and rej
   await expect(page.getByTestId("applied-set").last()).toContainText("Undone")
 })
 
-// FB-8: the risk list is gone; forecast-red tasks carry a risk mark on the reminder centre. Concept F: a person's email opens in the rail,
+// FB-8: the risk list is gone; forecast-red tasks carry a risk mark on the reminder centre. Concept F / S2: a person's email opens in place,
 // written by the rules (an available AI line is not used), with one task entry per task.
 test("top tasks and the reminder centre's risk marks come from the app; a person's email is a rule-written draft with one entry per task", async ({ page }) => {
   let aiCalls = 0
   await page.route("**/api/nudge/draft", r => { aiCalls++; return r.fulfill({ json: { whyItMatters: "We build a stronger club together.", source: "ai" } }) })
-  await enableUpdatedReminders(page)
+  await enableUpdatedReminders(page, "review_then_self")   // the Gmail draft path; the sample club starts on review_then_auto
   const people = page.getByTestId("rq-people")
-  await expect(people.getByTestId("rq-person-task").first().getByTestId("forecast").getByRole("button")).toHaveAttribute("aria-label", /At risk/)
+  // R-S0 W2: the risk mark on this page is the text "At risk" after the title (no red mark, no extra tab stop).
+  await expect(people.getByTestId("rq-person-task").first().getByTestId("rq-at-risk")).toHaveText("· At risk")
+  await expect(people.getByTestId("forecast")).toHaveCount(0)
   await ask(page, "What are my top 5 tasks?")
   await expect(page.getByTestId("tasks-card")).toContainText("Your top")
   await closeRail(page)
   const person = people.getByTestId("rq-person").first()
   const lines = await person.getByTestId("rq-person-task").evaluateAll(list => list.map(li => (li as HTMLElement).dataset.node!))
-  await person.locator(".dg-person-head").click()
-  const panel = page.getByTestId("digest-panel")
-  const body = panel.getByTestId("digest-body")
-  await expect(body).toContainText("Task due:")
-  await expect(body).toContainText("Thank you")
-  await expect(panel.getByTestId("digest-mail")).not.toContainText("We build a stronger club together.")
-  await expect(body.getByRole("link", { name: "Open task", exact: true })).toHaveCount(lines.length)
-  for (const node of lines) await expect(body.locator(`a[href*="node=${encodeURIComponent(node)}&"]`)).toHaveCount(1)
+  await person.getByTestId("rq-person-toggle").click()
+  const panel = person.getByTestId("rq-person-email")
+  // R-S0: the email opens as an editable draft (task links as tokens); the Gmail draft carries the real links.
+  const body = panel.getByTestId("rq-draft-body")
+  await expect(body).toHaveValue(/Task due:/)
+  await expect(body).toHaveValue(/Thank you/)
+  await expect(body).not.toHaveValue(/We build a stronger club together\./)
+  expect((await body.inputValue()).match(/^\[Open task: [^\]]+\]$/gm)).toHaveLength(lines.length)
   await expect(panel.getByRole("link", { name: /^(Done|Waiting on…|Need help|Need more time)$/ })).toHaveCount(0)
-  const draft = panel.getByRole("link", { name: "Open Gmail draft" })
+  const draft = panel.getByRole("link", { name: "Open in Gmail" })
   await expect(draft).toHaveAttribute("href", /^https:\/\/mail.google.com\/mail\/\?view=cm/)
-  expect(decodeURIComponent((await draft.getAttribute("href"))!)).toContain("Task due:")
-  await expect(panel.getByTestId("digest-sent-self")).toHaveCount(0)
+  const mailed = new URL((await draft.getAttribute("href"))!).searchParams.get("body")!
+  expect(mailed).toContain("Task due:")
+  expect(mailed).not.toContain("We build a stronger club together.")
+  for (const node of lines) expect(mailed.match(new RegExp(`^Open task: \\S+node=${encodeURIComponent(node)}&access=\\S+$`, "gm"))).toHaveLength(1)
+  await expect(panel.getByRole("button", { name: "I sent this" })).toHaveCount(0)
   expect(aiCalls).toBe(0)
-  const entry = (await body.getByRole("link", { name: "Open task", exact: true }).first().getAttribute("href"))!
+  const entry = mailed.match(/^Open task: (\S+)$/m)![1]   // the first task link, as the Gmail draft carries it
   await page.goto(entry)
   const task = page.getByTestId("task-detail")
   await expect(task).toBeVisible()
@@ -122,7 +131,7 @@ test("officers cannot prepare a reminder or approve a change", async ({ page }) 
   await expect(page.getByRole("button", { name: "Review & open draft" })).toHaveCount(0)   // FB-8: an officer's home is read-only
   await expect(page.getByTestId("your-reminders")).toBeVisible()
   await ask(page, "Assign Send the October newsletter to Priya")
-  await expect(page.getByRole("button", { name: "Apply this change" })).toBeDisabled()
+  await expect(page.getByTestId("change-set").last().getByRole("button", { name: /^Apply/ })).toBeDisabled()
   await ask(page, "Set Send the October newsletter to heavy")
   await expect(page.getByTestId("applied-set").last()).toContainText("Not changed")
 })
@@ -132,7 +141,7 @@ test("officers cannot prepare a reminder or approve a change", async ({ page }) 
 // Concept F (2026-11-19): a summary card, one email per person, Fix first; the history line appears only once something is recorded.
 test("Reminders: summary, people and Fix first in place of the risk rows, event chains, goals and the weekly star", async ({ page }) => {
   await enableUpdatedReminders(page)
-  await expect(page.getByTestId("rq-summary")).toContainText("Review 3 emails · 5 tasks · 0 sent today")
+  await expect(page.getByTestId("rq-summary")).toContainText("3 people to remind")
   await expect(page.getByTestId("rq-person")).toHaveCount(3)
   await expect(page.getByTestId("rq-fix").getByRole("heading", { level: 2, name: /^Fix first/ })).toBeVisible()
   await expect(page.getByTestId("rq-history")).toHaveCount(0)
@@ -144,7 +153,7 @@ test("Reminders: summary, people and Fix first in place of the risk rows, event 
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
   await closeRail(page)
   await page.getByRole("navigation", { name: "Sections" }).getByRole("link", { name: /^Plan/ }).click()
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Events")
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tasks")
 })
 
 test("server errors fall back clearly, and hostile AI output changes nothing", async ({ page }) => {

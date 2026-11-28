@@ -3,18 +3,19 @@ import { ask, closeRail, demoClock, noOverflow, resetDemo, viewAs } from "./help
 
 test.beforeEach(async ({ page }) => { await page.route("**/api/health", r => r.fulfill({ json: { ok: true, configured: true, provider: "mock", model: "mock" } })) })
 
-test("forecast shows colour first; reasons and percentages wait in the hover card", async ({ page }, info) => {
+test("forecast risk reads as plain text on the home page; the numbers stay out of the page", async ({ page }) => {
   await page.goto("/#/")
-  await page.getByRole("button", { name: "Enable updated reminders", exact: true }).click()
+  // S2: a loaded or fresh demo is already on the current reminder plan; the "Enable updated reminders" card never shows.
   await expect(page.getByTestId("reminder-plan-status")).toHaveCount(0)
-  // FB-8: the risk list is gone; the reminder centre marks forecast-red tasks. Concept F: the marks sit on each person's task lines.
+  // FB-8: the risk list is gone; the reminder centre marks forecast-red tasks on each person's task lines. R-S0 W2 (contract §3,
+  // confirmed by Juanxi): the mark is the words "At risk" after the title, with no red mark and no hover card. The hover-card
+  // behavior itself is covered on Team's workload meter (e2e/feel.spec.ts, e2e/dx-12-sheet.spec.ts).
   const risk = page.getByTestId("rq-people")
-  const dot = risk.getByTestId("forecast").first().getByRole("button")
-  await expect(dot).toHaveAttribute("aria-label", /At risk/)
-  const card = risk.getByTestId("forecast").first().locator(".hover-card")
-  await expect(card).not.toBeVisible()
-  if (info.project.name === "desktop") { await dot.hover(); await expect(card).toBeVisible() } else { await dot.tap(); await expect(card).toBeVisible() } // a phone cannot hover: a tap opens the card
-  await expect(card).toContainText("% of 1,000 simulated runs")
+  const mark = risk.getByTestId("rq-at-risk").first()
+  await expect(mark).toHaveText("· At risk")
+  await expect(risk.getByTestId("forecast")).toHaveCount(0)
+  await expect(risk.locator(".hover-card")).toHaveCount(0)
+  await expect(risk).not.toContainText("simulated runs")
   await expect(risk).not.toContainText("personalBufferDays")
 })
 
@@ -23,10 +24,13 @@ test("rules: categories as tabs, sources one click away, sourced answers and ref
   await page.goto("/#/rules")
   await expect(page.getByRole("button", { name: "Marketing", exact: true })).toBeVisible()
   await expect(page.getByRole("link", { name: "Open source: ASU Event Registry" })).toHaveAttribute("href", /eventreg\.asu\.edu/)
-  await expect(page.getByRole("button", { name: "Ask Platypus about ASU Event Registry · ASU-R-010", exact: true })).toBeVisible()
+  await expect(page.getByRole("button", { name: "Ask Platypus about ASU Event Registry", exact: true })).toBeVisible()
   await ask(page, "What do outside caterers need?")
   const answer = page.getByTestId("rule-answer").last()
-  await expect(answer).toContainText("[R06]")
+  // The rule-book answer names its source; the ID stays only in the link's data hook.
+  await expect(answer).toContainText("[Student Organization Handbook 2025–26]")
+  await expect(answer.getByRole("link", { name: "Student Organization Handbook 2025–26 ↗", exact: true })).toHaveAttribute("data-source-id", "R06")
+  await expect(answer).not.toContainText(/\bR\d{2}\b|ASU-R-/)
   await expect(answer).not.toContainText("2099")
   await expect(answer).toContainText("2026-10-23")
   await answer.getByRole("button", { name: "This is wrong" }).click()
@@ -61,7 +65,7 @@ test("Events funding checks the application and preserves manual progress until 
   await card.getByRole("button", { name: "Confirm current step complete" }).click()
   await card.getByLabel("Spend-by date · confirmed by you").fill("2026-11-05")
   await expect(card).toContainText("within 14 days")
-  await card.getByText("Pre-submission check · R11 / R12").click()
+  await card.getByText("Pre-submission check · USG Spending Guidelines · USG Funding Rules").click()
   await card.getByLabel("Public purpose", { exact: true }).fill("Fictional educational event")
   await card.getByLabel("Invoice addressed to").fill("ASU")
   await card.getByLabel("Event flyer attached").check()
@@ -69,7 +73,8 @@ test("Events funding checks the application and preserves manual progress until 
   await card.getByLabel("Total meal cost ($)").fill("750")
   await card.getByRole("button", { name: "Check before submitting" }).click()
   await expect(card.getByTestId("preflight-result")).toContainText("$999")
-  await expect(card.getByTestId("preflight-result")).toContainText("[R12]")
+  await expect(card.getByTestId("preflight-result")).toContainText("[USG Funding Rules]")
+  await expect(card.getByTestId("preflight-result")).not.toContainText("R12")
   await card.getByLabel("Request amount ($)", { exact: true }).fill("999")
   await card.getByLabel("Business Meals Form attached").check()
   await card.getByLabel("Attendance list attached").check()
@@ -83,14 +88,14 @@ test("Events funding checks the application and preserves manual progress until 
   await expect(card.getByRole("button", { name: "Budget approved: current", exact: true })).toBeVisible()
   await expect(card.getByLabel("Spend-by date · confirmed by you")).toHaveValue("2026-11-05")
   expect(await noOverflow(page)).toBeLessThanOrEqual(1)
-  await card.getByText("Pre-submission check · R11 / R12").click()
+  await card.getByText("Pre-submission check · USG Spending Guidelines · USG Funding Rules").click()
   await expect(card.getByLabel("Public purpose", { exact: true })).toHaveValue("Fictional educational event")
   await card.getByLabel("Public purpose", { exact: true }).fill("Unsaved fictional purpose")
   await resetDemo(page)
   await expect(card).toHaveCount(0)
   await page.getByRole("button", { name: "Funding application", exact: true }).click()
   await expect(page.getByLabel("Spent so far ($)")).toHaveValue("0")
-  await card.getByText("Pre-submission check · R11 / R12").click()
+  await card.getByText("Pre-submission check · USG Spending Guidelines · USG Funding Rules").click()
   await expect(card.getByLabel("Public purpose", { exact: true })).toHaveValue("")
   await expect(card.getByTestId("preflight-result")).toHaveCount(0)
 })

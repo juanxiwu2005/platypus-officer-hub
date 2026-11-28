@@ -1,21 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
-const chat = vi.hoisted(() => vi.fn())
-vi.mock("../../netlify/lib/ai.mts", async importOriginal => ({ ...await importOriginal<object>(), chatJSON: chat }))
-vi.mock("@netlify/blobs", () => ({ getStore: vi.fn(() => { throw new Error("storage touched") }) }))
-import { getStore } from "@netlify/blobs"
-import workflowFn from "../../netlify/functions/workflow.mts"
-import { resetRateLimit } from "../../netlify/lib/http.mts"
+import { describe, expect, it, vi } from "vitest"
 import { seedDemo } from "../data/seed"
 import { clubDraft, completeSetup, resetWorkflow, saveWorkflow, validateWorkflow } from "../data/settings"
 import { newObjects } from "../data/changeReview"
 import { EVENT_STEPS, buildEventNodes, orgSteps } from "../engine/playbooks"
-import { applyChanges, checkWorkflow, describeWorkflow, isLocked, ownerOfStep, presetSteps, revertChange, withOwners, type WorkflowChange } from "../engine/workflow"
-import { changesToWire, rolesForPrompt, sanitizeChanges, sanitizeOwners, stepsForPrompt } from "../lib/workflowAi"
+import { applyChanges, checkWorkflow, describeWorkflow, isLocked, presetSteps, revertChange, withOwners, type WorkflowChange } from "../engine/workflow"
 import { sanitizeOps } from "../lib/commands"
 
 const base = seedDemo()
-afterEach(() => { chat.mockReset(); resetRateLimit(); vi.mocked(getStore).mockClear() })
-const post = (body: unknown) => workflowFn(new Request("https://example.org/api/setup/workflow", { method: "POST", body: JSON.stringify(body) }))
 const ch = (c: Partial<WorkflowChange> & Pick<WorkflowChange, "op" | "key">): WorkflowChange => ({ id: "c" + Math.random(), title: c.key, patch: {}, evidence: "", ...c })
 const roleId = (t: string) => base.roles.find(r => r.displayName === t)!.id
 
@@ -41,7 +32,7 @@ describe("org workflow · applying changes", () => {
       ch({ op: "update", key: "nope", patch: { estDays: 2 } }), ch({ op: "update", key: "plan", patch: { dependsOn: ["backup"] } }),
     ], base.roles)
     expect(r.applied).toEqual([])
-    expect(r.refused.map(x => x.reason)).toEqual([expect.stringMatching(/ASU rule R06/), expect.stringMatching(/R01/), expect.stringMatching(/R09/), "That step is not in the workflow.", "That would make a step wait for itself."])
+    expect(r.refused.map(x => x.reason)).toEqual([expect.stringMatching(/ASU rule requires this step \(Student Organization Handbook 2025–26\)/), expect.stringMatching(/Event Registry guidelines/), expect.stringMatching(/USG Spending Guidelines/), "That step is not in the workflow.", "That would make a step wait for itself."])
     expect(r.steps).toEqual(presetSteps())
   })
   it("removing a step the club does not use lets later steps wait for what it waited for; locked steps are never removed", () => {
@@ -70,8 +61,8 @@ describe("org workflow · checks against ASU rules (the engine's, not the AI's)"
   })
   it("blocks a missing rule step, a changed rule deadline, a lost rule order, a loop and a dangling link", () => {
     const steps = presetSteps()
-    expect(checkWorkflow(steps.filter(s => s.key !== "foodCompliance"), base.roles).map(i => i.text).join("\n")).toMatch(/Food Exception Permit” is missing.*R06/)
-    expect(checkWorkflow(steps.map(s => s.key === "purchaseRequest" ? { ...s, anchor: { kind: "target" as const, days: 3, unit: "calendar" as const, label: "x" } } : s), base.roles).some(i => i.level === "blocked" && /R09/.test(i.text))).toBe(true)
+    expect(checkWorkflow(steps.filter(s => s.key !== "foodCompliance"), base.roles).map(i => i.text).join("\n")).toMatch(/Food Exception Permit” is missing.*Student Organization Handbook 2025–26/)
+    expect(checkWorkflow(steps.map(s => s.key === "purchaseRequest" ? { ...s, anchor: { kind: "target" as const, days: 3, unit: "calendar" as const, label: "x" } } : s), base.roles).some(i => i.level === "blocked" && /USG Spending Guidelines/.test(i.text) && !/\bR09\b/.test(i.text))).toBe(true)
     expect(checkWorkflow(steps.map(s => s.key === "purchaseRequest" ? { ...s, dependsOn: ["budget"] } : s), base.roles).some(i => i.level === "blocked" && /Budget Approval/.test(i.text))).toBe(true)
     expect(checkWorkflow(steps.map(s => s.key === "plan" ? { ...s, dependsOn: ["backup"] } : s), base.roles).some(i => i.level === "blocked" && /waits for itself/.test(i.text))).toBe(true)
     expect(checkWorkflow(steps.map(s => s.key === "contentCreation" ? { ...s, dependsOn: ["ghost"] } : s), base.roles).some(i => i.level === "blocked" && /not in the workflow/.test(i.text))).toBe(true)
@@ -92,80 +83,6 @@ describe("org workflow · checks against ASU rules (the engine's, not the AI's)"
     expect(validateWorkflow([], base.roles)).toBeTruthy()
     expect(validateWorkflow(presetSteps().filter(s => s.key !== "purchaseRequest"), base.roles)).toMatch(/missing/)
     expect(validateWorkflow(presetSteps().map(s => s.key === "contentCreation" ? { ...s, estDays: 99 } : s), base.roles)).toBeTruthy()
-  })
-})
-
-describe("org workflow · cleaning the AI's reply", () => {
-  const steps = presetSteps()
-  const raw = {
-    summary: "Your notes add a permission step. Due 2099-01-01.",
-    changes: [
-      { op: "add", key: "Permission Forms!", title: "Collect permission forms", phase: "prepare", days: 2, waitsFor: ["plan", "ghost"], before: ["finalcheck"], owner: "secretary", daysBefore: 10, why: "Needed by Dec 5.", evidence: "We always collect permission forms" },
-      { op: "update", key: "contentCreation", title: "Design the flyer", days: 99, owner: "Nobody", phase: "weird", evil: "x" },
-      { op: "update", key: "ghost", days: 1 }, { op: "update", key: "contentCreation" }, { op: "delete", key: "contentCreation" },
-      { op: "remove", key: "promotionItems", why: "We skip it" },
-      ...Array.from({ length: 20 }, (_, i) => ({ op: "add", title: `Extra ${i}` })),
-    ],
-    conflicts: [{ text: "Raffles are not allowed.", rules: ["R15", "R99"] }, { text: "" }],
-  }
-  it("keeps only known steps, roles, phases and fields; clamps days; strips dates; caps the count", () => {
-    const r = sanitizeChanges(raw, steps, base.roles)
-    expect(r.changes.length).toBeLessThanOrEqual(10)
-    expect(r.changes[0]).toMatchObject({ op: "add", key: "permission-forms", title: "Collect permission forms", beforeKeys: ["finalcheck"], patch: { phase: "prepare", estDays: 2, dependsOn: ["plan"], ownerRoleId: roleId("Secretary"), daysBefore: 10 } })
-    expect(r.changes[0].patch.why).not.toMatch(/Dec/)
-    expect(r.changes[1]).toMatchObject({ op: "update", key: "contentCreation", patch: { title: "Design the flyer", estDays: 30 } }); expect(r.changes[1].patch.ownerRoleId).toBeUndefined(); expect(r.changes[1].patch.phase).toBeUndefined()
-    expect(r.changes.find(c => c.key === "promotionItems")).toMatchObject({ op: "remove" })
-    expect(r.changes.some(c => c.key === "ghost")).toBe(false)
-    expect(r.summary).not.toMatch(/2099/); expect(r.conflicts).toEqual([{ text: "Raffles are not allowed.", rules: ["R15"] }])
-    expect(JSON.stringify(r)).not.toMatch(/evil/)
-  })
-  it("survives the round trip through the server (clean, write out, clean again with the browser's own roles)", () => {
-    const once = sanitizeChanges(raw, steps, base.roles)
-    const twice = sanitizeChanges({ changes: changesToWire(once.changes, base.roles) }, steps, base.roles)
-    expect(twice.changes.map(c => [c.op, c.key, c.patch])).toEqual(once.changes.map(c => [c.op, c.key, c.patch]))
-  })
-  it("owners: only known steps and roles, never the advisor", () => {
-    const roles = [...base.roles, { id: "r-adv", displayName: "Club Advisor", fn: "advisor" as const, holderId: null }]
-    const o = sanitizeOwners({ owners: [{ key: "contentCreation", role: "marketing lead" }, { key: "budget", role: "Club Advisor" }, { key: "ghost", role: "Treasurer" }, { key: "contentCreation", role: "Treasurer" }] }, steps, roles)
-    expect(o).toEqual({ contentCreation: roleId("Marketing lead") })
-    const owned = withOwners(steps, roles, o)
-    expect(owned.find(s => s.key === "contentCreation")).toMatchObject({ ownerRoleId: roleId("Marketing lead"), fn: "marketing" })
-    expect(owned.find(s => s.key === "purchaseRequest")!.ownerRoleId).toBe(roleId("Treasurer"))
-    expect(owned.every(s => ownerOfStep(s, roles)?.fn !== "advisor")).toBe(true)
-  })
-  it("what the AI is shown marks locked steps, leaves out the advisor and has no personal details", () => {
-    const shown = stepsForPrompt(steps)
-    expect(shown.find(s => s.key === "foodCompliance")).toMatchObject({ locked: true, rules: ["R06"] }); expect(shown.find(s => s.key === "purchaseRequest")!.locked).toBe(true)
-    expect(shown.find(s => s.key === "marketingNeeds")!.locked).toBe(false)
-    expect(rolesForPrompt([...base.roles, { id: "a", displayName: "Club Advisor", fn: "advisor", holderId: null }]).map(r => r.title)).not.toContain("Club Advisor")
-    expect(JSON.stringify(rolesForPrompt(base.roles))).not.toMatch(/@|555|9999/)
-  })
-})
-
-describe("org workflow · the endpoint", () => {
-  const roles = [{ title: "Treasurer", duties: "Keeps the budget." }, { title: "Secretary", duties: "Keeps records." }]
-  it("compares the notes and files with the server's own standard steps, sends no personal details, and re-checks the reply", async () => {
-    chat.mockResolvedValueOnce({ data: { summary: "One new step.", changes: [{ op: "add", key: "permission", title: "Collect permission forms", phase: "prepare", days: 2, waitsFor: ["plan"], owner: "Secretary", evidence: "permission forms" }, { op: "update", key: "ghost", days: 3 }], conflicts: [{ text: "Raffles are not allowed.", rules: ["R15"] }], evil: 1 }, model: "mock", provider: "mock" })
-    const r = await (await post({ part: "changes", notes: "We collect permission forms. Call Sam at 480-555-0100 or sam@example.org", files: [{ name: "flow.pdf", text: "Step 1: Approve. Step 2: collect permission forms. " + "x ".repeat(30000) }], roles, steps: [{ key: "evil" }] })).json()
-    const sent = JSON.parse(chat.mock.calls[0][0].user)
-    expect(chat.mock.calls[0][0].task).toBe("workflow_read"); expect(chat.mock.calls[0][0].timeoutMs).toBeLessThanOrEqual(25_000) // FB-1: the 26 s default budget minus 1 s (was a fixed 21 s)
-    expect(sent.steps.map((s: { key: string }) => s.key)).toEqual(EVENT_STEPS.map(s => s.key))        // the server's copy, not the browser's
-    expect(JSON.stringify(sent)).not.toMatch(/sam@example|555-0100/); expect(sent.files[0].text.length).toBeLessThanOrEqual(12_000)
-    expect(sent.ruleBook.map((x: { id: string }) => x.id)).toContain("R15")
-    expect(r.changes).toHaveLength(1); expect(r.changes[0]).toMatchObject({ op: "add", key: "permission", owner: "Secretary" }); expect(r.evil).toBeUndefined(); expect(r.conflicts).toEqual([{ text: "Raffles are not allowed.", rules: ["R15"] }])
-    expect(getStore).not.toHaveBeenCalled()
-  })
-  it("shares steps out to the roles' duties", async () => {
-    chat.mockResolvedValueOnce({ data: { owners: [{ key: "budget", role: "Treasurer" }, { key: "ghost", role: "Treasurer" }, { key: "contentCreation", role: "Nobody" }] }, model: "mock", provider: "mock" })
-    const r = await (await post({ part: "owners", steps: [{ key: "budget", title: "Build the budget", standardOwner: "Treasurer" }, { key: "contentCreation", title: "Create event content" }], roles })).json()
-    expect(chat.mock.calls[0][0].system).toMatch(/Never choose the advisor/)
-    expect(r.owners).toEqual([{ key: "budget", role: "Treasurer" }]); expect(getStore).not.toHaveBeenCalled()
-  })
-  it("refuses empty input without calling the model", async () => {
-    expect((await post({ part: "changes", notes: "  ", files: [], roles })).status).toBe(400)
-    expect((await post({ part: "changes", notes: "x" })).status).toBe(400)
-    expect((await post({ part: "owners", steps: [], roles })).status).toBe(400)
-    expect(chat).not.toHaveBeenCalled()
   })
 })
 
@@ -224,14 +141,14 @@ describe("AI requests · a signed-out preview is explained, not retried", () => 
     vi.useFakeTimers()
     let calls = 0
     vi.stubGlobal("fetch", vi.fn(async () => { calls++; return new Response("<html>Login Redirect</html>", { status: 401 }) }))
-    const out = callRetry("/setup/workflow", {}).catch(e => e)
+    const out = callRetry("/setup/constitution", {}).catch(e => e)
     await vi.runAllTimersAsync()
     const e = await out
     expect(calls).toBe(1); expect(e).toBeInstanceOf(ApiError); expect((e as InstanceType<typeof ApiError>).status).toBe(401)
     expect(whyFailed(e)).toMatch(/sign-in for this preview has expired.*setup is kept/)
     calls = 0
     vi.stubGlobal("fetch", vi.fn(async () => { calls++; return new Response(JSON.stringify({ message: "The AI took too long to answer." }), { status: 504 }) }))
-    const slow = callRetry("/setup/workflow", {}).catch(x => x)
+    const slow = callRetry("/setup/constitution", {}).catch(x => x)
     await vi.runAllTimersAsync()
     expect(calls).toBe(3); expect(whyFailed(await slow)).toBe(" (The AI took too long to answer)")
     vi.useRealTimers(); vi.unstubAllGlobals()
