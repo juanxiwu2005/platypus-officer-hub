@@ -8,6 +8,11 @@ import { StoreProvider, useStore, STORAGE_KEY } from "../data/store"
 import type { DemoState, Node } from "../data/types"
 import { applySchedule } from "../engine/schedule"
 import { fmtShort } from "../lib/dates"
+import { sanitizeOps } from "../lib/commands"
+import { EVENT_CHECKLIST } from "../data/eventChecklist"
+import { ensureWorkflowPresetTeams } from "../data/workflowTeamDefaults"
+import { newObjects, validateReview } from "../data/changeReview"
+import { findWorkflowTemplateVersion, STANDARD_WORKFLOW_TEMPLATE_ID } from "../data/workflowTemplates"
 
 vi.mock("../taskDetails/fileStorage", async original => ({ ...await original<typeof import("../taskDetails/fileStorage")>(), ...await import("../test/taskFileStorageMock") }))
 
@@ -17,6 +22,23 @@ let store: ReturnType<typeof useStore>
 function fixture(patch: Partial<Node> = {}, viewerId = "jordan"): DemoState {
   const s = seedDemo(undefined, "v2"), source = s.nodes.find(n => n.stepKey === "venue")!
   return applySchedule({ ...s, viewerId, today: "2027-03-28", events: s.events.map(e => e.id === source.eventId ? { ...e, name: "Speaker Night", headcount: 40, venue: "campus" } : e), nodes: [{ ...source, id: "details-task", ownerId: "jordan", status: "accepted", dependsOn: [], instructions: "Book an accessible room for 40 attendees.", ...patch }], nudges: [], protocolLog: [], silenceCases: [], notifications: [] })
+}
+// Option A (Juanxi 2026-11-28): an event made from the standard workflow with Jordan as the Operations lead.
+const operationsId = (s: DemoState) => s.org.workflowTeams!.find(team => team.name === "Operations")!.id
+function teamLeadFixture(viewerId: string): DemoState {
+  const base = ensureWorkflowPresetTeams(seedDemo(undefined, "v2"))
+  const version = findWorkflowTemplateVersion(base, STANDARD_WORKFLOW_TEMPLATE_ID)!
+  const checks = Object.fromEntries(EVENT_CHECKLIST.map(item => [item.key, true]))
+  const op = sanitizeOps([{ op: "create_event", name: "Led event", type: "speaker", headcount: 60, venue: "campus", food: "offsite", funding: "usg", speaker: true, checks }], base)[0]
+  const human = { date: "2027-04-15", workflowTemplateId: STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplateVersion: version.version, teamLeads: { [operationsId(base)]: "jordan" } }
+  expect(validateReview(base, op, human)).toBeNull()
+  const created = newObjects(base, op, "led-1", human)
+  return applySchedule({ ...base, viewerId, events: created.events!, nodes: created.nodes!, nudges: [], protocolLog: [], silenceCases: [], notifications: [] })
+}
+function LiveNode({ id }: { id: string }) { store = useStore(); return <TaskDetail node={store.state.nodes.find(n => n.id === id)!} actorId={store.state.viewerId} /> }
+async function showNode(state: DemoState, id: string) {
+  render(<MemoryRouter><StoreProvider initial={state}><LiveNode id={id} /></StoreProvider></MemoryRouter>)
+  await waitFor(() => expect(screen.queryByText("Opening draft…")).toBeNull())
 }
 function Live({ token }: { token?: string }) { store = useStore(); return <TaskDetail node={store.state.nodes[0]} actorId={store.state.viewerId} token={token} /> }
 async function show(state = fixture(), token?: string) {
@@ -230,6 +252,24 @@ describe("the universal task page and edit drawer", () => {
     cleanup(); await show(fixture({ status: "blocked", ownerId: "jordan" }, "alex"))
     fireEvent.click(within(screen.getByTestId("task-assign")).getByRole("button", { name: "I've got it" }))
     expect(store.state.nodes[0]).toMatchObject({ ownerId: "alex", status: "accepted" })
+  })
+  it("lets an event's team lead hand an open team task to a teammate, and nobody else (option A)", async () => {
+    const s = teamLeadFixture("jordan")
+    const node = s.nodes.find(n => n.eventId === "led-1" && n.teamId === operationsId(s) && n.ownerId === "jordan")!
+    await showNode(s, node.id)
+    const row = screen.getByTestId("task-assign")
+    const select = within(row).getByRole("combobox", { name: "Assign to" })
+    const options = within(select).getAllByRole("option").map(o => o.textContent)
+    expect(options).toEqual(["Hand to a teammate…", "Priya Nair"])
+    expect(within(row).queryByRole("button", { name: "I've got it" })).toBeNull()
+    fireEvent.change(select, { target: { value: "priya" } })
+    expect(store.state.nodes.find(n => n.id === node.id)).toMatchObject({ ownerId: "priya", status: "accepted" })
+    expect(screen.getByText("Assigned to Priya.").getAttribute("role")).toBe("status")
+    // A teammate who is not the lead gets no row, and neither does a done task.
+    const handed = store.state; cleanup(); await showNode({ ...handed, viewerId: "priya" }, node.id)
+    expect(screen.queryByTestId("task-assign")).toBeNull()
+    cleanup(); await showNode({ ...s, nodes: s.nodes.map(n => n.id === node.id ? { ...n, status: "done" } : n) }, node.id)
+    expect(screen.queryByTestId("task-assign")).toBeNull()
   })
   it("shows no assign row to an officer who is not a lead, or on a task in progress", async () => {
     await show(fixture({ status: "blocked" }, "jordan"))

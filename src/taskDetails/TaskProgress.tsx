@@ -3,6 +3,7 @@ import type { Node, NodeStatus } from "../data/types"
 import { STATUS_DEFAULTS, STATUS_ORDER } from "../components/ui/statusDefaults"
 import { useStore, type Action } from "../data/store"
 import { canLead, isOfficer, isPresident, officers } from "../data/permissions"
+import { teamLeadOf, teamMembers } from "../data/teamLeads"
 import { validateReply, type ReplyInput, type TaskReply } from "../data/taskWorkflow"
 import type { TaskAuthorization } from "./contracts"
 import { isBudgetControlledNode } from "../engine/eventBudget"
@@ -47,19 +48,24 @@ export function TaskProgress({ node, actorId, authorization, initialReply, readO
   }
   // Juanxi (2026-11-27): the president (or vice president) assigns a Stuck or Not claimed task right here:
   // "I've got it" takes it, or pick a teammate. Same store path as Edit task's Owner (updateNode), so it is ready in their To do.
-  const assigns = !readOnly && !authorization && actorId === state.viewerId && canLead(state) && (node.status === "unclaimed" || node.status === "blocked")
+  const leadAssigns = !readOnly && !authorization && actorId === state.viewerId && canLead(state) && (node.status === "unclaimed" || node.status === "blocked")
+  // Option A (Juanxi 2026-11-28): the event's team lead hands any open task of their team to a teammate.
+  const teamAssigns = !leadAssigns && !readOnly && !authorization && actorId === state.viewerId && node.status !== "done" && teamLeadOf(state, node) === actorId
+  const assigns = leadAssigns || teamAssigns
   function assign(ownerId: string) {
     setError(""); setNotice("")
     const before = getState().nodes.find(n => n.id === node.id)
     if (!before || !ownerId || before.ownerId === ownerId) return
-    const accepted = tryDispatch({ type: "updateNode", id: node.id, patch: { ownerId }, expectedTask: taskDefinitionKey(before) })
+    const expectedTask = taskDefinitionKey(before)
+    const accepted = tryDispatch(teamAssigns ? { type: "assignTeamTask", nodeId: node.id, ownerId, expectedTask } : { type: "updateNode", id: node.id, patch: { ownerId }, expectedTask })
     const saved = getState().nodes.find(n => n.id === node.id)
     if (!accepted || saved?.ownerId !== ownerId) { setError(saveFailedText(saveProblem(), "Not assigned. Try again.")); return }
     const name = state.people.find(p => p.id === ownerId)?.name.split(" ")[0] ?? "them"
     const text = ownerId === actorId ? "It's yours now." : `Assigned to ${name}.`
     assignedNotices.set(node.id, text); setNotice(text)
   }
-  const assignees = officers(state).filter(p => p.id !== node.ownerId && p.id !== actorId)
+  const teammates = teamAssigns && node.teamId ? new Set(teamMembers(state, node.teamId)) : null
+  const assignees = teammates ? officers(state).filter(p => teammates.has(p.id) && p.id !== node.ownerId) : officers(state).filter(p => p.id !== node.ownerId && p.id !== actorId)
   function openForm(value: string) {
     if (value === "waiting" || value === "waiting-edit") {
       const current = getState().nodes.find(n => n.id === node.id) ?? node
@@ -77,8 +83,8 @@ export function TaskProgress({ node, actorId, authorization, initialReply, readO
     </form>}
     {editable && node.status !== "done" && form === "extension" && <TaskTargetForm node={node} actorId={actorId} authorization={authorization} onCancel={() => setForm("")} onSaved={text => { setForm(""); setNotice(text) }} />}
     {assigns && <div className="task-assign-row ctl-row" role="group" aria-label="Assign this task" data-testid="task-assign">
-      {node.status === "blocked" && node.ownerId !== actorId && <button type="button" className="btn small" onClick={() => assign(actorId)}>I've got it</button>}
-      {assignees.length > 0 && <label><span className="sr-only">Assign to</span><select aria-label="Assign to" value="" onChange={e => assign(e.target.value)}><option value="" disabled>{node.status === "unclaimed" ? "Or assign to…" : "Reassign to…"}</option>{assignees.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}
+      {leadAssigns && node.status === "blocked" && node.ownerId !== actorId && <button type="button" className="btn small" onClick={() => assign(actorId)}>I've got it</button>}
+      {assignees.length > 0 && <label><span className="sr-only">Assign to</span><select aria-label="Assign to" value="" onChange={e => assign(e.target.value)}><option value="" disabled>{teamAssigns ? "Hand to a teammate…" : node.status === "unclaimed" ? "Or assign to…" : "Reassign to…"}</option>{assignees.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>}
     </div>}
     {node.status === "waiting" && node.waitingOn && !form && <p className="small muted task-waiting-summary">Waiting for: {node.waitingOn}</p>}
     {notice && <p role="status" className="small good-text">{notice}</p>}{error && <p role="alert" className="small late-text">{error}</p>}
