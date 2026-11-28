@@ -8,6 +8,7 @@ import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, Onboa
 import { countItems, sameChecklist, sanitizeChecklist } from "../lib/checklist"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
 import { assignedNotice, canApplyOp, canChangeEvent, canLead, createTasks, newObjects, sendTaskEmail, undoCreatedEvent, validateReview, type HumanInputs, type NewTask } from "./changeReview"
+import { assignTeamTaskError } from "./teamLeads"
 import { nudgeBlocked } from "../lib/nudges"
 import type { Channel, NudgeVia } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
@@ -161,6 +162,8 @@ export type Action =
   | { type: "addEventBranch"; eventId: string; id: string; branch: WorkflowBranch; title: string }
   | { type: "removeEventStep"; eventId: string; nodeId: string }
   | { type: "editRunFlow"; eventId: string; definition: RunFlowDefinition }
+  /** An event's team lead hands one of the team's open tasks to someone on the team (option A, Juanxi 2026-11-28). */
+  | { type: "assignTeamTask"; nodeId: string; ownerId: string; expectedTask?: string }
   | { type: "restoreEventNodes"; eventId: string; nodes: Node[]; branches?: WorkflowBranch[] }
   | { type: "updateEvent"; id: string; patch: EventPatch }
   | { type: "draftChanges"; changeSet: ChangeSet }
@@ -513,6 +516,12 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       const node = state.nodes.find(n => n.id === action.id)
       if (!canLead(state) || !node || (action.expectedTask !== undefined && action.expectedTask !== taskDefinitionKey(node))) return state
       const next = updateNode(state, action.id, action.patch)
+      return next === state ? state : applySchedule(next)
+    }
+    case "assignTeamTask": {
+      const node = state.nodes.find(n => n.id === action.nodeId)
+      if (!node || assignTeamTaskError(state, action.nodeId, action.ownerId) || (action.expectedTask !== undefined && action.expectedTask !== taskDefinitionKey(node))) return state
+      const next = updateNode(state, action.nodeId, { ownerId: action.ownerId })
       return next === state ? state : applySchedule(next)
     }
     case "applyStepEdits": return canLead(state) ? applyStepEdits(state, action.eventId, action.edits, action.phaseOrder) : state
@@ -925,7 +934,8 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "updateTaskTarget": out = fields(node(a.nodeId), ["clubDeadline", "clubDeadlineOverride", "targetDates"]); break
     case "updateNode": out = fields(node(a.id), Object.keys(a.patch).filter(k => (NODE_FIELDS as string[]).includes(k))); break
     case "updateEvent": out = fields(s.events.find(e => e.id === a.id), Object.keys(a.patch).filter(k => ["date", "name", "headcount", "details"].includes(k))); break
-    case "moveTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break
+    case "moveTask":
+    case "assignTeamTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break
     case "claimTask":
     case "replyTask": out = fields(node(a.nodeId), ["status", "ownerId"]); break
     case "officerAction": { const g = usableGrant(s, a.token); out = g ? fields(node(g.nodeId), ["status", "ownerId"]) : undefined; break }

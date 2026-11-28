@@ -6,6 +6,7 @@ import { applySchedule } from "../engine/schedule"
 import { topoOrder } from "../engine/schedule"
 import { taskAnchor } from "../engine/taskDates"
 import { addNotices } from "./taskWorkflow"
+import { teamLeadsError, withTeamLeads } from "./teamLeads"
 import { findWorkflowTemplateVersion, instantiateWorkflowTemplate, publishedWorkflowTemplates, STANDARD_WORKFLOW_TEMPLATE_ID, workflowTemplateRunError } from "./workflowTemplates"
 
 export { canLead }
@@ -49,6 +50,8 @@ export interface HumanInputs {
   /** Chosen by the organizer, outside the AI command whitelist. The version is pinned before approval. */
   workflowTemplateId?: string
   workflowTemplateVersion?: number
+  /** New event only: the lead chosen for each organization team (team id → person id), from the New event form. Absent keeps the workflow's owners. */
+  teamLeads?: Record<string, string>
 }
 
 function eventWorkflowChoice(s: DemoState, human: HumanInputs) {
@@ -76,6 +79,11 @@ export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = 
     if (!version) return "Choose a saved workflow version before creating this event."
     const problem = workflowTemplateRunError(s, version)
     if (problem) return problem
+    if (human.teamLeads !== undefined) {
+      const draft = instantiateWorkflowTemplate(s, newEvent(s, op, "team-lead-check", human), { ...choice, runId: "team-lead-check" })
+      const leads = teamLeadsError(s, draft.nodes, human.teamLeads)
+      if (leads) return leads
+    }
   }
   if (op.op === "link_dependency") {
     const n = s.nodes.find(n => n.id === op.nodeId)!
@@ -93,18 +101,33 @@ export function validateReview(s: DemoState, raw: unknown, human: HumanInputs = 
   return null
 }
 
+function newEvent(s: DemoState, op: Extract<CommandOp, { op: "create_event" }>, id: string, human: HumanInputs): Event {
+  const { op: _kind, ...fields } = op
+  return { ...fields, id, date: human.date!, goalId: s.org.goals[0]?.id ?? null, playbookId: "seo-event" }
+}
+
+/** The tasks a new event would get from the chosen workflow, before any team lead is applied: what the New event form shows. */
+export function draftEventNodes(s: DemoState, op: CommandOp, human: HumanInputs): Node[] {
+  if (op.op !== "create_event" || !validDate(human.date ?? "")) return []
+  const choice = eventWorkflowChoice(s, human)
+  if (!Number.isInteger(choice.templateVersion) || !findWorkflowTemplateVersion(s, choice.templateId, choice.templateVersion)) return []
+  const result = instantiateWorkflowTemplate(s, newEvent(s, op, "draft-event", human), { ...choice, runId: "draft-event" })
+  return result.error ? [] : result.nodes
+}
+
 /** New objects only; all edits to existing nodes are routed through store.updateNode. */
 export function newObjects(s: DemoState, op: CommandOp, id: string, human: HumanInputs): { events?: Event[]; nodes?: Node[] } {
   if (op.op === "create_event") {
     // Replaying the same approved request must never duplicate tasks or reset their work.
     if (s.events.some(event => event.id === id) || s.nodes.some(node => node.eventId === id)) return {}
-    const { op: _kind, ...fields } = op
-    const event: Event = { ...fields, id, date: human.date!, goalId: s.org.goals[0]?.id ?? null, playbookId: "seo-event" }
+    const event = newEvent(s, op, id, human)
     const choice = eventWorkflowChoice(s, human)
     if (!Number.isInteger(choice.templateVersion) || !findWorkflowTemplateVersion(s, choice.templateId, choice.templateVersion)) return {}
     const result = instantiateWorkflowTemplate(s, event, choice)
     if (result.error) return {}
-    return { events: [...s.events, result.event], nodes: [...s.nodes, ...result.nodes] }
+    // Team leads (option A, Juanxi 2026-11-28): only when the New event form chose them; other paths keep the workflow's owners.
+    const led = human.teamLeads === undefined ? result : withTeamLeads(s, result.event, result.nodes, human.teamLeads)
+    return { events: [...s.events, led.event], nodes: [...s.nodes, ...led.nodes] }
   }
   if (op.op === "add_node") {
     if (op.eventId) {

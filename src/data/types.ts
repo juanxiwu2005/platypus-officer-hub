@@ -331,6 +331,8 @@ export type EventType = "speaker" | "social" | "workshop" | "meeting" | "fundrai
 
 export interface Event {
   workflowRun?: WorkflowRun
+  /** Team lead for this event, by organization team id (Juanxi 2026-11-28, option A). The lead gets the team's tasks and hands them out inside the team. */
+  teamLeads?: Record<string, string>
   /** Snapshot for this event; later template edits must never change its graph. */
   workflowBranches?: WorkflowBranch[]
   id: string
