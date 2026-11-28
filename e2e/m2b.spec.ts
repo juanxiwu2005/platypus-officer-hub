@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test"
 import { ask, openDemoMenu, viewAs } from "./helpers"
-import { savedDemo } from "./demo-contract"
+import { savedDemo, savedEvent } from "./demo-contract"
 import { addDays } from "../src/lib/dates"
 
 /**
@@ -62,10 +62,11 @@ test("the event form asks only what changes the plan, then the plan is checked",
   await form.getByLabel("Date").fill("2026-12-03")
   await form.getByLabel("Food", { exact: true }).selectOption("yes")
   await form.getByLabel("Details").fill("We build a small stage in the courtyard.")
-  await form.getByRole("button", { name: "Continue" }).click()
-  const change = page.getByTestId("change-item").last()
-  await expect(change.getByLabel("Details")).toHaveValue("We build a small stage in the courtyard.")
-  await change.getByRole("button", { name: "Apply this change" }).click()
+  // Option A (2026-11-28): Create event is the approval, so the event is made at once, with no Review changes step.
+  await form.getByRole("button", { name: "Create event" }).click()
+  await expect(page.getByTestId("event-created")).toContainText("Stage Night created")
+  await expect(page.getByTestId("change-item")).toHaveCount(0)
+  expect(await savedEvent(page, "Stage Night")).toMatchObject({ date: "2026-12-03", details: "We build a small stage in the courtyard." })
   await expect(page.getByTestId("event-review")).toContainText("Plan check: Stage Night")
 })
 
@@ -74,7 +75,7 @@ test("an officer cannot start an event unless the president allows it", async ({
   await openDemoMenu(page)
   await viewAs(page, "sam")
   await ask(page, "Plan a new event")
-  await expect(page.getByTestId("plan-form").getByRole("button", { name: "Continue" })).toBeDisabled()
+  await expect(page.getByTestId("plan-form").getByRole("button", { name: "Create event" })).toBeDisabled()
 })
 
 test("Settings: the usual task length sets the new task's due date, and the president can open events to everyone", async ({ page }) => {
@@ -91,7 +92,7 @@ test("Settings: the usual task length sets the new task's due date, and the pres
   await openDemoMenu(page)
   await viewAs(page, "sam")
   await ask(page, "Plan a new event")
-  await expect(page.getByTestId("plan-form").last().getByRole("button", { name: "Continue" })).toBeEnabled()
+  await expect(page.getByTestId("plan-form").last().getByRole("button", { name: "Create event" })).toBeEnabled()
 })
 
 test("the form appears at once; the AI's later reading fills only what the person has not changed", async ({ page }) => {

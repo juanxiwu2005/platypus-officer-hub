@@ -1,5 +1,7 @@
 > **Current guidance:** all repository records and GitHub collaboration must be in English. Read current `AGENTS.md` and PROGRESS before interpreting the dated decisions below.
 
+> **November 28, 2026 — New event form, Option A (Juanxi's decision):** the Ask panel's New event form is one compact card (Event name, Workflow template, Date / People / Food in one row, six "This event has…" chips, the other checklist items folded under "Other checklists", Details). Pressing **Create event** is the person's approval: the event is created and applied at once, with the same validation, permissions, pinned workflow version and research-log entries as before, and the chat shows a small card with Open event and Undo (creator or a lead). A form the person fills in and submits is itself the approval, also when the AI pre-filled it; Review changes stays for change sets the assistant proposes from free text without this form. Study impact: creating an event is one step shorter, so pre/post event-creation timings are not directly comparable on click count (record in the thesis methods).
+>
 > **November 27, 2026 — Reminders step 0 and editable emails (Juanxi's decisions):** after the multi-agent Reminders review, do step 0 (fix the P1/P2 findings that need no product decision). The president or VP may edit a reminder email before it goes out (subject and body, in a simple Gmail-like compose box that opens from the person's row); task links appear as protected tokens, missing links block sending and can be put back, and the box has Undo, Redo and Restore original. Edited emails are recorded as sent with the rule-written original kept beside them. Later, not now: sending through the president's own Gmail account (Gmail API) or a Platypus mailbox, both of which need a server, real accounts and provider setup; nothing is really sent today. Option 1's undo-send window and option 6's restructuring come after acceptance. [Contract](feedback-fix/REMINDER_STEP0_CONTRACT.md).
 >
 > **November 26, 2026 — Cheers notes on Team (Juanxi's decision, option B):** the personal cheers card on Team shows each cheer's note on its row, as in the approved screen F1, rather than in a hover card. The Team page word limit rises from 130 to 160 visible words to make room (total limit 290 unchanged).
@@ -121,7 +123,7 @@ flowchart LR
 The president acts at capture, approval, and follow-through (1, 2, 5); rules, AI, and officers handle the rest.
 
 1. Capture a sentence, voice transcription, pasted conversation, or forwarded email.
-2. Distinguish an event, officer task, or member matter; draft template steps; let the rule engine calculate dates; review the change card before applying it.
+2. Distinguish an event, officer task, or member matter; draft template steps; let the rule engine calculate dates; review the change card before applying it (a New event form the person submits is itself the approval, 2026-11-28).
 3. Send each node to one responsible owner; assignment is complete only when that person claims it.
 4. Remind at the latest start; accept one-action status replies and escalate sustained silence privately.
 5. Recompute dependencies daily and estimate on-time completion; show the three greatest risks.
@@ -259,7 +261,7 @@ AI drafts and observes; it does not decide. Rules calculate dates, and people ap
 
 | Task | Input | Output | Approval |
 | --- | --- | --- | --- |
-| Understand a request | Sentence, voice transcript, pasted chat/email | Change card with events/nodes/owners; distinguish officer tasks and member work | President reviews each item |
+| Understand a request | Sentence, voice transcript, pasted chat/email | Change card with events/nodes/owners; distinguish officer tasks and member work | President reviews each item; a New event form the person submits is itself the approval (2026-11-28) |
 | Draft reminder | Task, dependencies, recipient preferences | Sectional reminder, about 100 words, forbidden-language check | President by default; optional automation from v1.5 |
 | Answer policy question | Question and rule library | 1–3 sentences with rule IDs; decline unsupported questions and identify the right office | None |
 | Funding preflight | Submitted-material inventory | Missing items and rule references | Treasurer |
@@ -413,7 +415,7 @@ The redesign added T5/T6 to examine follow-through and adoption. The original pl
 | Task | Participant action | Measure | Proposed success |
 | --- | --- | --- | --- |
 | T1 new officer | On mobile, explain next two weeks and Why of the first task | Time/accuracy | Correct within two minutes |
-| T2 plan in a sentence | Describe outside-catered USG event, review changes, identify ASU steps/dates; compare with ASU-site condition, ten minutes | Required-step recall, wrong dates, time | At least 90% recall and above comparison |
+| T2 plan in a sentence | Describe outside-catered USG event, check the filled New event form and create it (since 2026-11-28 the submitted form is the approval; earlier sessions reviewed a change card), identify ASU steps/dates; compare with ASU-site condition, ten minutes | Required-step recall, wrong dates, time | At least 90% recall and above comparison |
 | T3 reminder comparison | Read new and short-president reminders; identify what/when/why now | Accuracy, raw NASA-TLX, earlier-start intention | Clearly higher earlier-start intention than the short reminder |
 | T4 policy question | Ask and judge trustworthiness | Correctness/source opening | Correct sourced answer; record verification |
 | T5 follow-through | Find greatest risk on Today and remind the right person | Time/recipient/channel | Within 60 seconds |

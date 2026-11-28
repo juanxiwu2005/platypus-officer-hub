@@ -77,8 +77,8 @@ test("arbitrary team names survive reload and the preset still creates grouped P
   const form = page.getByTestId("plan-form").last()
   await form.getByLabel("Event name", { exact: true }).fill("Renamed team preset event")
   await form.getByLabel("Date", { exact: true }).fill(addDays(saved.today, 150))
-  await form.getByRole("button", { name: "Continue", exact: true }).click()
-  await page.getByTestId("change-item").last().getByRole("button", { name: "Apply this change", exact: true }).click()
+  // Option A (2026-11-28): Create event is the approval and makes the event at once; no Review changes step.
+  await form.getByRole("button", { name: "Create event", exact: true }).click()
   await expect.poll(async () => (await read(page)).events.some(event => event.name === "Renamed team preset event")).toBe(true)
   await closeRail(page)
   saved = await read(page)

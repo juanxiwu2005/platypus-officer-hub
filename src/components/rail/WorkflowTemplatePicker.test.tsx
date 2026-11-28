@@ -4,7 +4,7 @@ import { MemoryRouter, useLocation } from "react-router-dom"
 import type { DemoState, WorkflowTemplateVersion } from "../../data/types"
 import { seedDemo } from "../../data/seed"
 import { initialWorkflowChoice, WorkflowTemplatePicker } from "./WorkflowTemplatePicker"
-import { PlanForm } from "./AskPanel"
+import { PlanForm } from "./PlanForm"
 import { ChangeCard } from "./ChangeCard"
 
 const store = vi.hoisted(() => ({ state: undefined as unknown as DemoState, dispatch: vi.fn() }))
@@ -54,7 +54,7 @@ describe("human workflow selection", () => {
   it("includes the pinned human selection in the actual New event form submission", () => {
     const done = vi.fn()
     render(<PlanForm card={{ kind: "form", id: "form-visit", date: "2027-04-16", prefill: { name: "Fictional company visit" } }} onDone={done} />)
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }))
+    fireEvent.click(screen.getByRole("button", { name: "Create event" }))
     expect(done).toHaveBeenCalledWith(expect.objectContaining({ done: true, date: "2027-04-16" }), choice)
     expect(store.dispatch).not.toHaveBeenCalled()
     expect(rail.requestReview).not.toHaveBeenCalled()
@@ -65,7 +65,7 @@ describe("human workflow selection", () => {
     store.state = { ...store.state, viewerId: "maya", org: { ...store.state.org, settings: { ...store.state.org.settings, eventCreators: "everyone" } }, people: store.state.people.map(p => p.id === "maya" ? { ...p, leftOn: "2026-10-01" } : p) }
     render(<PlanForm card={{ kind: "form", id: "form-visit", date: "2027-04-16", prefill: { name: "Fictional company visit" } }} onDone={done} />)
     expect(screen.getByText("Only current officers can create events.")).toBeTruthy()
-    const submit = screen.getByRole("button", { name: "Continue" }) as HTMLButtonElement
+    const submit = screen.getByRole("button", { name: "Create event" }) as HTMLButtonElement
     expect(submit.disabled).toBe(true)
     fireEvent.submit(submit.closest("form")!)
     expect(done).not.toHaveBeenCalled()
@@ -76,7 +76,7 @@ describe("human workflow selection", () => {
     const { rerender } = render(<PlanForm card={{ kind: "form", id: "form-visit", date: "2027-04-16", prefill: { name: "Fictional company visit" } }} onDone={done} />)
     store.state = { ...store.state, org: { ...store.state.org, workflowTemplates: [] } }
     rerender(<PlanForm card={{ kind: "form", id: "form-visit", date: "2027-04-16", prefill: { name: "Fictional company visit" } }} onDone={done} />)
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }))
+    fireEvent.click(screen.getByRole("button", { name: "Create event" }))
     expect(screen.getByRole("alert").textContent).toMatch(/Choose a saved workflow version/)
     expect(done).not.toHaveBeenCalled()
   })

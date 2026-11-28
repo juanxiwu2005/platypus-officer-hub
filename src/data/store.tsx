@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, OnboardingChecklist, Phase, StepTemplate, WorkflowBranch, WorkflowTemplateDraft, WorkflowTeam } from "./types"
 import { countItems, sameChecklist, sanitizeChecklist } from "../lib/checklist"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
-import { assignedNotice, canApplyOp, canChangeEvent, canLead, createTasks, newObjects, sendTaskEmail, validateReview, type HumanInputs, type NewTask } from "./changeReview"
+import { assignedNotice, canApplyOp, canChangeEvent, canLead, createTasks, newObjects, sendTaskEmail, undoCreatedEvent, validateReview, type HumanInputs, type NewTask } from "./changeReview"
 import { nudgeBlocked } from "../lib/nudges"
 import type { Channel, NudgeVia } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
@@ -163,6 +163,8 @@ export type Action =
   | { type: "draftChanges"; changeSet: ChangeSet }
   | { type: "aiAutoApply"; changeSet: ChangeSet }
   | { type: "undoAuto"; id: string }
+  /** Undo on the "created" card of the New event form: removes the events this change set created, with their tasks and notices. */
+  | { type: "undoCreatedEvent"; id: string }
   | { type: "createTasks"; id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }
   | { type: "sendTaskEmail"; nodeId: string }
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
@@ -547,6 +549,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       const kept = state.nodes.filter(n => !created.has(n.id)).map(n => nodes.get(n.id) ?? n).map(n => n.dependsOn.some(d => created.has(d)) ? { ...n, dependsOn: n.dependsOn.filter(d => !created.has(d)) } : n)
       return applySchedule({ ...state, nodes: kept, notifications: state.notifications.filter(n => !created.has(n.nodeId ?? "")), contacts: state.contacts.map(c => contacts.get(c.id) ?? c), changeSets: state.changeSets.map(c => c.id === change.id ? { ...c, undone: true } : c) })
     }
+    case "undoCreatedEvent": return undoCreatedEvent(state, action.id)
     case "createTasks": return createTasks(state, action)
     case "sendTaskEmail": return sendTaskEmail(state, action.nodeId)
     case "reviewChange": {
@@ -942,7 +945,8 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "markNoticeRead": out = fields(s.notifications.find(n => n.id === a.id), ["read"]); break
     case "resolveReport": out = fields(s.feedback.find(f => f.id === a.id), ["resolved"]); break
     case "reviewExtension": out = fields(s.extensionRequests.find(r => r.id === a.id), ["status"]); break
-    case "undoAuto": out = fields(s.changeSets.find(c => c.id === a.id), ["undone"]); break
+    case "undoAuto":
+    case "undoCreatedEvent": out = fields(s.changeSets.find(c => c.id === a.id), ["undone"]); break
     case "applyStepEdits": out = { steps: (Array.isArray(a.edits) ? a.edits : []).map(e => ({ id: e?.id, ...fields(node(e?.id), ["dependsOn", "estDays", "phase"]) })), ...(a.phaseOrder ? { phaseOrder: phaseOrderOf(s.events.find(e => e.id === a.eventId)) } : {}) }; break
     case "reviewChange": { const c = s.changeSets.find(x => x.id === a.id); out = c ? { review: c.reviews?.[a.index] ?? "pending", status: c.status } : undefined; break }
   }

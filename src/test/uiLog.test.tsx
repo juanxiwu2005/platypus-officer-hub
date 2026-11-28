@@ -72,10 +72,10 @@ describe("reading a press", () => {
 
 describe("reading a choice", () => {
   it("checkbox: its label, ticked or not, and its group; select: the chosen option's label, not the other options", () => {
-    html(`<fieldset><legend>Situation-based checklist</legend><label><input type="checkbox" id="c"> Alcohol</label></fieldset>
+    html(`<fieldset><legend>Other checklists</legend><label><input type="checkbox" id="c"> Alcohol</label></fieldset>
       <label class="composer-channel">Preferred channel<select id="s"><option value="whatsapp">WhatsApp · preferred</option><option value="email">Gmail</option></select></label>`)
     const box = document.querySelector<HTMLInputElement>("#c")!; box.checked = true
-    expect(describeChange(box, "/")?.payload).toEqual({ route: "/", role: "checkbox", name: "Alcohol", checked: true, group: "Situation-based checklist" })
+    expect(describeChange(box, "/")?.payload).toEqual({ route: "/", role: "checkbox", name: "Alcohol", checked: true, group: "Other checklists" })
     const sel = document.querySelector<HTMLSelectElement>("#s")!; sel.value = "email"
     expect(describeChange(sel, "/tasks")?.payload).toEqual({ route: "/tasks", role: "combobox", name: "Preferred channel", value: "Gmail" })
   })
