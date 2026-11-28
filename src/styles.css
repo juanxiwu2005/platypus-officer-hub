@@ -56,6 +56,9 @@
   --s1: 2px;   --s2: 4px;   --s3: 6px;   --s4: 8px;
   --s5: 12px;  --s6: 16px;  --s7: 24px;
   --rail-w: 380px;  --nav-w: 196px;  --topbar-h: 56px;
+  /* The page frame (DESIGN_TOKENS §15): every page in the app shell uses one column next to the navigation, at most this wide,
+     whatever tab is open or how wide its content is. Wide content scrolls inside its own area. */
+  --page-max: 1600px;
   /* The floating Ask button (.ask-fab) is this size; pages that keep actions clear of it pad by it (R-S0). */
   --fab-size: 52px;
   /* Focus ring of text fields: a solid 1px --accent ring (with the field's --accent border, 2px of accent, >= 4.7:1 against the surface and the halo)
@@ -103,6 +106,9 @@
 }
 .route-loading-page { min-height: 100dvh; }
 html, body { margin: 0; overflow-x: clip; }
+/* A page that grows past the window height gains a scroll bar; with classic (non-overlay) scroll bars that made the whole
+   page narrower and shifted it. The gutter is kept either way, so switching to a long or short tab moves nothing (§15). */
+html { scrollbar-gutter: stable; }
 body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased; font-size: var(--fs-base); }
 a { color: var(--accent-ink); }
 button, select, input, textarea { font: inherit; color: inherit; }
@@ -187,9 +193,13 @@ p { margin: 0; }
 .sidenav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent-ink); font-weight: 600; }
 .sidenav a[aria-current="page"] svg { color: var(--accent-ink); }
 main { min-width: 0; display: grid; gap: 16px; max-width: 1180px; width: 100%; justify-self: center; }
-/* Events has the list of events on the left and a wide flow chart, so it sits against the navigation and may use more room; a centered 1180px column left a wide empty strip beside the navigation when the side panel was closed. */
-main:has(> .events-layout) { max-width: 1600px; justify-self: start; }
-main:has(.wfl-root) { max-width: 1600px; }
+/* Stable page frame (DESIGN_TOKENS §15, Juanxi 2026-11-28): the app shell's page column never depends on which page or tab is
+   open. It used to be a centered 1180px column that widened to 1600px and moved against the navigation only when a wide
+   view was on screen (Events, or the workflow chart in Settings), so Settings' title and sections jumped (about 175px in a 1780px window) between
+   Workflow and Roles & teams, and Plan's title jumped between Events and Tasks. Now every page sits next to the navigation
+   (Juanxi 2026-11-01: no empty strip beside it) and uses the same width. The plain rule above stays for the few pages outside
+   the shell (the error page, a single task opened from an email). */
+.shell:not(.single) > main { max-width: var(--page-max); justify-self: start; }
 
 /* Page parts */
 .page-head { display: flex; gap: 12px; max-width: none; align-items: center; justify-content: space-between; flex-wrap: wrap; min-height: 40px; }
@@ -255,9 +265,14 @@ progress { accent-color: var(--accent); height: 8px; }
 .avatar.sm { width: 20px; height: 20px; font-size: var(--fs-xs); }
 .seg { display: inline-flex; flex-wrap: wrap; gap: 4px; padding: 2px; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-md); }
 .seg button { border: 0; background: transparent; padding: 6px 12px; border-radius: var(--r-sm); cursor: pointer; font-size: var(--fs-md); color: var(--muted); }
-.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); font-weight: 600; }
+/* The chosen button changes background, colour and shadow, never its weight: bold text is wider and would push the buttons
+   after it sideways at every switch (§15; same rule as Playbook's category chips, Juanxi 2026-11-26). */
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 .events-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: var(--s6); align-items: start; }
 .events-content { display: grid; gap: var(--s6); min-width: 0; }
+/* With a single event there is no event list: the content takes the whole row on every view (Flow and Budget alike), instead
+   of falling into the list's 220px column whenever the view has no team chart (§15). */
+.events-layout > .events-content:only-child { grid-column: 1 / -1; }
 .event-nav { position: sticky; top: calc(var(--topbar-h) + var(--s5)); display: grid; gap: var(--s1); max-height: calc(100vh - var(--topbar-h) - var(--s7)); overflow: auto; padding-right: var(--s2); }
 .event-nav button { border: 0; border-radius: var(--r-md); background: transparent; color: var(--ink); cursor: pointer; font: inherit; font-size: var(--fs-md); padding: var(--s4) var(--s5); text-align: left; }
 .event-nav button:hover { background: var(--surface-2); }
@@ -766,7 +781,8 @@ tr.clickable { cursor: pointer; }
 .save-status { display: inline-flex; gap: 10px; align-items: center; font-size: var(--fs-md); padding: 6px 10px; border-radius: var(--r-sm); justify-self: start; }
 .save-status.ok { background: var(--good-soft); color: var(--good); }
 .save-status.err { background: var(--late-soft); color: var(--late); }
-@media (max-width: 700px) { .settings { grid-template-columns: 1fr; } .settings-nav { position: static; display: flex; overflow-x: auto; } .settings-nav button { white-space: nowrap; } }
+/* On a phone the sections are one row: the current one is not bold there, so the buttons after it never move (§15). */
+@media (max-width: 700px) { .settings { grid-template-columns: 1fr; } .settings-nav { position: static; display: flex; overflow-x: auto; } .settings-nav button { white-space: nowrap; } .settings-nav button[aria-current="page"] { font-weight: inherit; } }
 .band { display: inline-flex; gap: 2px; padding: 4px 0; }
 .band i { width: 18px; height: 8px; border-radius: var(--r-xs); background: var(--line); }
 /* Built at runtime in Team.tsx: `band b${BAND[...]}` with BAND = { Light: 1, Balanced: 2,

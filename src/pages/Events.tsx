@@ -127,20 +127,22 @@ export default function Events() {
   // A saved-template run is drawn from its template's graph; it is edited in Settings, so Plan offers no Edit flow for it.
   const templateGraph = flowChartKind(ev, nodes) === "template-graph"
 
-  return (
+  // The page head sits above the event list, as Settings' head sits above its sections, so the title and the Events | Tasks
+  // switch are in the same place on Events and on Tasks (DESIGN_TOKENS §15).
+  return (<>
+    <PageHead path="/events" actions={<>{state.events.length > 1 && (
+      <label className="event-picker">
+        <span className="sr-only">Choose an event</span>
+        <select aria-label="Choose an event" value={ev.id} onChange={e => chooseEvent(e.target.value)}>
+          {eventsByDate.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+        </select>
+      </label>
+    )}<NewEvent /></>} />
     <div className="events-layout">
       {state.events.length > 1 && <nav className="event-nav" aria-label="Events">
         {eventsByDate.map(e => <button key={e.id} type="button" title={e.name} aria-current={e.id === ev.id ? "page" : undefined} onClick={() => chooseEvent(e.id)}>{e.name}</button>)}
       </nav>}
       <div className="events-content">
-        <PageHead path="/events" actions={<>{state.events.length > 1 && (
-          <label className="event-picker">
-            <span className="sr-only">Choose an event</span>
-            <select aria-label="Choose an event" value={ev.id} onChange={e => chooseEvent(e.target.value)}>
-              {eventsByDate.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select>
-          </label>
-        )}<NewEvent /></>} />
 
       <section className="card event-head" aria-labelledby="ev-title">
         <div className="event-head-row">
@@ -179,7 +181,7 @@ export default function Events() {
         {view === "budget" && <EventBudget event={ev} />}
       </div>
     </div>
-  )
+  </>)
 }
 
 /** Why "+ New event" is off for this viewer (FB-5); null when they may create events. The words live in changeReview. */
