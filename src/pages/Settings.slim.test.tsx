@@ -13,7 +13,7 @@ function Probe() { current = useStore(); return null }
 const show = (state: DemoState, entry = "/settings") => render(<MemoryRouter initialEntries={[entry]}><StoreProvider initial={state}><Probe /><Settings /></StoreProvider></MemoryRouter>)
 const nav = () => screen.getByRole("navigation", { name: "Settings sections" })
 beforeEach(() => localStorage.clear())
-afterEach(() => { cleanup(); localStorage.clear() })
+afterEach(() => { cleanup(); localStorage.clear(); delete document.documentElement.dataset.theme })
 
 describe("slimmer Settings", () => {
   it("has no Links & files tab; ?tab=links opens Club, where Planning notes saves and the stored links stay", async () => {
@@ -57,5 +57,23 @@ describe("slimmer Settings", () => {
     await waitFor(() => expect(current.state.people.find(p => p.id === viewer.id)!.name).toBe(`${viewer.name} Jr`))
     const saved = current.state.people.find(p => p.id === viewer.id)!
     expect([saved.careerGoal, saved.interests, saved.expectations]).toEqual([viewer.careerGoal, viewer.interests, viewer.expectations])
+  })
+
+  it("My preferences: Appearance starts on Follow system and applies a choice at once, outside the demo state", () => {
+    show(seedDemo(undefined, "v2"), "/settings?tab=me")
+    const box = within(screen.getByTestId("settings-appearance"))
+    expect(box.getAllByRole("radio").map(r => r.closest("label")!.textContent)).toEqual(["Follow system", "Always light", "Always dark"])
+    expect((box.getByRole("radio", { name: "Follow system" }) as HTMLInputElement).checked).toBe(true)
+    expect(document.documentElement.dataset.theme).toBeUndefined()
+    const before = JSON.stringify(current.state)
+    fireEvent.click(box.getByRole("radio", { name: "Always dark" }))
+    expect(document.documentElement.dataset.theme).toBe("dark")
+    expect(localStorage.getItem("platypus.v1.appearance")).toBe("dark")
+    fireEvent.click(box.getByRole("radio", { name: "Always light" }))
+    expect(document.documentElement.dataset.theme).toBe("light")
+    fireEvent.click(box.getByRole("radio", { name: "Follow system" }))
+    expect(document.documentElement.dataset.theme).toBeUndefined()
+    expect(localStorage.getItem("platypus.v1.appearance")).toBeNull()
+    expect(JSON.stringify(current.state)).toBe(before)
   })
 })

@@ -6,6 +6,7 @@ import { useStore, useViewer } from "../data/store"
 import { PageHead } from "../components/Page"
 import { RoleCard } from "../components/SettingsForms"
 import { MyPreferencesForm } from "../components/settings/MyPreferencesForm"
+import { AppearanceSetting } from "../components/settings/AppearanceSetting"
 import { RolesTeams } from "../components/settings/RolesTeams"
 import { SettingsNavContext, linkedSettingsTab, type SettingsTab } from "../components/settings/settingsNav"
 import { clubDraft, profilePatch, validateClub, validateDefaults, validateProfile, type ClubDraft } from "../data/settings"
@@ -139,6 +140,8 @@ function MySettings() {
   const { person, role } = useViewer()
   const bufferDays = personalBuffer(state, person).days   // the engine's number; only this officer sees it
   return <section className="card form-stack" data-testid="my-settings"><MyForm key={person.id} />
+    {/* A per-browser viewer preference, not club data (src/lib/appearance.ts). */}
+    <AppearanceSetting />
     <details className="more"><summary>My extra days</summary>
       <p className="small" data-testid="my-buffer">Private: {bufferDays} extra {bufferDays === 1 ? "day" : "days"}.</p>
       <label className="check-label"><input type="checkbox" checked={person.retainBufferAtHandoff ?? false} onChange={e => dispatch({ type: "handoffAction", action: { kind: "retainBuffer", keep: e.target.checked } })} />Keep my extra days when I hand off ({role?.displayName})</label>
