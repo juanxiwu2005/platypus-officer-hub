@@ -161,6 +161,8 @@ export function createTasks(s: DemoState, a: { id: string; sentence: string; tas
   // A malformed branch place is harmless: placementOf (engine/workflowBranches.ts) shows it as an unrecognized branch.
   if (a.tasks.some(({ link }) => link && !(s.events.some(e => e.id === link.eventId && e.date > s.today && a.date < e.date)))) return s
   const lead = canLead(s)
+  // Only the president or VP may put a task into an event's flow (Juanxi 2026-11-28), as with the event's own steps.
+  if (!lead && a.tasks.some(task => task.link)) return s
   // Only a lead can post a task nobody owns yet; anyone else's task without an owner is their own.
   const raw = a.tasks.map(t => ({ op: "add_node", title: t.title, eventId: t.eventId, ownerId: t.ownerId ?? (lead ? null : s.viewerId), tier: t.tier ?? "light" }))
   const ops = sanitizeOps(raw, commandContext(s)).filter((o): o is Extract<CommandOp, { op: "add_node" }> => o.op === "add_node")

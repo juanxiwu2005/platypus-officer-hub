@@ -18,6 +18,9 @@ const create = (s: DemoState, ownerId: string | null, linkEventId?: string, date
   return reducer(s, { type: "createTasks", id: "ct", sentence: "Print name badges", tasks: [{ title: "Print name badges", ownerId, eventId: null, ...(link ? { link } : {}) }], date, buffered: false, source: "Added on the Tasks page" })
 }
 const made = (s: DemoState) => s.nodes.find(n => n.id === "ct:0")
+const holds = (id: string, fns: string[]) => base.roles.some(role => role.holderId === id && fns.includes(role.fn))
+const lead = base.people.find(p => holds(p.id, ["president", "vice_president"]))!.id
+const member = base.people.find(p => p.id !== "sam" && base.roles.some(role => role.holderId === p.id) && !holds(p.id, ["president", "vice_president"]))!.id
 
 describe("task kinds", () => {
   it("a task with no event, or a linked club task, is a club task; a workflow step is an event task", () => {
@@ -49,9 +52,13 @@ describe("where a linked club task goes", () => {
 })
 
 describe("creating a linked club task", () => {
-  it("any officer may link; it joins the event, stays a club task and keeps its own due date", () => {
+  it("only the president or VP may link (Juanxi 2026-11-28); another officer's linked task is refused", () => {
+    expect(made(create(as(member), "sam", "e-night"))).toBeUndefined()
+    expect(made(create(as(member), "sam"))).toMatchObject({ eventId: null })
+  })
+  it("a lead's linked task joins the event, stays a club task and keeps its own due date", () => {
     const due = addDays(base.today, 7)
-    const next = create(as("maya"), "sam", "e-night", due)
+    const next = create(as(lead), "sam", "e-night", due)
     const node = made(next)!
     expect(node).toMatchObject({ eventId: "e-night", clubTask: true, ownerId: "sam", status: "unclaimed", clubDeadline: due, placement: { branchId: "marketing" } })
     expect(isClubTask(node)).toBe(true)

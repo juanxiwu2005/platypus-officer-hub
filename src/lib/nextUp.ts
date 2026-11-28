@@ -10,13 +10,26 @@ export interface NextUpRow { node: Node; reason: NextUpReason; club: string }
 const RANK: Record<NextUpReason, number> = { risk: 0, watch: 1, start: 2 }
 
 /**
+ * The forecast colour a step's risk may use. A close step (Headcount, Thank-you note …) can only start after the event,
+ * so before the event day its forecast is left out (Juanxi 2026-11-28): such a step is at risk only for a schedule error,
+ * a Stuck status or a club deadline before today.
+ */
+export function riskForecastColor(state: DemoState, forecast: Forecast, node: Node) {
+  if (node.phase === "close") {
+    const event = node.eventId ? state.events.find(candidate => candidate.id === node.eventId) : undefined
+    if (event?.date && state.today < event.date) return undefined
+  }
+  return forecast.nodes[node.id]?.color
+}
+
+/**
  * The one "at risk" rule (S3): an unfinished step with a schedule error, a red forecast, a Stuck status, or a club
  * deadline before today. The flow's red dot, the event head's "at risk" count and "Next up" all use it.
  */
 export function isAtRisk(state: DemoState, sched: Schedule, forecast: Forecast, node: Node): boolean {
   if (node.status === "done") return false
   const plan = sched.nodes[node.id]
-  return worstIssue(plan?.issues)?.severity === "error" || forecast.nodes[node.id]?.color === "red"
+  return worstIssue(plan?.issues)?.severity === "error" || riskForecastColor(state, forecast, node) === "red"
     || node.status === "blocked" || (plan?.club ?? "9999") < state.today
 }
 
@@ -32,7 +45,7 @@ export function nextUp(state: DemoState, sched: Schedule, forecast: Forecast, ev
     const plan = sched.nodes[node.id]
     if (!plan) continue
     const issue = worstIssue(plan.issues)?.severity
-    const color = forecast.nodes[node.id]?.color
+    const color = riskForecastColor(state, forecast, node)
     const reason: NextUpReason | null = isAtRisk(state, sched, forecast, node) ? "risk"
       : issue === "warn" || color === "yellow" ? "watch"
       : plan.latestStart <= state.today ? "start" : null

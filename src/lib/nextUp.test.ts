@@ -84,4 +84,24 @@ describe("nextUp ranking", () => {
       expect(row.club).toBe(sched.nodes[row.node.id].club)
     }
   })
+
+  it("leaves out the forecast of close steps until the event day, but keeps their other risk signs (Juanxi 2026-11-28)", () => {
+    const { state: built, sched, forecast } = build([
+      { id: "headcount", club: "2026-11-20", start: "2026-11-15", color: "red" },
+      { id: "thanks", club: "2026-11-20", start: "2026-11-15", color: "yellow" },
+      { id: "stuck", status: "blocked", club: "2026-11-20", start: "2026-11-15", color: "red" },
+      { id: "promo", club: "2026-11-20", start: "2026-11-15", color: "red" },
+    ])
+    const event = { ...base.events[0], id: "ev", date: "2026-11-10" }
+    const close = new Set(["headcount", "thanks", "stuck"])
+    const state: DemoState = { ...built, events: [event], nodes: built.nodes.map(node => ({ ...node, phase: close.has(node.id) ? "close" : "prepare" })) }
+    const at = (today: string) => ({ ...state, today })
+    const risky = (today: string) => at(today).nodes.filter(node => isAtRisk(at(today), sched, forecast, node)).map(node => node.id)
+    // Before the event: a red forecast still marks a preparation step, but not a close step; Stuck still counts.
+    expect(risky("2026-11-01")).toEqual(["stuck", "promo"])
+    expect(ids(nextUp(at("2026-11-01"), sched, forecast, "ev", 10))).toEqual(["promo:risk", "stuck:risk"])
+    // From the event day on, the close steps' forecast counts again.
+    expect(risky("2026-11-10")).toEqual(["headcount", "stuck", "promo"])
+    expect(ids(nextUp(at("2026-11-10"), sched, forecast, "ev", 10))).toContain("thanks:watch")
+  })
 })

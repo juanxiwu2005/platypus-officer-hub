@@ -132,13 +132,16 @@ function NewTaskForm({ onClose, onCreated }: { onClose: () => void; onCreated: (
         return <button key={days} type="button" className="btn" aria-pressed={due === date} disabled={!!event && date >= event.date} onClick={() => { setDue(date); setError("") }}>In {days} days</button>
       })}</div>
     </div>
-    <label className="new-task-link">Link to an event (optional)<select aria-label="Link to an event" value={eventId} onChange={e => { setEventId(e.target.value); setError("") }}>
-      <option value="">No event: a club task</option>
-      {events.map(e => <option key={e.id} value={e.id}>{e.name} · {fmtShort(e.date)}</option>)}
-    </select></label>
-    <p className="new-task-link-note small muted" data-testid="new-task-link-note">{event
-      ? <>It stays in Club tasks and also goes last in {owner ? `${owner.name.split(" ")[0]}'s` : "the"} <b>{branch?.title ?? "event"}</b> branch before {event.name} ({fmtShort(event.date)}). To change the event's own steps, {lead ? <>use Edit flow on <Link to={`/events?event=${encodeURIComponent(event.id)}`}>{event.name}</Link></> : "ask the president or VP"}.</>
-      : "A club task. Linking it to an event also puts it in that event's flow."}</p>
+    {/* Only the president or VP may put a task into an event's flow (Juanxi 2026-11-28); other officers make club tasks. */}
+    {lead && <>
+      <label className="new-task-link">Link to an event (optional)<select aria-label="Link to an event" value={eventId} onChange={e => { setEventId(e.target.value); setError("") }}>
+        <option value="">No event: a club task</option>
+        {events.map(e => <option key={e.id} value={e.id}>{e.name} · {fmtShort(e.date)}</option>)}
+      </select></label>
+      <p className="new-task-link-note small muted" data-testid="new-task-link-note">{event
+        ? <>It stays in Club tasks and also goes last in {owner ? `${owner.name.split(" ")[0]}'s` : "the"} <b>{branch?.title ?? "event"}</b> branch before {event.name} ({fmtShort(event.date)}). To change the event's own steps, use Edit flow on <Link to={`/events?event=${encodeURIComponent(event.id)}`}>{event.name}</Link>.</>
+        : "A club task. Linking it to an event also puts it in that event's flow."}</p>
+    </>}
     {error && <p className="small late-text" role="alert">{error}</p>}
     <div className="new-task-buttons">
       <button className="btn btn-primary" type="submit">Add</button>
