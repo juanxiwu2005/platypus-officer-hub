@@ -32,3 +32,15 @@
   .new-event, .new-task { justify-content: flex-start; }
   .new-event-why, #new-task-why { text-align: left; }
 }
+
+/* Club tasks and event tasks (2026-11-28): the optional event link, quick due dates and the email question. */
+.new-task-quick { display: flex; flex-wrap: wrap; gap: var(--control-gap); }
+.new-task-link-note { grid-column: span 2; align-self: end; margin: 0; }
+.task-link-tag { margin-left: var(--s3); white-space: nowrap; }
+.task-link-tag::before { content: "↗ "; }
+.email-ask-backdrop { position: fixed; inset: 0; z-index: var(--z-menu); display: grid; place-items: center; padding: var(--s5); background: color-mix(in srgb, var(--ink) 45%, transparent); }
+.email-ask { display: grid; gap: var(--s4); width: min(100%, 420px); }
+.email-ask h2 { margin: 0; font-size: var(--fs-lg); }
+.email-ask p { margin: 0; }
+.email-ask-buttons { display: flex; flex-wrap: wrap; gap: var(--control-gap); }
+@media (max-width: 860px) { .new-task-link-note { grid-column: auto; } }

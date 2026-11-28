@@ -256,7 +256,8 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
   if (ev.workflowRun?.snapshot.milestoneGraph) { planMilestoneEvent(ctx, ev, out); return }
   const { state } = ctx
   const sequential = ev.workflowRun?.snapshot.teamExecution === "sequential"
-  const nodes = state.nodes.filter(n => n.eventId === ev.id)
+  // A linked club task keeps its own due date (src/data/clubTasks.ts), so it is planned as a standalone task below.
+  const nodes = state.nodes.filter(n => n.eventId === ev.id && !n.clubTask)
   const { order, looped } = topoOrder(nodes)
   const ids = new Set(nodes.map(n => n.id))
   const children = new Map<string, string[]>(nodes.map(n => [n.id, []]))
@@ -412,7 +413,7 @@ function planEvent(ctx: Ctx, ev: Event, out: Schedule) {
 /** New milestone versions pin their targets. Dependency conflicts become risks, never moving an event day or target. */
 function planMilestoneEvent(ctx: Ctx, ev: Event, out: Schedule) {
   const version = ev.workflowRun!.snapshot, graph = version.milestoneGraph!
-  const nodes = ctx.state.nodes.filter(node => node.eventId === ev.id), { order, looped } = topoOrder(nodes)
+  const nodes = ctx.state.nodes.filter(node => node.eventId === ev.id && !node.clubTask), { order, looped } = topoOrder(nodes)
   const invalid = workflowMilestoneGraphError(graph, version.steps, new Set(version.teams.map(team => team.id)))
   if (invalid) {
     for (const node of nodes) {
@@ -740,7 +741,7 @@ export function computeSchedule(state: DemoState): Schedule {
   const ctx: Ctx = { state, byId: new Map(state.nodes.map(n => [n.id, n])) }
   const out: Schedule = { nodes: {}, events: {} }
   for (const ev of state.events) planEvent(ctx, ev, out)
-  for (const n of state.nodes) if (!n.eventId || !state.events.some(e => e.id === n.eventId)) planStandalone(ctx, n, out)
+  for (const n of state.nodes) if (!n.eventId || n.clubTask || !state.events.some(e => e.id === n.eventId)) planStandalone(ctx, n, out)
   return out
 }
 

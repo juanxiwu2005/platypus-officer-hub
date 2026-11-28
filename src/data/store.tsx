@@ -7,7 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { BudgetLineItem, ChangeSet, DemoState, Event, LogEntry, Node, OnboardingChecklist, Phase, StepTemplate, WorkflowBranch, WorkflowTemplateDraft, WorkflowTeam } from "./types"
 import { countItems, sameChecklist, sanitizeChecklist } from "../lib/checklist"
 import { commandContext, isSmallOp, sanitizeOps } from "../lib/commands"
-import { assignedNotice, canApplyOp, canChangeEvent, canLead, createTasks, newObjects, validateReview, type HumanInputs, type NewTask } from "./changeReview"
+import { assignedNotice, canApplyOp, canChangeEvent, canLead, createTasks, newObjects, sendTaskEmail, validateReview, type HumanInputs, type NewTask } from "./changeReview"
 import { nudgeBlocked } from "../lib/nudges"
 import type { Channel, NudgeVia } from "./types"
 import { SCHEMA_VERSION, seedDemo } from "./seed"
@@ -164,6 +164,7 @@ export type Action =
   | { type: "aiAutoApply"; changeSet: ChangeSet }
   | { type: "undoAuto"; id: string }
   | { type: "createTasks"; id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }
+  | { type: "sendTaskEmail"; nodeId: string }
   | { type: "reviewChange"; id: string; index: number; decision: "applied" | "rejected"; op?: unknown; human?: HumanInputs }
   | { type: "confirmNudgeSent"; nodeId: string; channel: Channel; text: string; via?: NudgeVia; message?: ReminderMailSnapshot }
   | { type: "enableReminderPlan" }
@@ -547,6 +548,7 @@ function baseReducer(state: DemoState, action: Action): DemoState {
       return applySchedule({ ...state, nodes: kept, notifications: state.notifications.filter(n => !created.has(n.nodeId ?? "")), contacts: state.contacts.map(c => contacts.get(c.id) ?? c), changeSets: state.changeSets.map(c => c.id === change.id ? { ...c, undone: true } : c) })
     }
     case "createTasks": return createTasks(state, action)
+    case "sendTaskEmail": return sendTaskEmail(state, action.nodeId)
     case "reviewChange": {
       const change = state.changeSets.find(c => c.id === action.id)
       if (!change || change.status !== "pending" || !change.ops[action.index] || !canApplyOp(state, change.ops[action.index]) || (change.reviews?.[action.index] ?? "pending") !== "pending") return state
@@ -938,6 +940,7 @@ function beforeOf(s: DemoState, a: Action): unknown {
     case "saveClubSettings": out = { name: s.org.name, mission: s.org.mission, settings: s.org.settings }; break
     case "saveProfile": out = fields(s.people.find(p => p.id === a.personId), Object.keys(a.patch)); break
     case "markNoticeRead": out = fields(s.notifications.find(n => n.id === a.id), ["read"]); break
+    case "sendTaskEmail": out = { taskEmails: (s.taskEmails ?? []).length }; break
     case "resolveReport": out = fields(s.feedback.find(f => f.id === a.id), ["resolved"]); break
     case "reviewExtension": out = fields(s.extensionRequests.find(r => r.id === a.id), ["status"]); break
     case "undoAuto": out = fields(s.changeSets.find(c => c.id === a.id), ["undone"]); break

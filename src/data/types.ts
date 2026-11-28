@@ -444,7 +444,16 @@ export interface Node {
   tags?: string[]
   /** Calibrated timing copied from the workflow step (FB-6). Absent on hand-made tasks and on steps built before FB-6. */
   timing?: StepTiming
+  /**
+   * A club task (made on the Tasks page) that its maker linked to an event (Juanxi, 2026-11-28). It keeps its own due date and
+   * stays in Club tasks, and also sits at the end of its owner's branch in that event's flow. Absent on event workflow steps
+   * and on unlinked club tasks (eventId null); see src/data/clubTasks.ts.
+   */
+  clubTask?: boolean
 }
+
+/** A "new task" email the maker chose to send when they gave someone a task (Juanxi, 2026-11-28). Demo: nothing leaves the app. Not a reminder. */
+export interface TaskEmail { id: string; nodeId: string; toId: string; fromId: string; sentOn: string }
 
 export interface Nudge {
   message?: import("../reminders/accessContracts").ReminderMailSnapshot
@@ -704,6 +713,8 @@ export interface DemoState {
   changeSets: ChangeSet[]
   extensionRequests: ExtensionRequest[]
   notifications: Notice[]
+  /** New-task emails (optional: older saves have none). Kept apart from reminders so they never count toward reminder limits. */
+  taskEmails?: TaskEmail[]
   silenceCases: SilenceCase[]
   protocolLog: ProtocolEntry[]
   officerGrants: OfficerGrant[]

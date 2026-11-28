@@ -34,4 +34,4 @@ export function taskAnchor(s: DemoState, due: string, buffered: boolean) {
 }
 
 /** A hand-made task's fixed date is its due date, not an ASU deadline, so it is labelled that way. */
-export const officialLabel = (n: Pick<Node, "eventId" | "anchor">) => !n.eventId && n.anchor?.kind === "fixed" ? "Due date" : "ASU deadline"
+export const officialLabel = (n: Pick<Node, "eventId" | "anchor" | "clubTask">) => (!n.eventId || n.clubTask) && n.anchor?.kind === "fixed" ? "Due date" : "ASU deadline"

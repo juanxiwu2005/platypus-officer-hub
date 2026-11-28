@@ -31,7 +31,7 @@ export function TaskDetail({ node, actorId, token, accessToken, standalone = fal
   const title = standalone ? <h1 id="single-task-heading" ref={heading} tabIndex={-1}>{node.title}</h1> : <h2 ref={heading} tabIndex={-1}>{node.title}</h2>
   return <section className={`task-detail task-detail-universal${standalone ? " task-detail-standalone" : ""}`} aria-label="Linked task" data-testid="task-detail">
     <header className="td-head">
-      {event ? eventLink && <p className="td-event small"><Link to={`/events?event=${encodeURIComponent(event.id)}`}>← {event.name}</Link></p> : <p className="td-event small">Club task</p>}
+      {event ? eventLink && <p className="td-event small">{node.clubTask && "Club task · "}<Link to={`/events?event=${encodeURIComponent(event.id)}`}>{node.clubTask ? "linked to " : "← "}{event.name}</Link></p> : <p className="td-event small">Club task</p>}
       <div className="task-title-row">{title}{canEdit && <button type="button" className="btn small task-edit-trigger" onClick={() => setEditing(true)}><span aria-hidden="true">✎</span> Edit</button>}</div>
       <div className="task-identity">
         <span className={`task-compact-due${isLate(node, due, state.today) ? " late-text" : ""}`} data-testid={standalone ? "single-task-due" : "task-due"}>Due <strong>{due ? fmtShort(due) : "Not set"}</strong></span>

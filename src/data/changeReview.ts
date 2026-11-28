@@ -123,6 +123,18 @@ export function newObjects(s: DemoState, op: CommandOp, id: string, human: Human
   return {}
 }
 
+/**
+ * The optional "new task" email (Juanxi, 2026-11-28): asked once, right after the maker gives someone else a task. Only the task's
+ * maker, once, and only to another current officer who owns it. Demo: recorded, nothing leaves the app. Reminders never see it.
+ */
+export function sendTaskEmail(s: DemoState, nodeId: string): DemoState {
+  const node = s.nodes.find(n => n.id === nodeId)
+  const made = s.changeSets.some(c => c.by === s.viewerId && !c.undone && c.createdIds?.includes(nodeId))
+  const to = s.people.find(p => p.id === node?.ownerId && isOfficer(p))
+  if (!node || !made || !to || to.id === s.viewerId || (s.taskEmails ?? []).some(e => e.nodeId === nodeId)) return s
+  return { ...s, taskEmails: [...(s.taskEmails ?? []), { id: `mail:${nodeId}`, nodeId, toId: to.id, fromId: s.viewerId, sentOn: s.today }] }
+}
+
 /** The notice the new owner gets when someone else gives them a task. */
 export function assignedNotice(s: DemoState, node: Node): DemoState {
   if (!node.ownerId || node.ownerId === s.viewerId) return s
@@ -130,7 +142,12 @@ export function assignedNotice(s: DemoState, node: Node): DemoState {
   return addNotices(s, node.id, [node.ownerId], "info", `${who} gave you a new task: “${node.title}”. Claim it when you're ready.`, `assigned:${node.id}`)
 }
 
-export interface NewTask { title: string; ownerId: string | null; eventId: string | null; tier?: Tier }
+/**
+ * `link`: a club task linked to an upcoming event, with the branch place the Tasks page worked out (src/data/clubTasks.ts, kept
+ * out of the startup bundle); `eventId` stays null for club tasks.
+ */
+export interface TaskLink { eventId: string; branchId: string; order: number; teamId?: string }
+export interface NewTask { title: string; ownerId: string | null; eventId: string | null; tier?: Tier; link?: TaskLink }
 /**
  * The Ask task form and the Tasks page form (M2b, FB-5): one task per owner, applied at once as the viewer, with Undo.
  * Anyone may create tasks for themselves or for anyone else (Juanxi, 2026-10-27); someone else's waits in Not claimed
@@ -140,6 +157,8 @@ export interface NewTask { title: string; ownerId: string | null; eventId: strin
 export function createTasks(s: DemoState, a: { id: string; sentence: string; tasks: NewTask[]; date: string; buffered: boolean; source?: string }): DemoState {
   if (s.changeSets.some(c => c.id === a.id) || !a.tasks.length || a.tasks.length > 10) return s
   if (a.tasks.some(task => task.eventId !== null)) return s
+  // A linked club task needs an event still ahead and a due date before its event day (clubTasks.ts linkError says why to the user).
+  if (a.tasks.some(({ link }) => link && !(s.events.some(e => e.id === link.eventId && e.date > s.today && a.date < e.date) && typeof link.branchId === "string" && Number.isFinite(link.order)))) return s
   const lead = canLead(s)
   // Only a lead can post a task nobody owns yet; anyone else's task without an owner is their own.
   const raw = a.tasks.map(t => ({ op: "add_node", title: t.title, eventId: t.eventId, ownerId: t.ownerId ?? (lead ? null : s.viewerId), tier: t.tier ?? "light" }))
@@ -154,6 +173,9 @@ export function createTasks(s: DemoState, a: { id: string; sentence: string; tas
     // M2b (AGENTS.md rule 3): a task given to someone else is theirs only once they accept it, so it waits in
     // Not claimed with them as owner until they press "I've got it" (claimTask). Your own task is To do at once.
     if (op.ownerId && op.ownerId !== s.viewerId) next = { ...next, nodes: next.nodes.map(n => n.id === id ? { ...n, status: "unclaimed", acceptedOn: null } : n) }
+    const link = a.tasks[i].link
+    // Linked club task: the event's flow shows it at the end of its owner's branch; its dates stay its own (engine/schedule.ts).
+    if (link) next = { ...next, nodes: next.nodes.map(n => n.id === id ? { ...n, eventId: link.eventId, clubTask: true, phase: "prepare", placement: { branchId: link.branchId, order: link.order }, ...(link.teamId ? { teamId: link.teamId } : {}) } : n) }
     next = assignedNotice(next, next.nodes.find(n => n.id === id)!)
     createdIds.push(id)
   })
