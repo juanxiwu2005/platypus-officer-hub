@@ -44,21 +44,34 @@ test.describe("computer", () => {
       test(`Settings at ${width}px with the side panel ${panel}: title, sections and content start stay put on every tab`, async ({ page }) => {
         await fresh(page, width, "/settings", panel)
         const frames: Record<string, { title: number; nav: Box; body: number; main: Box }> = {}
+        const panels: Record<string, boolean> = {}
         // Twice round, so the second pass also covers coming back to a tab after a wide one (Workflow) and a narrow one.
         for (const pass of [1, 2]) {
           for (const name of SETTINGS_TABS) {
             await openSettingsTab(page, name)
+            // These three tabs hide Ask as they open; wait until the panel has gone, so the frame is measured at rest.
+            if (["Roles & teams", "Workflow", "Onboarding"].includes(name)) await expect(page.getByTestId("rail")).toHaveCount(0)
             frames[`${pass}:${name}`] = {
               title: await x(page.locator("main .page-head h1")),
               nav: await box(page.locator(".settings-nav")),
               body: await x(page.locator(".settings-body")),
               main: await box(page.locator("main#main")),
             }
+            panels[`${pass}:${name}`] = (await page.getByTestId("rail").count()) > 0
           }
         }
+        // Roles & teams, Workflow and Onboarding hide Ask when they open (they need the room; that predates §15), so with
+        // the panel open the column is wider from then on. Its left edge, the title, the sections and the content start
+        // never move; its width follows only the panel, never the tab, so tabs with the panel in the same state match exactly.
         const first = frames["1:Club"]
         expect(first.nav.width, "the section list has a fixed width").toBe(170)
-        for (const [tab, frame] of Object.entries(frames)) expect(frame, `Settings → ${tab}`).toEqual(first)
+        const byPanel = new Map<boolean, typeof first>()
+        for (const [tab, frame] of Object.entries(frames)) {
+          expect({ ...frame, main: frame.main.x }, `Settings → ${tab}`).toEqual({ ...first, main: first.main.x })
+          const same = byPanel.get(panels[tab]) ?? frame
+          byPanel.set(panels[tab], same)
+          expect(frame.main.width, `Settings → ${tab}: the column width follows the side panel only`).toBe(same.main.width)
+        }
         expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), "no sideways scroll").toBeLessThanOrEqual(0)
       })
 

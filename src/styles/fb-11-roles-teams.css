@@ -7,7 +7,9 @@
 .rt-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--s6); align-items: start; min-width: 0; }
 .rt-layout.is-list { grid-template-columns: minmax(0, 1fr); }
 .rt-main { min-width: 0; }
-.rt-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--s5); }
+/* The view switch and the add buttons sit right after the title, not at the card's right edge: the card is wider in
+   Contact list (no inspector column beside it), and right-aligned buttons jumped about 300px at each switch (DESIGN_TOKENS §15). */
+.rt-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: flex-start; gap: var(--s5) var(--s7); }
 .rt-head h2 { margin: 0; }
 .rt-head p { margin: var(--s2) 0 0; }
 .rt-inspector { position: sticky; top: calc(var(--topbar-h) + var(--s6)); max-height: calc(100vh - var(--topbar-h) - 2 * var(--s7)); overflow-y: auto; }
