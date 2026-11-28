@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useStore } from "../../data/store"
 import type { ChangeSet, DemoState, Event, EventCheck, EventChecks } from "../../data/types"
@@ -6,7 +6,8 @@ import type { ChatCard } from "../../lib/assistant"
 import { fmtLong } from "../../lib/dates"
 import { FINALS, findPeriod } from "../../engine/calendar"
 import { sanitizeOps, type CommandOp } from "../../lib/commands"
-import { canLead, eventBlocked, validateReview, type HumanInputs } from "../../data/changeReview"
+import { canLead, draftEventNodes, eventBlocked, validateReview, type HumanInputs } from "../../data/changeReview"
+import { teamLeadChoices } from "../../data/teamLeads"
 import { sourceName } from "../../lib/sourceNames"
 import { COMMON_EVENT_CHECKS, EVENT_CHECKLIST, OTHER_EVENT_CHECKLIST } from "../../data/eventChecklist"
 import { findWorkflowTemplateVersion } from "../../data/workflowTemplates"
@@ -23,7 +24,7 @@ import { initialWorkflowChoice, WorkflowTemplatePicker, type WorkflowChoice } fr
 
 type FormCard = Extract<ChatCard, { kind: "form" }>
 /** What the form returns to its owner: an error to show in the form, or nothing when it went through. */
-export type PlanDone = (c: FormCard, workflowChoice?: WorkflowChoice) => string | null | void
+export type PlanDone = (c: FormCard, workflowChoice?: WorkflowChoice, teamLeads?: Record<string, string>) => string | null | void
 
 const FOOD: Record<Event["food"], string> = { none: "none", dining: "Sun Devil Dining", offsite: "outside caterer", onsite: "made on site", tbd: "yes" }
 const CHIP_LABEL: Partial<Record<EventCheck, string>> = { speaker: "Guest speaker or performer" }
@@ -36,11 +37,11 @@ export const planSummary = (c: FormCard) => [c.prefill.name, c.date, `${c.prefil
  * The change set and the approval inputs the form's press stands for: exactly what ChangeItem.apply sends for a reviewed
  * create_event. Checked against the current state first, so a problem shows in the form and nothing is drafted.
  */
-export function eventFromForm(state: DemoState, c: FormCard, workflowChoice: WorkflowChoice | undefined, id: string): { error: string } | { changeSet: ChangeSet; op: CommandOp; human: HumanInputs } {
+export function eventFromForm(state: DemoState, c: FormCard, workflowChoice: WorkflowChoice | undefined, id: string, teamLeads?: Record<string, string>): { error: string } | { changeSet: ChangeSet; op: CommandOp; human: HumanInputs } {
   if (!workflowChoice) return { error: "Choose a saved workflow version." }
   const op = sanitizeOps([{ ...c.prefill, op: "create_event" }], state)[0]
   if (!op || op.op !== "create_event") return { error: "These details no longer match the current demo. Check them and try again." }
-  const human: HumanInputs = { date: c.date, buffered: false, workflowTemplateId: workflowChoice.templateId, workflowTemplateVersion: workflowChoice.templateVersion }
+  const human: HumanInputs = { date: c.date, buffered: false, workflowTemplateId: workflowChoice.templateId, workflowTemplateVersion: workflowChoice.templateVersion, ...(teamLeads ? { teamLeads } : {}) }
   const problem = validateReview(state, op, human)
   if (problem) return { error: problem }
   return { op, human, changeSet: { id, sentence: `Plan ${op.name} on ${c.date}`, ops: [op], status: "pending", source: "Your details + the saved workflow", by: state.viewerId, workflowChoices: { 0: workflowChoice } } }
@@ -54,10 +55,10 @@ export default function PlanFormCard({ card, onCreated }: { card: FormCard; onCr
   const { dispatch, getState } = useStore()
   const navigate = useNavigate()
   const rail = useRail()
-  return <PlanForm card={card} onDone={(c, workflowChoice) => {
+  return <PlanForm card={card} onDone={(c, workflowChoice, teamLeads) => {
     const state = getState()
     const id = `change-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-    const plan = eventFromForm(state, c, workflowChoice, id)
+    const plan = eventFromForm(state, c, workflowChoice, id, teamLeads)
     if ("error" in plan) return plan.error
     dispatch({ type: "draftChanges", changeSet: plan.changeSet })
     if (!getState().changeSets.some(x => x.id === id)) return "This event could not be saved in this browser. Try again."
@@ -87,6 +88,8 @@ export function PlanForm({ card, onDone }: { card: FormCard; onDone: PlanDone })
   const [date, setDate] = useState(card.date)
   const [workflowChoice, setWorkflowChoice] = useState(() => initialWorkflowChoice(state))
   const [error, setError] = useState("")
+  // Who leads each team this time (option A, Juanxi 2026-11-28): the lead gets the team's tasks and hands them out to teammates.
+  const [leads, setLeads] = useState<Record<string, string>>({})
   // Fields the person changed are theirs; the assistant's later reading only fills the others.
   const touched = useRef(new Set<string>())
   const edit = (patch: Partial<typeof f>) => { Object.keys(patch).forEach(k => touched.current.add(k)); setF(prev => ({ ...prev, ...patch })) }
@@ -110,11 +113,23 @@ export function PlanForm({ card, onDone }: { card: FormCard; onDone: PlanDone })
   const anyOther = otherTicked > 0
   const [moreOpen, setMoreOpen] = useState(anyOther)
   useEffect(() => { if (anyOther) setMoreOpen(true) }, [anyOther])
+  // The teams this event's tasks fall into, from the chosen workflow and the ticked checklists, with their members.
+  const teams = useMemo(() => {
+    if (!workflowChoice) return []
+    const op = sanitizeOps([{ ...f, name: f.name.trim() || "New event", details: undefined, op: "create_event" }], state)[0]
+    if (!op) return []
+    const human: HumanInputs = { date: /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= state.today ? date : state.today, workflowTemplateId: workflowChoice.templateId, workflowTemplateVersion: workflowChoice.templateVersion }
+    return teamLeadChoices(state, draftEventNodes(state, op, human))
+  }, [state, f, date, workflowChoice])
   if (card.done) return <div className="mini-card done"><b>{card.prefill.name}</b><span className="small muted">Created · {fmtLong(card.date)}</span></div>
   const hasFood = f.food !== "none"
   const checked = (key: EventCheck) => key === "speaker" ? f.speaker : f.checks[key] === true
   const toggle = (key: EventCheck, on: boolean) => edit(key === "speaker" ? { speaker: on, checks: { ...f.checks, speaker: on } } : { checks: { ...f.checks, [key]: on } })
   const finals = /^\d{4}-\d{2}-\d{2}$/.test(date) ? findPeriod(date, FINALS) : null
+  const teamChoices = teams
+  const leadOf = (teamId: string, fallback: string | null) => leads[teamId] && teamChoices.find(t => t.teamId === teamId)?.members.includes(leads[teamId]) ? leads[teamId] : fallback
+  const chosenLeads = Object.fromEntries(teamChoices.flatMap(t => { const lead = leadOf(t.teamId, t.defaultLeadId); return lead ? [[t.teamId, lead]] : [] }))
+  const nameOf = (id: string) => state.people.find(p => p.id === id)?.name ?? "Unknown"
   return <form className="mini-card plan-form" data-testid="plan-form" data-form-id={card.id} autoComplete="off" onSubmit={e => {
     e.preventDefault()
     if (blocked) return setError(blocked)
@@ -122,7 +137,7 @@ export function PlanForm({ card, onDone }: { card: FormCard; onDone: PlanDone })
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < state.today) return setError("Pick a date from today on.")
     if (!workflowChoice || !findWorkflowTemplateVersion(state, workflowChoice.templateId, workflowChoice.templateVersion)) return setError("Choose a saved workflow version.")
     const details = f.details.trim()
-    const problem = onDone({ ...card, done: true, date, prefill: { ...f, name: f.name.trim(), details: details || undefined } }, workflowChoice)
+    const problem = onDone({ ...card, done: true, date, prefill: { ...f, name: f.name.trim(), details: details || undefined } }, workflowChoice, Object.keys(chosenLeads).length ? chosenLeads : undefined)
     setError(problem || "")
   }}>
     <b>New event</b>
@@ -147,6 +162,16 @@ export function PlanForm({ card, onDone }: { card: FormCard; onDone: PlanDone })
         {OTHER_EVENT_CHECKLIST.map(item => <label key={item.key} className="check-label"><input type="checkbox" checked={checked(item.key)} onChange={e => toggle(item.key, e.target.checked)} />{item.label}</label>)}
       </fieldset>
     </details>
+    {teamChoices.length > 0 && <fieldset className="team-leads" data-testid="team-leads">
+      <legend>Who leads each team this time?</legend>
+      <p className="small muted">The lead gets the team's tasks and hands them out to teammates.</p>
+      {teamChoices.map(t => <div key={t.teamId} className="team-lead-row">
+        <span className="team-lead-name">{t.name}<span className="small muted"> · {t.steps} {t.steps === 1 ? "step" : "steps"}</span></span>
+        {t.members.length > 1
+          ? <label><span className="sr-only">{t.name} lead</span><select aria-label={`${t.name} lead`} value={leadOf(t.teamId, t.defaultLeadId) ?? ""} onChange={e => setLeads(prev => ({ ...prev, [t.teamId]: e.target.value }))}>{t.members.map(id => <option key={id} value={id}>{nameOf(id)}</option>)}</select></label>
+          : t.members.length === 1 ? <span className="small">{nameOf(t.members[0])}</span> : <span className="small muted">No one on this team yet</span>}
+      </div>)}
+    </fieldset>}
     <label>Details<textarea rows={3} maxLength={500} autoComplete="off" value={f.details} onChange={e => edit({ details: e.target.value })} placeholder="Anything unusual: a stage build, a company visit, flying out of state, a competition…" /></label>
     {blocked && <p className="small muted">{blocked}</p>}
     {error && <p className="small late-text" role="alert">{error}</p>}

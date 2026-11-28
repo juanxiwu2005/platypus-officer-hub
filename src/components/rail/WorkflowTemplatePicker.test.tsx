@@ -55,7 +55,7 @@ describe("human workflow selection", () => {
     const done = vi.fn()
     render(<PlanForm card={{ kind: "form", id: "form-visit", date: "2027-04-16", prefill: { name: "Fictional company visit" } }} onDone={done} />)
     fireEvent.click(screen.getByRole("button", { name: "Create event" }))
-    expect(done).toHaveBeenCalledWith(expect.objectContaining({ done: true, date: "2027-04-16" }), choice)
+    expect(done).toHaveBeenCalledWith(expect.objectContaining({ done: true, date: "2027-04-16" }), choice, undefined)
     expect(store.dispatch).not.toHaveBeenCalled()
     expect(rail.requestReview).not.toHaveBeenCalled()
   })
